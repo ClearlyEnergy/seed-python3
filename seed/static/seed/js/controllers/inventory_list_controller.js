@@ -302,7 +302,7 @@ angular.module('BE.seed.controller.inventory_list', [])
               var data = new Array($scope.selectedOrder.length);
 
               if ($scope.inventory_type === 'properties') {
-                return inventory_service.get_properties(1, undefined, undefined, -1, selectedOrder).then(function (inventory_data) {
+                return inventory_service.get_properties(1, undefined, undefined, -1, false, selectedOrder).then(function (inventory_data) {
                   _.forEach(selectedOrder, function (id, index) {
                     var match = _.find(inventory_data.results, {id: id});
                     if (match) {
@@ -595,7 +595,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         } else if ($scope.inventory_type === 'taxlots') {
           fn = inventory_service.get_taxlots;
         }
-        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id')).then(function (data) {
+        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id'), $scope.showSubOrgData).then(function (data) {
           $scope.progress = {
             current: data.pagination.end,
             total: data.pagination.total,
@@ -645,6 +645,12 @@ angular.module('BE.seed.controller.inventory_list', [])
         label_service.get_labels($scope.inventory_type).then(function (current_labels) {
           updateApplicableLabels(current_labels);
         });
+      };
+
+      $scope.toggle_sub_org_data = function() {
+        // TODO: In refresh_objects(), showSubOrgData is false. Need to find
+        // out why
+        refresh_objects();
       };
 
       processData();

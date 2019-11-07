@@ -576,7 +576,7 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
             });
           }],
           propertyInventory: ['inventory_service', function (inventory_service) {
-            return inventory_service.get_properties(1, undefined, undefined, -1);
+            return inventory_service.get_properties(1, undefined, undefined, -1, false);
           }],
           taxlotInventory: ['inventory_service', function (inventory_service) {
             return inventory_service.get_taxlots(1, undefined, undefined, -1);

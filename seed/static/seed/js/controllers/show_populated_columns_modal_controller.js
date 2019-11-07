@@ -37,7 +37,7 @@ angular.module('BE.seed.controller.show_populated_columns_modal', [])
         } else if ($scope.inventory_type === 'taxlots') {
           fn = inventory_service.get_taxlots;
         }
-        return fn(page, chunk, $scope.cycle, -1).then(function (data) {
+        return fn(page, chunk, $scope.cycle, -1, false).then(function (data) {
           $scope.progress = Math.round(data.pagination.end / data.pagination.total * 100);
           if (data.pagination.has_next) {
             return fetch(page + 1, chunk).then(function (data2) {
