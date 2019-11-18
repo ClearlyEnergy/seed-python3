@@ -579,7 +579,7 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
             return inventory_service.get_properties(1, undefined, undefined, -1, false);
           }],
           taxlotInventory: ['inventory_service', function (inventory_service) {
-            return inventory_service.get_taxlots(1, undefined, undefined, -1);
+            return inventory_service.get_taxlots(1, undefined, undefined, -1, false);
           }],
           cycles: ['cycle_service', function (cycle_service) {
             return cycle_service.get_cycles();
@@ -1073,6 +1073,17 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
         templateUrl: static_url + 'seed/partials/inventory_list.html',
         controller: 'inventory_list_controller',
         resolve: {
+<<<<<<< HEAD
+=======
+          inventory: ['$stateParams', 'inventory_service', 'current_profile', function ($stateParams, inventory_service, current_profile) {
+            var profile_id = _.has(current_profile, 'id') ? current_profile.id : undefined;
+            if ($stateParams.inventory_type === 'properties') {
+              return inventory_service.get_properties(1, undefined, undefined, profile_id, false);
+            } else if ($stateParams.inventory_type === 'taxlots') {
+              return inventory_service.get_taxlots(1, undefined, undefined, profile_id, false);
+            }
+          }],
+>>>>>>> add taxlot support to sub-org data display
           cycles: ['cycle_service', function (cycle_service) {
             return cycle_service.get_cycles();
           }],

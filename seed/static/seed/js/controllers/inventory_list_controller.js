@@ -312,7 +312,7 @@ angular.module('BE.seed.controller.inventory_list', [])
                   return data;
                 });
               } else if ($scope.inventory_type === 'taxlots') {
-                return inventory_service.get_taxlots(1, undefined, undefined, -1, selectedOrder).then(function (inventory_data) {
+                return inventory_service.get_taxlots(1, undefined, undefined, -1, false, selectedOrder).then(function (inventory_data) {
                   _.forEach(selectedOrder, function (id, index) {
                     var match = _.find(inventory_data.results, {id: id});
                     if (match) {
@@ -648,8 +648,6 @@ angular.module('BE.seed.controller.inventory_list', [])
       };
 
       $scope.toggle_sub_org_data = function() {
-        // TODO: In refresh_objects(), showSubOrgData is false. Need to find
-        // out why
         refresh_objects();
       };
 
