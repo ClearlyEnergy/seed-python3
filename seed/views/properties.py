@@ -239,7 +239,6 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
                 })
 
         organization = Organization.objects.get(id=org_id)
-        sub_organizations = []
         org_filter = Q(property__organization_id=organization.id)
         cycle_filter = Q(cycle=cycle)
         # Matches cycles that start and end during the organization's current
