@@ -15,6 +15,7 @@ from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.utils import ErrorList
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
+from tos.models import has_user_agreed_latest_tos, TermsOfService, NoActiveTermsOfService
 
 from .forms import LoginForm
 
@@ -46,27 +47,26 @@ def login_view(request):
                 password=form.cleaned_data['password']
             )
             if new_user is not None and new_user.is_active:
-                # TODO: the ToS haven't worked for awhile, reneable?
                 # determine if user has accepted ToS, if one exists
-                # try:
-                #     user_accepted_tos = has_user_agreed_latest_tos(new_user)
-                # except NoActiveTermsOfService:
+                try:
+                    user_accepted_tos = has_user_agreed_latest_tos(new_user)
+                except NoActiveTermsOfService:
                 #     there's no active ToS, skip interstitial
-                # user_accepted_tos = True
+                    user_accepted_tos = True
                 #
-                # if user_accepted_tos:
-                login(request, new_user)
-                return HttpResponseRedirect(redirect_to)
-                # else:
+                if user_accepted_tos:
+                    login(request, new_user)
+                    return HttpResponseRedirect(redirect_to)
+                else:
                 #     store login info for django-tos to handle
-                # request.session['tos_user'] = new_user.pk
-                # request.session['tos_backend'] = new_user.backend
-                # context = RequestContext(request)
-                # context.update({
-                #     'next': redirect_to,
-                #     'tos': TermsOfService.objects.get_current_tos()
-                # })
-                # return render(request, 'tos/tos_check.html', context)
+                    request.session['tos_user'] = new_user.pk
+                    request.session['tos_backend'] = new_user.backend
+                #context = RequestContext(request)
+                    context = {
+                        'next': redirect_to,
+                        'tos': TermsOfService.objects.get_current_tos()
+                    }
+                    return render(request, 'tos/tos_check.html', context)
             else:
                 errors = ErrorList()
                 errors = form._errors.setdefault(NON_FIELD_ERRORS, errors)

@@ -3,13 +3,14 @@
 
 {% trans "You're receiving this e-mail because you've been registered for a SEED account." %}
 
-{% blocktrans %}SEED is easy, flexible, and cost effective software designed to help organizations clean, manage and share information about large portfolios of buildings. SEED is a free, open source web application that you can use privately.  While SEED was originally designed to help cities and States implement benchmarking programs for public or private buildings, it has the potential to be useful for many other activities by public entities, efficiency programs and private companies.{% endblocktrans %}
+{% blocktrans %}HELIX is designed to help States and organizations clean, manage and share information about home energy certification programs, residential solar installations and other home energy attributes.{% endblocktrans %}
+
 
 {% trans "Please go to the following page and setup your account:" %}
 {% block reset_link %}
 {{ protocol }}://{{ domain }}{{signup_url}}
 {% endblock %}
 
-{% blocktrans %}The SEED Team{% endblocktrans %}
+{% blocktrans %}The HELIX Team{% endblocktrans %}
 
 {% endautoescape %}

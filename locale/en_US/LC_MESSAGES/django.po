@@ -969,7 +969,7 @@ msgstr "Get a New API Key"
 
 #: seed/landing/templates/landing/_marketing_bullets.html:7
 msgid "Get started using SEED Platform by uploading your buildings list (city tax assessor data) and then your EPA Portfolio Manager data."
-msgstr "Get started using SEED Platform by uploading your buildings list (city tax assessor data) and then your EPA Portfolio Manager data."
+msgstr "Get started using HELIX by uploading your properties and energy information and certifications."
 
 msgid "Getting Started"
 msgstr "Getting Started"
@@ -1243,14 +1243,14 @@ msgid "MAPPING_STEP_2_ADVICE"
 msgstr "After you click the <span class=\"label label-primary\">Map Your Data</span> button, you will see a view with the mapped fields and your data in a grid, so that you can verify the mapping is what you want. If you need to change the mapping, click the <span class=\"label label-primary\">Back to Mapping</span> button and edit the field mapping. Make sure that the mappings are correct in this step. Once you have clicked on the <span class=\"label label-primary\">Save Mappings</span> button, you will not be able to change the field mappings."
 
 msgid "MARKETING_BULLET_1"
-msgstr "Get started using SEED Platform™ by uploading your buildings list (city tax assessor data) and then your EPA Portfolio Manager data. Make sure these files are each in .csv, .xls, .xlsx, or .xml format. The SEED Platform will help you map and validate your data in the process of loading."
+msgstr "Get started using HELIX by uploading your properties and energy information and certifications."
 
 msgid "MARKETING_BULLET_2"
-msgstr "Match-up your buildings list with the Portfolio Manager dataset to tie building records together. SEED Platform will help you by auto-matching high confidence pairings and then provide you with tools to match the rest of your dataset."
+msgstr "Automatically update your property list with new records retrieved from the Department of Energy's Home Energy Score database and shortly from the RESNET HERS registry."
 
 #: seed/landing/templates/landing/_marketing_bullets.html:23
 msgid "MARKETING_BULLET_3"
-msgstr "Use SEED Platform's flexible, easy-to-use labeling system and inventory groupings to track the status of data submission, review, and compliance."
+msgstr "Easily export HELIX data to multiple listing systems and data vendors."
 
 msgid "Master"
 msgstr "Master"
@@ -2606,7 +2606,7 @@ msgstr "You're receiving this e-mail because you requested a password reset"
 
 #: seed/templates/seed/account_create_email.html:4
 msgid "You're receiving this e-mail because you've been registered for a SEED account."
-msgstr "You're receiving this e-mail because you've been registered for a SEED account."
+msgstr "You're receiving this e-mail because you've been registered for a HELIX account."
 
 msgid "your data set name"
 msgstr "your data set name"

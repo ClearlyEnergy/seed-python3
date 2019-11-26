@@ -2,7 +2,7 @@
 {% block content %}
 <div class="page terms_of_service">
 
-<h1>Our Terms of Service have changed.</h1>
+<h2>Our Terms of Service have changed.</h1>
 <p>{{ tos.created|date:"SHORT_DATE_FORMAT" }}</p>
 
 <div class="terms">
@@ -17,7 +17,7 @@
         <input type="hidden" name="next" value="{{next}}">
     {% endif %}
     <input class="btn btn-primary" type="submit" name="accept" value="accept">
-    <input class="btn btn-default" type="submit" name="accept" value="reject">
+    <input class="btn btn-default" type="submit" name="reject" value="reject">
 </form>
 </div>
 {% endblock %}
