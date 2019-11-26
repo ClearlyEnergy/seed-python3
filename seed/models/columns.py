@@ -273,6 +273,11 @@ class Column(models.Model):
             'table_name': 'TaxLotState',
             'display_name': 'Postal Code',
             'data_type': 'string',
+        },  {
+            'column_name': 'county',
+            'table_name': 'PropertyState',
+            'display_name': 'County',
+            'data_type': 'string',
         }, {
             # This field should never be mapped to!
             'column_name': 'lot_number',
@@ -562,6 +567,11 @@ class Column(models.Model):
             'table_name': 'TaxLotState',
             'display_name': 'District',
             'data_type': 'string',
+        }, {
+            'column_name': 'data_quality',
+            'table_name': 'PropertyState',
+            'display_name': 'Data Quality',
+            'data_type': 'integer',
         }
     ]
     organization = models.ForeignKey(SuperOrganization, blank=True, null=True)

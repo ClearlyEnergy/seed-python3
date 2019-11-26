@@ -226,7 +226,7 @@ class GreenAssessmentProperty(models.Model):
     @metric.setter
     def metric(self, value):
         """"Set numeric assessment score/metric"""
-        if value:
+        if value is not None:
             if self.assessment and not self.assessment.is_numeric_score:
                 msg = "{} uses a rating (non numeric score)".format(self.name)
                 raise ValidationError(msg)
@@ -348,6 +348,8 @@ class GreenAssessmentProperty(models.Model):
             elif field:
                 field = field.format(sub)
                 reso_dict[field] = getattr(self, key)
+#            else:
+#                reso_dict[field] = ''
         reso_dict[url_field] = [url.url for url in self.urls.all()]
         return reso_dict
 

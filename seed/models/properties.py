@@ -140,6 +140,13 @@ class PropertyState(models.Model):
         (ANALYSIS_STATE_FAILED, 'Failed'),
     )
 
+    DATA_QUALITY_WARNING = 1
+    DATA_QUALITY_ERROR = 2
+    DATA_QUALITY_TYPES = (
+        (DATA_QUALITY_WARNING, 'Warning'),
+        (DATA_QUALITY_ERROR, 'Error'),
+    )
+
     # Support finding the property by the import_file and source_type
     import_file = models.ForeignKey(ImportFile, null=True, blank=True)
 
@@ -178,6 +185,7 @@ class PropertyState(models.Model):
     city = models.CharField(max_length=255, null=True, blank=True)
     state = models.CharField(max_length=255, null=True, blank=True)
     postal_code = models.CharField(max_length=255, null=True, blank=True)
+    county = models.CharField(max_length=255, null=True, blank=True)
 
     # New fields for latitude and longitude as native database objects
     latitude = models.FloatField(null=True, blank=True)
@@ -263,6 +271,9 @@ class PropertyState(models.Model):
     source_eui = QuantityField('kBtu/ft**2/year', null=True, blank=True)
     source_eui_weather_normalized = QuantityField('kBtu/ft**2/year', null=True, blank=True)
     source_eui_modeled = QuantityField('kBtu/ft**2/year', null=True, blank=True)
+
+    # HELIX
+    data_quality = models.IntegerField(choices=DATA_QUALITY_TYPES, null=True, blank=True)    
 
     extra_data = JSONField(default=dict, blank=True)
     hash_object = models.CharField(max_length=32, null=True, blank=True, default=None)
@@ -546,6 +557,7 @@ class PropertyState(models.Model):
                     ps.city,
                     ps.state,
                     ps.postal_code,
+                    ps.county,
                     ps.longitude,
                     ps.latitude,
                     ps.geocoding_confidence,
@@ -595,7 +607,7 @@ class PropertyState(models.Model):
         # important because the fields that were not queried will be deferred and require a new
         # query to retrieve.
         keep_fields = ['id', 'pm_property_id', 'pm_parent_property_id', 'custom_id_1', 'ubid',
-                       'address_line_1', 'address_line_2', 'city', 'state', 'postal_code',
+                       'address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'county',
                        'longitude', 'latitude',
                        'lot_number', 'gross_floor_area', 'use_description', 'energy_score',
                        'site_eui', 'site_eui_modeled', 'property_notes', 'property_type',

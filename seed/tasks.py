@@ -55,7 +55,7 @@ def invite_to_seed(domain, email_address, token, user_pk, first_name):
         'signup_url': signup_url
     }
 
-    subject = 'New SEED account'
+    subject = 'New HELIX account'
     email_body = loader.render_to_string(
         'seed/account_create_email.html',
         context

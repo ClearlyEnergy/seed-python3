@@ -49,6 +49,9 @@ class PropertyMeasure(models.Model):
     SCALE_MULTIPLE_PREMISES = 4
     SCALE_ENTIRE_FACILITY = 5
     SCALE_ENTIRE_SITE = 6
+    SCALE_GROUND_MOUNTED = 7
+    SCALE_ROOF_MOUNTED = 8
+    SCALE_CANOPY = 9
 
     APPLICATION_SCALE_TYPES = (
         (SCALE_INDIVIDUAL_SYSTEM, 'Individual system'),
@@ -57,6 +60,9 @@ class PropertyMeasure(models.Model):
         (SCALE_MULTIPLE_PREMISES, 'Multiple premises'),
         (SCALE_ENTIRE_FACILITY, 'Entire facility'),
         (SCALE_ENTIRE_SITE, 'Entire site'),
+        (SCALE_GROUND_MOUNTED, 'Ground Mounted'),
+        (SCALE_ROOF_MOUNTED, 'Roof Mounted'),
+        (SCALE_ROOF_MOUNTED, 'Solar Canopy'),
     )
 
     CATEGORY_AIR_DISTRIBUTION = 0
@@ -139,7 +145,7 @@ class PropertyMeasure(models.Model):
     category_affected = models.IntegerField(choices=CATEGORY_AFFECTED_TYPE, default=CATEGORY_OTHER)
 
     class Meta:
-        unique_together = ('property_measure_name', 'property_state', 'measure', 'application_scale', 'implementation_status')
+#HELIX Added Ref ID        unique_together = ('property_measure_name', 'property_state', 'measure', 'application_scale', 'implementation_status')
         index_together = [
             ['property_measure_name', 'property_state'],
         ]

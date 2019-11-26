@@ -611,6 +611,20 @@ class DataQualityCheck(models.Model):
             # Run the checks
             self._check(rules, row)
 
+            # Helix save data quality
+            new_data_quality = None
+            if self.results[row.id]['data_quality_results']:
+                severity = []
+                for k in self.results[row.id]['data_quality_results']:
+                    severity.append(k['severity'])
+                if 'error' in severity:
+                    new_data_quality = 2
+                elif 'warning' in severity:
+                    new_data_quality = 1
+            if row.data_quality != new_data_quality:
+                row.data_quality = new_data_quality
+                row.save()
+
         # Prune the results will remove any entries that have zero data_quality_results
         for k, v in self.results.copy().items():
             if not v['data_quality_results']:
