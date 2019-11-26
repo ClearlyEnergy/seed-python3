@@ -1425,6 +1425,7 @@ def validate_model(sender, **kwargs):
 
 pre_save.connect(validate_model, sender=Column)
 
+
 def save_parent_organization_columns(sender, **kwargs):
     """
     Save columns to the parent organization as well so that they can be
@@ -1433,13 +1434,14 @@ def save_parent_organization_columns(sender, **kwargs):
     """
     instance = kwargs['instance']
     if instance.organization.parent_org is None:
-        return # Only dealing with sub-organizations
+        return  # Only dealing with sub-organizations
     if Column.objects.filter(organization=instance.organization.parent_org,
                              column_name=instance.column_name).count() > 0:
-        return # Do not add columns if the already exist
+        return  # Do not add columns if the already exist
     parent_col = Column.objects.get(pk=instance.pk)
     parent_col.pk = None
     parent_col.organization = instance.organization.parent_org
     parent_col.save()
+
 
 post_save.connect(save_parent_organization_columns, sender=Column)
