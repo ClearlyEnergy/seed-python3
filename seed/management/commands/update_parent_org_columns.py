@@ -4,10 +4,10 @@
 :author
 """
 from django.core.management.base import BaseCommand
-from django.db.models import Q
 
 from seed.lib.superperms.orgs.models import Organization
 from seed.models import Column
+
 
 class Command(BaseCommand):
     help = 'Updates the columns in the parent organization to include the ones in sub-organizations.'
@@ -30,12 +30,10 @@ class Command(BaseCommand):
             for sub_org in sub_orgs:
                 columns = Column.objects.filter(organization=sub_org.pk)
                 for column in columns:
-                    if Column.objects.filter(organization=org.pk,
-                                              column_name=column.column_name).count() > 0:
+                    if Column.objects.filter(organization=org.pk, column_name=column.column_name).count() > 0:
                         break
                     parent_col = Column.objects.get(pk=column.pk)
                     parent_col.pk = None
                     parent_col.organization = org
                     parent_col.save()
                     self.stdout.write("Column %s added" % parent_col.column_name)
-
