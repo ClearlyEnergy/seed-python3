@@ -66,8 +66,17 @@ script:
   - tox -e $TOX_ENV
 jobs:
   include:
-    - stage: publish
+    - stage: deploy
       install: skip
-      before_script: skip
-      script: travis_wait 30 docker/travis_build_docker.sh
-      env: DJANGO_SETTINGS_MODULE=config.settings.docker
+      before_script:
+        - apt-get update
+        - apt-get install -y -qq ansible git
+      script: travis_wait 30 script/deploy_helix
+      if: branch = develop
+    - stage: deploy
+      install: skip
+      before_script:
+        - apt-get update
+        - apt-get install -y -qq ansible git
+      script: travis_wait 30 script/deploy_helix
+      if: branch = production

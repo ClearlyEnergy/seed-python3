@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -e
+
+which ssh-agent || ( sudo apt-get update -y && sudo apt-get install openssh-client -y )
+eval $(ssh-agent -s)
+echo "$SSH_KEY" | tr -d '\r' | ssh-add - > /dev/null
+mkdir ~/.ssh && chmod 700 ~/.ssh
+
+git clone git@github.com:ClearlyEnergy/helix-aws-config.git ~/ansible
+cd ~/ansible
+
+ansible-playbook site.yml --inventory=./inventory --ssh-common-args="-C -o ControlMaster=auto -o ControlPersist=60s -o StrictHostKeyChecking=no"
