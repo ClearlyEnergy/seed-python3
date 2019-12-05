@@ -273,7 +273,7 @@ class Column(models.Model):
             'table_name': 'TaxLotState',
             'display_name': 'Postal Code',
             'data_type': 'string',
-        },  {
+        }, {
             'column_name': 'county',
             'table_name': 'PropertyState',
             'display_name': 'County',

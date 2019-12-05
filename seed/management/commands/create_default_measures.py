@@ -8,6 +8,7 @@ from django.core.management.base import BaseCommand
 from seed.lib.superperms.orgs.models import Organization
 from seed.models import Measure
 
+
 class Command(BaseCommand):
     help = 'Creates the default measures of an organization if there are none'
 
