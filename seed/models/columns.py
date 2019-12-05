@@ -1433,7 +1433,7 @@ def save_parent_organization_columns(sender, **kwargs):
     sub-organizations.
     """
     instance = kwargs['instance']
-    if instance.organization.parent_org is None:
+    if instance.organization is None or instance.organization.parent_org is None:
         return  # Only dealing with sub-organizations
     if Column.objects.filter(organization=instance.organization.parent_org,
                              column_name=instance.column_name).count() > 0:
