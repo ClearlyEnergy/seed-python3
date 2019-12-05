@@ -56,6 +56,7 @@ env:
     - DOCKER_COMPOSE_VERSION=1.16.0
     - DJANGO_SETTINGS_MODULE=config.settings.travis
     - DISPLAY=:99.0
+    - secure: HtOAAxPiA2NnSxXTBsmmXlFURH6WxnXXeaJLkjKc8cPWMsPX2QSouggtFYCPJxikrvN6bOYvDii67v2++E0qpuPO28LtywaLWu7AdDYxJ+rp4ysVjdi2Pp1bh723SZj2Xi3OMOLPz/kekT41DLKtoEzmBUEFEBIuJ27oU/phNGU=
   matrix:
     - TOX_ENV=python
     - TOX_ENV=flake8
