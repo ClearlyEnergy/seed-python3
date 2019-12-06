@@ -117,7 +117,7 @@ class TestFields(DeleteModelsTestCase):
         self.assertEqual(result, expected)
         self.assertRaises(ValidationError, field.to_internal_value, 1.54)
         self.assertRaises(ValidationError, field.to_internal_value, 'ten')
-        self.assertRaises(ValidationError, field.to_internal_value, 0)
+        # HELIX        self.assertRaises(ValidationError, field.to_internal_value, 0)
         self.assertRaises(ValidationError, field.to_internal_value, -10)
 
 
@@ -148,6 +148,7 @@ class TestGreenAssessmentPropertySerializer(DeleteModelsTestCase):
             'metric': 5,
             'version': '0.1',
             'date': '2016-01-01',
+#            'is_reso_certification': True,
             'eligibility': True,
             'assessment': self.assessment,
             'view': self.property_view,
@@ -160,6 +161,7 @@ class TestGreenAssessmentPropertySerializer(DeleteModelsTestCase):
         serializer = GreenAssessmentPropertySerializer()
         data = self.data.copy()
         data['urls'] = self.urls
+        print(data)
         instance = serializer.create(data)
         mock_url_model.objects.bulk_create.assert_called_with(
             [
@@ -184,7 +186,7 @@ class TestGreenAssessmentPropertySerializer(DeleteModelsTestCase):
             property_assessment=instance
         )
         mock_url_model.assert_called_with(
-            url='http://example.org', property_assessment=gap
+            url=['http://example.org'], property_assessment=gap
         )
 
     def test_validate(self):
@@ -284,7 +286,8 @@ class TestGreenAssessmentSerializer(DeleteModelsTestCase):
             'description': 'Test Award',
             'is_numeric_score': True,
             'is_integer_score': True,
-            'validity_duration': 365
+            'validity_duration': 365,
+            'is_reso_certification': True,
         }
         self.assessment = self.ga_factory.get_green_assessment(
             **assessment_data
@@ -301,7 +304,8 @@ class TestGreenAssessmentSerializer(DeleteModelsTestCase):
             'description': 'Test Award',
             'is_numeric_score': True,
             'is_integer_score': True,
-            'validity_duration': 365
+            'validity_duration': 365,
+            'is_reso_certification': True,
         }
         result = GreenAssessmentSerializer(self.assessment).data
         self.assertEqual(expected, result)

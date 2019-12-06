@@ -20,7 +20,6 @@ from rest_framework.fields import empty
 from seed.models import (
     AUDIT_USER_CREATE,
     AUDIT_USER_EDIT,
-    GreenAssessmentProperty,
     PropertyAuditLog,
     Property,
     PropertyState,
@@ -28,6 +27,7 @@ from seed.models import (
     TaxLotProperty,
     TaxLotView,
 )
+from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
 from seed.serializers.base import ChoiceField
 from seed.serializers.building_file import BuildingFileSerializer
 from seed.serializers.certification import (

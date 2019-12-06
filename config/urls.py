@@ -18,6 +18,9 @@ from rest_framework.schemas import get_schema_view
 schema_view = get_schema_view(title='SEED API Schema')
 
 urlpatterns = [
+    # HELIX
+    url(r'^helix/', include('helix.urls', namespace="helix", app_name="helix")),
+
     # Application
     url(r'^', include('seed.landing.urls', namespace="landing", app_name="landing")),
     url(r'^app/', include('seed.urls', namespace="seed", app_name="seed")),

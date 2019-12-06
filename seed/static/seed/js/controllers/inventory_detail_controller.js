@@ -22,6 +22,7 @@ angular.module('BE.seed.controller.inventory_detail', [])
     'matching_service',
     'pairing_service',
     'user_service',
+    'certification_service',
     'inventory_payload',
     'columns',
     'profiles',
@@ -46,6 +47,7 @@ angular.module('BE.seed.controller.inventory_detail', [])
       matching_service,
       pairing_service,
       user_service,
+      certification_service,
       inventory_payload,
       columns,
       profiles,
@@ -95,6 +97,10 @@ angular.module('BE.seed.controller.inventory_detail', [])
       /** See service for structure of returned payload */
       $scope.historical_items = inventory_payload.history;
       $scope.item_state = inventory_payload.state;
+
+      /** HELIX add-on to grab certifications and measures **/
+      $scope.certifications = inventory_payload.certifications;
+      $scope.measures = inventory_payload.measures;
 
       // item_parent is the property or the tax lot instead of the PropertyState / TaxLotState
       if ($scope.inventory_type === 'properties') {
@@ -487,6 +493,50 @@ angular.module('BE.seed.controller.inventory_detail', [])
         _.defer(function () {
           $scope.$apply();
         });
+      };
+
+      /**
+       * open up modal to confirm delete of green assessment, refresh page
+       */
+      $scope.confirm_delete_assessment = function (certification) {
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/delete_assessment_modal.html',
+          controller: 'delete_assessment_modal_controller',
+          resolve: {
+	      certification: certification
+          }
+        });
+
+        modalInstance.result.finally(function () {
+            $state.reload();
+        });
+      };
+	  
+      /**
+       * Functions for dealing with editing an assessment's opt-out status
+       */	
+      $scope.edit_assessment_status = function (certification) {
+        certification.edit_form_showing = true;
+      };
+      $scope.cancel_edit_assessment = function (certification) {
+        certification.edit_form_showing = false;
+      };
+      $scope.save_assessment_status = function (certification) {
+        certification.assessment = certification.assessment.id;
+        certification.view = $stateParams.view_id;
+        certification_service.update_assessment(certification).then(function () {
+          $state.reload();
+        });
+        certification.edit_form_showing = false;
+      };
+
+      /**
+       * delete green assessment URL only, refresh page
+       */
+      $scope.confirm_delete_assessment_url = function (certification_url) {
+          certification_service.delete_assessment_url(certification_url[2]).then(function () {
+            $state.reload();
+          });	
       };
 
       /**

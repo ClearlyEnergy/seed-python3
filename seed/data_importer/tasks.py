@@ -21,6 +21,7 @@ from itertools import chain
 
 from celery import chord, shared_task
 from celery.utils.log import get_task_logger
+from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import IntegrityError, DataError
 from django.db import connection, transaction
@@ -68,7 +69,7 @@ from seed.models import (
 from seed.models import PropertyAuditLog
 from seed.models import TaxLotAuditLog
 from seed.models import TaxLotProperty
-from seed.models.auditlog import AUDIT_IMPORT
+from seed.models.auditlog import AUDIT_IMPORT, AUDIT_USER_EXPORT
 from seed.models.data_quality import (
     DataQualityCheck,
     Rule,
@@ -76,12 +77,682 @@ from seed.models.data_quality import (
 from seed.utils.buildings import get_source_type
 from seed.utils.geocode import geocode_buildings
 from seed.utils.ubid import decode_unique_ids
+from seed.utils.cache import (
+    set_cache_raw, get_cache_raw
+)
+
+# HELIX
+from seed.landing.models import SEEDUser as User
+from hes import hes
+from leed import leed
+from seed.models.certification import (
+    GreenAssessment,
+    GreenAssessmentPropertyAuditLog,
+    GreenAssessmentURL)
+from seed.models.measures import Measure
+from helix.models import HELIXGreenAssessmentProperty, HelixMeasurement
+from helix.models import HELIXPropertyMeasure
+import helix.helix_utils as helix_utils
 
 # from seed.utils.cprofile import cprofile
 
 _log = get_task_logger(__name__)
 
 STR_TO_CLASS = {'TaxLotState': TaxLotState, 'PropertyState': PropertyState}
+
+
+def test_score_value(score_type, value):
+    """Uses certification type to normalize score/rating value
+    :param score_type metric or other
+    :param value
+    """
+    if score_type == 'metric':
+        return value
+    else:
+        if value in [0, 1]:
+            return str(bool(value)).upper()
+        else:
+            return value.strip().upper()
+
+
+def _create_green_assessment_property(assessment_data, view, user):
+    """ adds a green_assessment_property to a recently uploaded property.
+        If another file has been merged with the property since the file with
+        the given id was uploaded then this method will fail.
+
+        assesssment_data must be a dictionart with entries:
+            : Parameter: source
+            : Description:  source of this certification e.g. assessor
+            : required: false
+            : Parameter: status
+            : Description:  status for multi-step processes
+            : required: false
+            : Parameter: status_date
+            : Description:  date status first applied
+            : required: false
+            : Parameter: metric
+            : Description:  score if value is numeric
+            : required: false
+            : Parameter: rating
+            : Description:  score if value is non-numeric
+            : required: false
+            : Parameter: version
+            : Description:  version of certification issued
+            : required: false
+            : Parameter: date
+            : Description:  date certification issued  ``YYYY-MM-DD``
+            : required: false
+            : Parameter: target_date
+            : Description:  date achievement expected ``YYYY-MM-DD``
+            : required: false
+            : Parameter: eligibility
+            : Description:  BEDES eligible if true
+            : required: false
+            : Parameter: urls
+            : Description:  array of related green assessment urls
+            : required: false
+            : Parameter: assessment
+            : Description:  id of associated green assessment
+    """
+    green_property = None
+    priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
+        view=view,
+        assessment=assessment_data['assessment'])
+    if 'reference_id' in assessment_data:
+        priorAssessments = priorAssessments.filter(
+            reference_id=assessment_data['reference_id']
+        )
+
+    if(not priorAssessments.exists()):
+        # If the property does not have an assessment in the database
+        # for the specifed assesment type create a new one.
+        assessment_data.update({'view': view})
+        green_property = HELIXGreenAssessmentProperty.objects.create(**assessment_data)
+        green_property.initialize_audit_logs(user=user)
+        green_property.save()
+    else:
+        # find most recently created property and a corresponding audit log
+        green_property = priorAssessments.order_by('date').last()
+        old_audit_log = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty=green_property).exclude(record_type=AUDIT_USER_EXPORT).order_by('created').last()
+
+        # update fields
+        green_property.pk = None
+        for (key, value) in assessment_data.items():
+            setattr(green_property, key, value)
+        green_property.save()
+
+        # log changes
+        green_property.log(
+            changed_fields=assessment_data,
+            ancestor=old_audit_log.ancestor,
+            parent=old_audit_log,
+            user=user)
+
+    return green_property.id
+
+
+def _setup_assessments(assessment_property_data, name, org, view, user):
+    """Creates dictionary with green assessment data
+    """
+    assessment = GreenAssessment.objects.get(name=name, organization=org)
+    assessment_property_data['assessment'] = assessment
+
+    if 'date' in assessment_property_data:
+        assessment_property_data['date'] = cleaners.date_cleaner(assessment_property_data['date'])
+    if 'status_date' in assessment_property_data:
+        assessment_property_data['status_date'] = cleaners.date_cleaner(assessment_property_data['status_date'])
+    if 'opt_out' in assessment_property_data:
+        assessment_property_data['opt_out'] = cleaners.bool_cleaner(assessment_property_data['opt_out'])
+    green_assessment_urls = []
+    if 'url' in assessment_property_data:
+        if assessment_property_data['url'] is not None:
+            green_assessment_urls = [assessment_property_data['url']]
+        assessment_property_data.pop('url')
+
+    score_type = ("metric" if assessment.is_numeric_score else "rating")
+    if 'value' in assessment_property_data:
+        assessment_property_data[score_type] = assessment_property_data['value']
+        assessment_property_data.pop('value')
+
+    score_value = test_score_value(score_type, assessment_property_data[score_type])
+    if score_value not in ['', 'FALSE']:
+        assessment_property_data.update({score_type: score_value})
+        green_assessment_id = _create_green_assessment_property(assessment_property_data, view, user)
+    else:
+        green_assessment_id = None
+
+    _create_urls(green_assessment_urls, green_assessment_id)
+
+    return green_assessment_id
+
+
+def _setup_measurements(data_type, measurements, linked_id):
+    """Creates dictionary with measurement data
+    :param measurements         source dict for data
+    :param assessment_property  source property
+    """
+    measurement_types = [i[1] for i in HelixMeasurement.MEASUREMENT_TYPE_CHOICES]
+    fuel_types = [i[1].replace(' ', '_') for i in HelixMeasurement.FUEL_CHOICES]
+    unit_types = [i[1].replace(' ', '_') for i in HelixMeasurement.UNIT_CHOICES]
+
+    skip_consumption = False
+    skip_savings = False
+    # Consumption By Fuel, model: Measurement Consumption Quantity Electric
+    for ftype in fuel_types:
+        measurement_data = {k[(len('consumption') + 1): (len(k) - len(ftype) - 1)]: v for k, v in measurements.items() if 'consumption' in k and ftype.lower() in k}
+        if measurement_data:
+            skip_consumption = True
+            if measurement_data and measurement_data['quantity'] is None:
+                continue
+            measurement_data = _process_measurement_data(data_type, linked_id, measurement_data)
+            _create_measurement(**measurement_data)
+
+    # Savings By Unit, model: Measurement Savings Quantity Dollar
+    for utype in unit_types:
+        measurement_data = {k[(len('savings') + 1): (len(k) - len(utype) - 1)]: v for k, v in measurements.items() if 'savings' in k and utype.lower() in k}
+        if measurement_data:
+            skip_savings = True
+            if measurement_data['quantity'] is None:
+                continue
+            measurement_data = _process_measurement_data(data_type, linked_id, measurement_data)
+            _create_measurement(**measurement_data)
+
+    # Other Measurement Types (Production, Cost, Savings, Capacity)
+    for mtype in measurement_types:
+        if mtype == 'Consumption' and skip_consumption:
+            continue
+        if mtype == 'Savings' and skip_savings:
+            continue
+        measurement_data = {k[(len(mtype) + 1):]: v for k, v in measurements.items() if mtype.lower() in k}
+        if measurement_data and measurement_data['measurement_type']:
+            if measurement_data['quantity'] is None:
+                continue
+            measurement_data = _process_measurement_data(data_type, linked_id, measurement_data)
+            _create_measurement(**measurement_data)
+
+    return True
+
+
+def _process_measurement_data(data_type, linked_id, measurement_data):
+    """Processes measurement record
+    :data_type          assessment or measure
+    :linked_id          reference ID of assessment or measure
+    :measurement_data   dict with measurements
+    """
+    if data_type == 'assessment':
+        measurement_data['assessment_property_id'] = linked_id
+    elif data_type == 'measure':
+        measurement_data['measure_property_id'] = linked_id
+    measurement_data['measurement_type'] = HelixMeasurement.HES_TYPES[measurement_data['measurement_type']]
+    if 'fuel' in measurement_data:
+        measurement_data['fuel'] = HelixMeasurement.HES_FUEL_TYPES[measurement_data['fuel']]
+    if 'unit' in measurement_data:
+        measurement_data['unit'] = HelixMeasurement.HES_UNITS[measurement_data['unit']]
+    if 'year' in measurement_data and measurement_data['year']:
+        measurement_data['year'] = cleaners.date_cleaner(measurement_data['year']).year
+    return measurement_data
+
+
+def _create_measurement(**kwargs):
+    """Creates measurement record
+    :param kwargs   measurement data dictionary
+    """
+    measurement_record = HelixMeasurement.objects.get_or_create(**kwargs)
+
+    return measurement_record
+
+
+def _setup_measures(measure_data, org, state):
+    """Creates dictionary with measuremet data
+    :param measures     source dict for data
+    :param org          organization
+    """
+    measure = Measure.objects.get(display_name=measure_data['name'], organization=org)
+    measure_data['measure'] = measure
+    measure_data['property_state'] = state
+    measure_data.pop('name')
+    if 'electric' in measure_data:
+        if measure_data['electric'] in HELIXPropertyMeasure.ELECTRIC_CHOICES_REVERSE:
+            measure_data['electric'] = HELIXPropertyMeasure.ELECTRIC_CHOICES_REVERSE[measure_data['electric']]
+        else:
+            measure_data.pop('electric')
+    if 'implementation_status' in measure_data:
+        measure_data['implementation_status'] = HELIXPropertyMeasure.str_to_impl_status(measure_data['implementation_status'])
+    if 'application_scale' in measure_data:
+        measure_data['application_scale'] = HELIXPropertyMeasure.str_to_application_scale(measure_data['application_scale'])
+    if 'ownership' in measure_data:
+        if measure_data['ownership'] in HELIXPropertyMeasure.OWNERSHIP_CHOICES_REVERSE:
+            measure_data['ownership'] = HELIXPropertyMeasure.OWNERSHIP_CHOICES_REVERSE[measure_data['ownership']]
+        else:
+            measure_data.pop('ownership')
+    if 'current_financing' in measure_data:
+        if measure_data['current_financing'] in HELIXPropertyMeasure.FINANCING_CHOICES_REVERSE:
+            measure_data['current_financing'] = HELIXPropertyMeasure.FINANCING_CHOICES_REVERSE[measure_data['current_financing']]
+        else:
+            measure_data.pop('current_financing')
+    if 'source' in measure_data:
+        if measure_data['source'] in HELIXPropertyMeasure.SOURCE_CHOICES_REVERSE:
+            measure_data['source'] = HELIXPropertyMeasure.SOURCE_CHOICES_REVERSE[measure_data['source']]
+        else:
+            measure_data.pop('source')
+
+    try:
+        meas = _create_measure(**measure_data)
+        return meas.id
+    except Exception as e:
+        print(e)
+        print(measure_data)
+        return False
+
+
+def _create_measure(**kwargs):
+    """Creates measure record
+    :param kwargs   measure data dictionary
+    """
+    # because of cross-table issues, manually implement unique constraint, adding reference
+#    ('property_state', 'measure', 'application_scale', 'implementation_status')
+    prior_measure = HELIXPropertyMeasure.objects.filter(property_state=kwargs['property_state'], measure=kwargs['measure'])
+    if 'reference_id' in kwargs and prior_measure:
+        prior_measure = prior_measure.filter(reference_id=kwargs['reference_id'])
+    if 'implementation_status' in kwargs and prior_measure:
+        prior_measure = prior_measure.filter(implementation_status=kwargs['implementation_status'])
+    if 'application_scale' in kwargs and prior_measure:
+        prior_measure = prior_measure.filter(application_scale=kwargs['application_scale'])
+
+    if not prior_measure:
+        measure_record = HELIXPropertyMeasure.objects.create(**kwargs)
+    else:
+        measure_record = prior_measure.first()  # with filtering, should only be one
+        for (key, value) in kwargs.items():
+            setattr(measure_record, key, value)
+        measure_record.save()
+
+    return measure_record
+
+
+def _create_urls(urls, green_assessment_id):
+    """
+    Add green assessment urls
+    :param urls: array of urls
+    :param green_assessment_id: id of green_assessment to attach urls to
+    :return: True on success
+    """
+    GreenAssessmentURL.objects.filter(property_assessment_id=green_assessment_id).delete()
+    for url in urls:
+        if (url != ''):
+            GreenAssessmentURL.objects.get_or_create(
+                url=url,
+                property_assessment_id=green_assessment_id)
+
+    return True
+
+
+@shared_task
+def helix_finish_task(res, progress_key):
+    """
+    Chord that is called after the hes data file is created
+
+    :param identifier: progress key
+    :return: dict, results from queue
+    """
+    progress_data = ProgressData.from_key(progress_key)
+    flat_list = [item for sublist in res for item in sublist]
+    progress_data.data['list'] = flat_list
+    progress_data.save()
+    progress_data.finish_with_success()
+    return progress_data.result()
+
+
+@shared_task(ignore_result=True)
+def helix_hes_task(client_url, user_name, password, user_key, hes_ids, progress_key, dq_id):
+    """
+    Chord that is called to run through Home Energy Score records
+
+    :return: dict, results from queue
+    """
+    hes_all = []
+    hes_client = hes.HesHelix(client_url, user_name, password, user_key)
+    for hes_id in hes_ids:
+        hes_data = hes_client.query_hes(hes_id)
+        if hes_data['status'] == 'error':
+            continue
+        else:
+            del hes_data['status']
+
+        hes_data['Green Assessment Property Date'] = hes_data['Green Assessment Property Date'].strftime("%Y-%m-%d")
+        hes_all.append(hes_data)
+
+    if(hes_client is not None):
+        hes_client.end_session()
+
+    cache_key = "hes_results__%s" % dq_id
+    existing_results = get_cache_raw(cache_key) or []
+    existing_results += hes_all
+    set_cache_raw(cache_key, existing_results, 86400)  # 24 hours
+    # Indicate progress
+    progress_data = ProgressData.from_key(progress_key)
+    progress_data.step()
+
+
+@shared_task(ignore_result=True)
+def helix_leed_task(leed_ids, progress_key, dq_id):
+    """
+    Chord that is called to run through LEED records
+
+    :return: dict, results from queue
+    """
+    leed_client = leed.LeedHelix()
+    leed_all = []
+    for leed_id in leed_ids:
+        leed_data = leed_client.query_leed(leed_id)
+        if leed_data['status'] == 'error':
+            continue
+        else:
+            del leed_data['status']
+
+        leed_all.append(leed_data)
+
+    cache_key = "leed_results__%s" % dq_id
+    existing_results = get_cache_raw(cache_key) or []
+    existing_results += leed_all
+    set_cache_raw(cache_key, existing_results, 86400)  # 24 hours
+    # Indicate progress
+    progress_data = ProgressData.from_key(progress_key)
+    progress_data.step()
+
+
+@shared_task(ignore_result=True)
+def helix_certification_task(user_id, ids, import_file_id, progress_key):
+    """
+    Processing of green certifications
+    : user_id           is attached to green certification records
+    : ids               list of ids to process
+    : import_file_id    id of file with new / updated records
+    : progress_key      celery tracking key
+    """
+    progress_data = ProgressData.from_key(progress_key)
+    import_file = ImportFile.objects.get(pk=import_file_id)
+    DataQualityCheck.initialize_cache(import_file_id)
+    org = Organization.objects.get(pk=import_file.import_record.super_organization.pk)
+    user = User.objects.get(pk=user_id)
+
+    data = PropertyState.objects.filter(id__in=ids).only('extra_data').iterator()
+
+    for state in data:
+        extra_data = state.extra_data
+        normalized_address = state.normalized_address
+        postal_code = state.postal_code
+
+        # test data format
+        assessments = {k[17:].lower().replace(' ', '_'): v for k, v in extra_data.items() if k.startswith('Green Assessment')}
+        measures = {k[9:].lower().replace(' ', '_'): v for k, v in extra_data.items() if (k.startswith('Measures') and v is not None)}
+        measurements = {k[12:].lower().replace(' ', '_'): v for k, v in extra_data.items() if k.startswith('Measurement')}
+
+        # find matching view
+        try:
+            view = PropertyView.objects.get(state__normalized_address=normalized_address, state__postal_code=postal_code, state__organization=org)
+    #           view = PropertyView.objects.filter(state__normalized_address=normalized_address, state__postal_code=postal_code, state__organization=org)
+    #            view = view.first()
+
+            if assessments:
+                assessment_property_data = {k[9:]: v for k, v in assessments.items() if k.startswith('property')}
+                green_assessment_id = _setup_assessments(assessment_property_data, assessments['name'], org, view, user)
+                if measurements:
+                    _setup_measurements('assessment', measurements, green_assessment_id)
+            elif measures:
+                measure_id = _setup_measures(measures, org, view.state)
+                if measurements and measure_id:
+                    _setup_measurements('measure', measurements, measure_id)
+            else:  # try short format for green assessments, multiple assessments per line by name
+                assessments = GreenAssessment.objects.filter(organization=org)
+                for assessment in assessments:
+                    if assessment.name in extra_data:
+                        value = extra_data[assessment.name]
+                        extra_data.pop(assessment.name)
+                        green_assessment_data = {k[(len(assessment.name) + 1):].lower().replace(' ', '_'): v for k, v in extra_data.items() if k.startswith(assessment.name)}
+                        if value:
+                            green_assessment_data['value'] = value
+                            green_assessment_id = _setup_assessments(green_assessment_data, assessment.name, org, view, user)
+
+        except Exception:
+            print(normalized_address)
+
+    return progress_data.result()
+
+
+def _helix_hes_create_tasks(client_url, user_name, password, user_key, hes_ids, progress_key, dq_id):
+    """
+    Set up retrieval of HES scores as individual chunked tasks
+
+    :client_url HES API url
+    :user_name  HES username
+    :password   HES password
+    :user_key   HES access key
+    :hes_ids    List of ids to schedule
+    :progress_key   progress identifier
+    """
+    tasks = []
+    if hes_ids:
+        id_chunks = [[obj for obj in chunk] for chunk in batch(hes_ids, 12)]
+        for ids in id_chunks:
+            tasks.append(helix_hes_task.s(client_url, user_name, password, user_key, ids, progress_key, dq_id))
+#            tasks.append(helix_hes_task(client_url, user_name, password, user_key, ids, progress_key, dq_id))
+
+    return tasks
+
+
+def _helix_leed_create_tasks(leed_ids, progress_key, dq_id):
+    """
+    Set up retrieval of LEED scores as individual chunked tasks
+
+    :leed_ids       List of ids to schedule
+    :dq_id str, for retrieving progress status
+    """
+    tasks = []
+    if leed_ids:
+        id_chunks = [[obj for obj in chunk] for chunk in batch(leed_ids, 15)]
+        for ids in id_chunks:
+            # tasks.append(helix_leed_task.s(ids, progress_key, dq_id).delay(60))
+            tasks.append(helix_leed_task.s(ids, progress_key, dq_id))
+            # tasks.append(helix_leed_task(ids, dq_id))
+
+    return tasks
+
+
+def _helix_certification_create_tasks(import_file_id, user_id, progress_key):
+    """
+    Break up certification data into chunks for processing
+    @lock_and_track returns a progress_key
+
+    :param import_file_id: int, the id of the import_file we're working with.
+    :param user_id: int, the id of the user
+    :param progress_key: int, the id of the celery process
+    :return:
+    """
+    progress_data = ProgressData.from_key(progress_key)
+    import_file = ImportFile.objects.get(pk=import_file_id)
+
+    # read mapped records from file_pk and map
+    qs = list(
+        PropertyState.objects.filter(import_file=import_file).exclude(
+            data_state__in=[DATA_STATE_UNKNOWN, DATA_STATE_IMPORT]).only(
+            'id').iterator()
+    )
+    # to thread it, split into separate method
+    id_chunks = [[obj.id for obj in chunk] for chunk in batch(qs, 20)]
+    tasks = [helix_certification_task.si(user_id, ids, import_file_id, progress_key)
+             for ids in id_chunks]
+#    tasks = [helix_certification_task(user_id, ids, import_file_id, progress_key)
+#             for ids in id_chunks]
+    progress_data.total = len(tasks)
+    return tasks
+
+
+def helix_hes_to_file(user, org, dataset, cycle):
+    """
+    Entry point into retrieving Home Energy Score data
+
+    Get the HES ids to retrieve data and set up the retrieval process to run in chunks.
+
+    :org organization
+    """
+    # create new cache id
+    cache_key, dq_id = DataQualityCheck.initialize_cache()
+
+    progress_data = ProgressData(func_name='synchronize_hes', unique_id=dq_id)
+    progress_data.delete()
+
+    # Get number of HES records, create tasks
+    partner = org.hes
+    if org.hes_partner_name is None:
+        return progress_data.finish_with_error('No HES partner information')
+
+    if org.hes_start_date is None:
+        start_date = dt.date.today() - dt.timedelta(100)
+    else:
+        start_date = org.hes_start_date
+
+    if org.hes_end_date is None:
+        end_date = dt.date.today()
+    else:
+        end_date = org.hes_end_date
+
+    # instantiate HES client for external API
+    hes_auth = {'user_key': settings.HES_USER_KEY,
+                'user_name': org.hes_partner_name,
+                'password': org.hes_partner_password,
+                'client_url': settings.HES_CLIENT_URL}
+
+    hes_client = hes.HesHelix(hes_auth['client_url'], hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
+    result = hes_client.query_partner_result(partner, start_date, end_date)
+    if(hes_client is not None):
+        hes_client.end_session()
+
+    if result:
+        file_pk = helix_utils.save_and_load(user, dataset, cycle, result, "hes.csv")
+        save_raw_data(file_pk)
+        if org.hes_end_date is None:
+            org.hes_start_date = dt.date.today()
+        else:
+            org.hes_start_date = org.hes_end_date
+            org.hes_end_date = None
+        org.save()
+
+        return {'file_pk': file_pk}
+    else:
+        org.hes_start_date = end_date
+        org.save()
+        return progress_data.finish_with_warning('No new Home Energy Score data retrieved')
+
+
+def helix_leed_to_file(user, org):
+    """
+    Entry point into retrieving LEED data
+
+    Get the LEED ids to retrieve data and set up the retrieval process to run in chunks.
+    :org organization
+    """
+    # create new cache id
+    cache_key, dq_id = DataQualityCheck.initialize_cache()
+
+    progress_data = ProgressData(func_name='synchronize_leed', unique_id=dq_id)
+    progress_data.delete()
+
+    if org.leed_geo_id is None:
+        return progress_data.finish_with_error('No LEED geographic identifier')
+
+    if org.leed_start_date is None:
+        start_date = dt.date.today() - dt.timedelta(100)
+    else:
+        start_date = org.leed_start_date
+
+    if org.leed_end_date is None:
+        end_date = dt.date.today()
+    else:
+        end_date = org.leed_end_date
+
+    leed_client = leed.LeedHelix()
+    leed_ids = leed_client.query_leed_building_ids(org.leed_geo_id, start_date, end_date)
+    if not leed_ids:
+        org.leed_start_date = end_date
+        org.save()
+        return progress_data.finish_with_error('No LEED data retrieved')
+    else:
+        tasks = _helix_leed_create_tasks(leed_ids, progress_data.key, dq_id)
+        progress_data.total = len(tasks)
+        progress_data.save()
+
+        # run tasks
+        if tasks:
+            chord(tasks, interval=15)(finish_checking.si(progress_data.key))
+#            tasks
+        else:
+            return progress_data.finish_with_error('No LEED data retrieved')
+#            finish_checking.s(progress_data.key)
+
+    return progress_data.result()
+
+
+def helix_save_results(user, org, dataset, cycle, source, data_id):
+    """
+    Saves HES or LED data file and updates dates in database
+    user        user
+    org         organization
+    dataset     dataset
+    cycle       cycle
+    source      hes or leed
+    data_id     cache data id
+    Returns
+    file_pk     primary key of data file
+    """
+    cache_key = source + "_results__%s" % data_id
+    filename = source + ".csv"
+    existing_results = get_cache_raw(cache_key)
+    file_pk = helix_utils.save_and_load(user, dataset, cycle, existing_results, filename)
+    save_raw_data(file_pk)
+
+    if (source == 'leed'):
+        if org.leed_end_date is None:
+            org.leed_start_date = dt.date.today()
+        else:
+            org.leed_start_date = org.leed_end_date
+            org.leed_end_date = None
+    elif (source == 'hes'):
+        if org.hes_end_date is None:
+            org.hes_start_date = dt.date.today()
+        else:
+            org.hes_start_date = org.hes_end_date
+            org.hes_end_date = None
+    org.save()
+
+    return file_pk
+
+
+def helix_certification_create(file_pk, user_id):
+    """
+    Creates and saves certifications to the database
+    user_id     user id
+    file_pk     primary key of data file
+    Returns
+    results     dictionary with number of new and updated assessments and measurements
+    """
+    progress_data = ProgressData(func_name='helix_certification_create', unique_id=file_pk)
+    progress_data.delete()
+
+    import_file_id = file_pk
+    progress_data.key
+    ImportFile.objects.get(pk=import_file_id)
+
+    tasks = _helix_certification_create_tasks(file_pk, user_id, progress_data.key)
+    if tasks:
+        chord(tasks)(finish_checking.si(progress_data.key), interval=15)
+#        tasks
+    else:
+        finish_checking.s(progress_data.key)
+
+    progress_data.finish_with_success()  # don't know why need to re-save
+
+    return progress_data.result()
 
 
 @shared_task(ignore_result=True)
@@ -970,13 +1641,14 @@ def _save_raw_data_create_tasks(file_pk, progress_key):
     for batch_chunk in batch(parser.data, 100):
         import_file.num_rows += len(batch_chunk)
         chunks.append(batch_chunk)
+
     import_file.save()
 
     progress_data.total = len(chunks)
     progress_data.save()
 
     # return tasks and None as a placeholder for proposed data import summary
-    return [_save_raw_data_chunk.s(chunk, file_pk, progress_data.key) for chunk in chunks], None
+    return [_save_raw_data_chunk(chunk, file_pk, progress_data.key) for chunk in chunks], None
 
 
 def save_raw_data(file_pk):
@@ -995,6 +1667,7 @@ def save_raw_data(file_pk):
     try:
         # Go get the tasks that need to be created, then call them in the chord here.
         tasks, summary = _save_raw_data_create_tasks(file_pk, progress_data.key)
+
         chord(tasks, interval=15)(finish_raw_save.s(file_pk, progress_data.key, summary=summary))
     except StopIteration:
         progress_data.finish_with_error('StopIteration Exception', traceback.format_exc())

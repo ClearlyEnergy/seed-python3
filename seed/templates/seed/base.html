@@ -4,7 +4,7 @@
 <html>
     <!-- :copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved. -->
     <head>
-        <title>{% block title %}{% trans "SEED Platform™" %}{% endblock title %}</title>
+        <title>{% block title %}{% trans "HELIX Platform" %}{% endblock title %}</title>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <!--[if lt IE 8]>
@@ -31,6 +31,9 @@
         <![endif]-->
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
         <link rel="shortcut icon" href="{{STATIC_URL}}seed/images/favicon.ico">
+        <!--HELIX code to change font to roboto-->
+        <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css">
+        <!--end -->
         {% compress css %}
         <link href="/static/node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css">
         <link href="/static/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
@@ -51,6 +54,9 @@
           }
         </style>
         <link href="/static/seed/scss/style.scss" rel="stylesheet" type="text/x-scss">
+        <!-- HELIX code to change color for organization name-->
+        <link href="/static/seed/css/style_mod.css" rel="stylesheet" type="text/css">
+        <!--end-->
             {% endcompress %}
         {% endblock %}
 

@@ -394,7 +394,7 @@
     "MAPPING_BUILDINGS_FOR": "Mapping buildings for <strong>{filename}<\/strong>",
     "MAPPING_STEP_2_ADVICE": "After you click the <span class=\"label label-primary\">Map Your Data<\/span> button, you will see a view with the mapped fields and your data in a grid, so that you can verify the mapping is what you want. If you need to change the mapping, click the <span class=\"label label-primary\">Back to Mapping<\/span> button and edit the field mapping. Make sure that the mappings are correct in this step. Once you have clicked on the <span class=\"label label-primary\">Save Mappings<\/span> button, you will not be able to change the field mappings.",
     "MARKETING_BULLET_1": "Get started using HELIX by uploading your properties and energy information and certifications.",
-    "MARKETING_BULLET_2": "Automatically update your property list with new records retrieved from the Department of Energy's Home Energy Score database and shortly from the RESNET HERS registry.",
+    "MARKETING_BULLET_2": "Automatically update your property list with new records retrieved from the Department of Energy's Home Energy Score database, the LEED database and other sources.",
     "MARKETING_BULLET_3": "Easily export HELIX data to multiple listing systems and data vendors.",
     "Master": "Master",
     "Match": "Match",

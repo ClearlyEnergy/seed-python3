@@ -133,6 +133,61 @@ angular.module('BE.seed.controller.data_upload_modal', [])
       };
 
       /**
+       * Helix change - Synchronize HES records and create datafiles
+       */	  
+	  $scope.synchronize_hes = function() {
+		  $scope.uploader.status_message = 'retrieving HES data';
+		  $scope.uploader.progress = 0;
+		  $scope.uploader.in_progress = true;
+		  uploader_service.start_hes_upload($scope.organization.org_id, $scope.dataset.id, $scope.selectedCycle.id).then(function (result) {
+			  if (result.status == "warning") {
+				  $scope.uploader.complete = true;
+				  $scope.uploader.in_progress = false;
+				  $scope.uploader.progress = 0;
+				  $scope.step_12_error_message = result.message;
+				  $scope.step_12_style = 'danger';
+				  $scope.step.number = 12;	  				  	
+			  } else {
+				  $scope.dataset.import_file_id = result.file_pk;
+				  $scope.step.number = 3;			  	
+			  }
+		  }, function(data) {
+			  $scope.uploader.complete = true;
+			  $scope.uploader.in_progress = false;
+			  $scope.uploader.progress = 0;
+			  $scope.step_12_error_message = data.data.message;
+			  $scope.step_12_style = 'danger';
+			  $scope.step.number = 12;	  	
+		  }); //end start_hes_upload				
+	  };
+	  
+      /**
+       * Helix change - Synchronize LEED records and create datafiles
+       */	 
+	  $scope.synchronize_leed = function() {
+		  $scope.uploader.status_message = 'retrieving LEED data';
+		  $scope.uploader.progress = 0;
+		  $scope.uploader.in_progress = true;
+		  uploader_service.start_leed_upload($scope.organization.org_id).then(function (result) {
+			  var progress = _.clamp(result.progress, 0, 100);
+			  uploader_service.check_progress_loop(result.progress_key, 0, 1, function(data) {
+				  uploader_service.get_helix_results($scope.organization.org_id, data.unique_id, $scope.dataset.id, $scope.selectedCycle.id, 'leed').then(function(result) {
+					  $scope.dataset.import_file_id = result.file_pk;
+					  $scope.step.number = 3;
+				  }); // end get_helix_results			  	
+			  }, function (data) {
+				  $scope.uploader.complete = true;
+				  $scope.uploader.in_progress = false;
+				  $scope.uploader.progress = 0;
+				  $scope.step_12_error_message = data.data.message;
+				  $scope.step_12_style = 'danger';
+				  $scope.step.number = 12;
+			  }, 
+			  $scope.uploader);
+		  }); //end start_leed_upload				
+	  };  	  
+
+      /**
        * goto_step: changes the step of the modal, i.e. name dataset -> upload ...
        * step: int - used with the `ng-switch` in the DOM to change state
        */
@@ -434,11 +489,22 @@ angular.module('BE.seed.controller.data_upload_modal', [])
        * @param {string} progress_key: key
        */
       var monitor_matching = function (progress_key) {
-        uploader_service.check_progress_loop(progress_key, 75, 0.25, function () {
-          $scope.uploader.complete = true;
-          $scope.uploader.in_progress = false;
-          $scope.uploader.progress = 1;
-          $scope.step.number = 5;
+//HELIX        uploader_service.check_progress_loop(progress_key, 75, 0.25, function () {
+//HELIX          $scope.uploader.complete = true;
+//HELIX          $scope.uploader.in_progress = false;
+//HELIX          $scope.uploader.progress = 1;
+//HELIX          $scope.step.number = 5;
+// 			HELIX change
+			uploader_service.check_progress_loop(progress_key, 75, 0.125, function () {
+			$scope.uploader.status_message = 'adding certifications';
+			mapping_service.add_certifications(file_id).then(function (data) {
+				monitor_certifications(data.progress_key, file_id);
+			})
+			.catch(function(response) {
+				$scope.step_12_error_message = response.data.message;
+				$scope.step.number = 12;  
+			})			
+// 			HELIX end change
         }, function () {
           // Do nothing
         }, $scope.uploader);
@@ -527,7 +593,28 @@ angular.module('BE.seed.controller.data_upload_modal', [])
             $scope.step_10_title = data.message;
           } else {
             uploader_service.check_progress_loop(data.progress_key, data.progress, 1, function () {
-              inventory_service.get_matching_and_geocoding_results($scope.dataset.import_file_id).then(function (result_data) {
+              $scope.uploader.status_message = 'adding certifications';
+              mapping_service.add_certifications($scope.dataset.import_file_id).then(function (cert_data) {
+                monitor_certifications(cert_data.progress_key, $scope.dataset.import_file_id);
+            });
+          }, function () {
+              // Do nothing
+            }, $scope.uploader);
+          }
+        });
+      };
+
+	  
+      /**
+       * monitor_certifications: called by monitor_matching, updates progress bar
+       *   from 85% to 100%, then shows the PM upload completed
+       *
+       * @param {string} progress_key: key
+       */
+      var monitor_certifications = function (progress_key) {
+        uploader_service.check_progress_loop(progress_key, 87.5, 0.125, function () {
+// HELIX moved from 
+            inventory_service.get_matching_and_geocoding_results($scope.dataset.import_file_id).then(function (result_data) {
                 $scope.duplicate_property_states = result_data.properties.duplicates;
                 $scope.duplicate_tax_lot_states = result_data.tax_lots.duplicates;
                 $scope.duplicates_of_existing_property_states = result_data.properties.duplicates_of_existing;
@@ -552,18 +639,16 @@ angular.module('BE.seed.controller.data_upload_modal', [])
                 $scope.uploader.in_progress = false;
                 $scope.uploader.progress = 0;
                 $scope.uploader.status_message = '';
-                if ($scope.matched_properties + $scope.matched_taxlots > 0) {
-                  $scope.step.number = 8;
-                } else {
-                  $scope.step.number = 10;
-                }
-              });
-            }, function () {
-              // Do nothing
-            }, $scope.uploader);
-          }
-        });
-      };
+              if ($scope.matched_properties + $scope.matched_taxlots > 0) {
+                $scope.step.number = 8;
+              } else {
+                $scope.step.number = 10;
+              }
+          });
+        }, function () {
+          // Do nothing
+        }, $scope.uploader);
+      };	  
 
       $scope.get_pm_report_template_names = function (pm_username, pm_password) {
         spinner_utility.show();

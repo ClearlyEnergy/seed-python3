@@ -38,6 +38,9 @@ angular.module('BE.seed.controllers', [
   'BE.seed.controller.accounts',
   'BE.seed.controller.admin',
   'BE.seed.controller.api',
+  'BE.seed.controller.certification',	
+  'BE.seed.controller.delete_certification_modal',
+  'BE.seed.controller.create_certification_modal',
   'BE.seed.controller.column_mappings',
   'BE.seed.controller.column_settings',
   'BE.seed.controller.create_sub_organization_modal',
@@ -48,6 +51,7 @@ angular.module('BE.seed.controllers', [
   'BE.seed.controller.data_upload_modal',
   'BE.seed.controller.dataset',
   'BE.seed.controller.dataset_detail',
+  'BE.seed.controller.delete_assessment_modal',
   'BE.seed.controller.delete_dataset_modal',
   'BE.seed.controller.delete_file_modal',
   'BE.seed.controller.delete_modal',
@@ -108,6 +112,7 @@ angular.module('BE.seed.directives', [
 angular.module('BE.seed.services', [
   'BE.seed.service.auth',
   'BE.seed.service.data_quality',
+  'BE.seed.service.certification',
   'BE.seed.service.column_mappings',
   'BE.seed.service.columns',
   'BE.seed.service.cycle',
@@ -613,6 +618,17 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
             });
           }]
         }
+      })
+      .state({
+        name: 'certification_list',
+        url: '/certifications',
+        templateUrl: static_url + 'seed/partials/certification_list.html',
+		controller: 'certification_list_controller',
+		resolve: {
+  		  certifications_payload: ['certification_service', function (certification_service) {
+	        return certification_service.get_certifications();
+          }],
+		}
       })
       .state({
         name: 'dataset_list',

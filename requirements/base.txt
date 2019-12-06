@@ -52,8 +52,18 @@ lxml==4.2.5
 probablepeople==0.5.4
 # Parsing and managing geojson data (this is only used in managed tasks at the moment)
 geojson==2.4.1
--e git+https://github.com/revsys/django-tos.git#egg=django_tos-master
 
+# Helix
+-e git+https://github.com/revsys/django-tos.git#egg=django_tos-master
+-e git+https://github.com/ClearlyEnergy/HELIX.git#egg=helix
+-e git+https://github.com/ClearlyEnergy/helix-hes.git#egg=hes
+zeep==2.3.0
+-e git+https://github.com/ClearlyEnergy/helix-leed.git#egg=leed
+googlemaps==2.5.1
+-e git+https://github.com/ClearlyEnergy/helix-label.git#egg=label
+pdfrw==0.4
+reportlab==3.5.21
+boto3==1.9.96
 
 # pnnl/buildingid-py
 -e git+https://github.com/SEED-platform/buildingid.git@f68219df82191563cc2aca818e0b0fa1b32dd52d#egg=buildingid

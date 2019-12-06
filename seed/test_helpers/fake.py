@@ -25,12 +25,15 @@ from django.utils import timezone
 from faker import Factory
 
 from seed.models import (
-    Cycle, Column, GreenAssessment, GreenAssessmentURL, Measure,
-    GreenAssessmentProperty, Property, PropertyAuditLog, PropertyView,
+    Cycle, Column, GreenAssessmentURL, Measure,
+    Property, PropertyAuditLog, PropertyView,
     PropertyState, StatusLabel, TaxLot, TaxLotAuditLog, TaxLotProperty,
     TaxLotState, TaxLotView, PropertyMeasure, Note, ColumnListSetting,
     ColumnListSettingColumn,
 )
+from helix.models import HELIXGreenAssessment as GreenAssessment
+from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
+
 from seed.models.auditlog import AUDIT_IMPORT, AUDIT_USER_CREATE
 from seed.utils.strings import titlecase
 
@@ -396,6 +399,7 @@ class FakeGreenAssessmentFactory(BaseFake):
             'description': 'Fake Award',
             'is_numeric_score': True,
             'validity_duration': None,
+            'is_reso_certification': True,
             'organization': self.organization
         }
 
@@ -454,6 +458,7 @@ class FakeGreenAssessmentPropertyFactory(BaseFake):
             'organization': organization,
             'view': property_view,
             'assessment': assessment,
+            'reference_id': 'Fake Ref',
             'date': self.fake.date_time_this_decade().date()
         }
         if metric:
@@ -496,6 +501,8 @@ class FakeGreenAssessmentPropertyFactory(BaseFake):
         details.update(kw)
         # remove the organization because it is not a valid field
         details.pop('organization', None)
+        print ('IN FAKE')
+        print(details)
 
         gap = GreenAssessmentProperty.objects.create(**details)
         if urls:

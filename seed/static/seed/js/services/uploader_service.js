@@ -55,6 +55,47 @@ angular.module('BE.seed.service.uploader', []).factory('uploader_service', [
     };
 
     /**
+     *Start LEED upload
+     *
+     */
+    uploader_factory.start_leed_upload = function (organization_id) {
+      return $http.post('/api/v2/import_files/'+organization_id+'/leed_upload/', {
+        organization_id: organization_id,
+      }).then(function (response) {
+        return response.data;
+      });
+    };
+
+    /**
+     *Start HES upload
+     *
+     */
+    uploader_factory.start_hes_upload = function (organization_id, dataset_id, cycle_id) {
+      return $http.post('/api/v2/import_files/'+organization_id+'/hes_upload/', {
+        organization_id: organization_id,
+        dataset: dataset_id, 
+        cycle: cycle_id
+      }).then(function (response) {
+        return response.data;
+      });
+    };
+
+    /**
+     *Retrieve LEED or HES results to file
+     *
+     */
+    uploader_factory.get_helix_results = function (organization_id, result_id, dataset_id, cycle_id, source) {
+      return $http.post('/api/v2/import_files/'+organization_id+'/helix_results/', {
+        result_id: result_id,
+        dataset: dataset_id,
+        cycle: cycle_id,
+        source: source
+      }).then(function (response) {
+        return response.data;
+      });
+    };	
+
+    /**
      * check_progress: gets the progress for saves, maps, and matches
      * @param progress_key: progress_key to grab the progress
      */

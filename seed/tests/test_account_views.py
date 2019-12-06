@@ -17,8 +17,10 @@ from seed.lib.superperms.orgs.models import (
     ROLE_MEMBER,
     ROLE_VIEWER,
     OrganizationUser,
-    Organization
+    #    Organization
 )
+# Helix add
+from helix.models import HELIXOrganization as Organization
 from seed.models.columns import Column
 from seed.models.cycles import Cycle
 from seed.models.properties import PropertyState
@@ -80,6 +82,8 @@ class AccountsViewTests(TestCase):
             'cycles': [{
                 'num_taxlots': 0,
                 'num_properties': 0,
+                'num_certifications': 0,
+                'num_measures': 0,
                 'name': str(self.cal_year_name),
                 'cycle_id': self.cycle.pk
             }],
@@ -104,6 +108,8 @@ class AccountsViewTests(TestCase):
         expected_single_org_payload['cycles'] = [{
             'num_taxlots': 5,
             'num_properties': 10,
+            'num_certifications': 0,
+            'num_measures': 0,
             'name': self.cal_year_name,
             'cycle_id': self.cycle.pk
         }]
@@ -145,6 +151,8 @@ class AccountsViewTests(TestCase):
                 'cycles': [{
                     'num_taxlots': 0,
                     'num_properties': 0,
+                    'num_certifications': 0,
+                    'num_measures': 0,
                     'name': str(self.cal_year_name),
                     'cycle_id': new_cycle.pk
                 }],
@@ -172,6 +180,8 @@ class AccountsViewTests(TestCase):
             'cycles': [{
                 'num_taxlots': 0,
                 'num_properties': 0,
+                'num_certifications': 0,
+                'num_measures': 0,
                 'name': str(self.cal_year_name),
                 'cycle_id': self.cycle.pk
             }],
@@ -1080,7 +1090,7 @@ class AuthViewTests(TestCase):
             })
         # refresh the user
         u = User.objects.get(pk=self.user.pk)
-        self.assertEqual(u.default_organization, self.org)
+        self.assertEqual(u.default_organization.id, self.org.id)
 
     def test__get_default_org(self):
         """test seed.views.main._get_default_org"""
@@ -1093,7 +1103,7 @@ class AuthViewTests(TestCase):
 
         # check that the default org was set
         u = User.objects.get(pk=self.user.pk)
-        self.assertEqual(u.default_organization, self.org)
+        self.assertEqual(u.default_organization.id, self.org.id)
 
         # check that '' is returned for a user without an org
         other_user = User.objects.create(
@@ -1109,7 +1119,7 @@ class AuthViewTests(TestCase):
         other_user.default_organization = self.org
         other_user.save()
         other_user = User.objects.get(pk=other_user.pk)
-        self.assertEqual(other_user.default_organization, self.org)
+        self.assertEqual(other_user.default_organization.id, self.org.id)
         # _get_default_org should remove the user from the org and set the
         # next available org as default or set to ''
         org_id, org_name, org_role = _get_default_org(other_user)

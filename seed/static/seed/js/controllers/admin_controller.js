@@ -39,6 +39,8 @@ angular.module('BE.seed.controller.admin', [])
       $scope.org_user = {};
       $scope.org_form = {};
       $scope.user_form = {};
+	  $scope.org_hes = {};
+	  $scope.org_leed = {};
       $scope.alert = {
         show: false,
         message: 'congrats',
@@ -56,6 +58,23 @@ angular.module('BE.seed.controller.admin', [])
         $scope.alert.message = message;
       };
       $scope.update_alert = update_alert;
+
+	  $scope.org_hes.add = function (org) {
+		  organization_service.add_hes(org).then(function () {
+			  $scope.org_hes.invalid = false;
+			  update_alert(true, 'Added Home Energy Score ID to Organization');
+		  }, function (data) {
+			  update_alert(false, 'Error adding Home Energy Score ID: ' + data.message);
+		  });
+	  };
+	  $scope.org_leed.add = function (org) {
+		  organization_service.add_leed(org).then(function () {
+			  $scope.org_leed.invalid = false;
+			  update_alert(true, 'Added LEED Information to Organization');
+		  }, function (data) {
+			  update_alert(false, 'Error adding LEED Information: ' + data.message);
+		  });
+	  };
 
       $scope.org_form.reset = function () {
         $scope.org.user_email = '';

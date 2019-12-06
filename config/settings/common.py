@@ -116,11 +116,18 @@ SEED_CORE_APPS = (
     'seed.lib.superperms.orgs',
 )
 
+HELIX_APPS = (
+    'helix',
+    'hes',
+    'leed',
+    'label',
+)
+
 # Apps with tables created by migrations, but which 3rd-party apps depend on.
 # Internal apps can resolve this via South's depends_on.
 HIGH_DEPENDENCY_APPS = ('seed.landing',)  # 'landing' contains SEEDUser
 
-INSTALLED_APPS = HIGH_DEPENDENCY_APPS + INSTALLED_APPS + SEED_CORE_APPS
+INSTALLED_APPS = HELIX_APPS + HIGH_DEPENDENCY_APPS + INSTALLED_APPS + SEED_CORE_APPS
 
 # apps to auto load name spaced URLs for JS use (see seed.urls)
 SEED_URL_APPS = (

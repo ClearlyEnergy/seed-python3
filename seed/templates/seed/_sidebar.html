@@ -21,6 +21,13 @@
                 <div ng-show="!is_initial_state" class="item_name" translate>Organizations</div>
                 <div ng-show="!is_initial_state" class="badge badge_menu">{$ organizations_count | number:0 $}</div>
             </a>
+            <!--HELIX Addition: GreenAssessment sidebar button-->
+            <a id="sidebar-assessments" ng-class="{item: true, active: is_active('/accounts')}" title="{$:: 'Certifications' | translate $}"  href="{% url "seed:home" %}#/certifications">
+                <div class="icon"><i class="fa fa-leaf"></i></div>
+                <div ng-show="!is_initial_state" class="item_name">Certifications</div>
+                <div ng-show="!is_initial_state" class="badge badge_menu"></div>
+            </a>
+            <!--End Addition-->
 
             <div class="divider"></div>
             <a id="sidebar-api" ng-class="{item: true, active: is_active('/api/swagger')}" title="{$:: 'API Documentation' | translate $}" href="{% url "seed:home" %}#/api/swagger">

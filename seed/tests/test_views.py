@@ -477,7 +477,8 @@ class TestMCMViews(TestCase):
         self.assertEqual(import_record.last_modified_by, self.user)
         self.assertEqual(import_record.app, 'seed')
         self.assertEqual(import_record.name, DATASET_NAME_1)
-        self.assertEqual(self.org, import_record.super_organization)
+        #        self.assertEqual(self.org, import_record.super_organization)
+        self.assertEqual(self.org.id, import_record.super_organization.id)  # HELIX change
 
 
 class InventoryViewTests(DeleteModelsTestCase):
