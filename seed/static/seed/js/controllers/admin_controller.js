@@ -16,6 +16,7 @@ angular.module('BE.seed.controller.admin', [])
     'users_payload',
     'Notification',
     '$window',
+    '$translate',
     function (
       $scope,
       $log,
@@ -28,10 +29,22 @@ angular.module('BE.seed.controller.admin', [])
       user_profile_payload,
       users_payload,
       Notification,
-      $window
+      $window,
+      $translate
     ) {
+      $scope.roles = [{
+        name: $translate.instant('Member'),
+        value: 'member'
+      }, {
+        name: $translate.instant('Owner'),
+        value: 'owner'
+      }, {
+        name: $translate.instant('Viewer'),
+        value: 'viewer'
+      }];
       $scope.is_superuser = auth_payload.auth.requires_superuser;
       $scope.user = {};
+      $scope.user.role = $scope.roles[0];
       $scope.temp_users = [];
       $scope.org = {
         users: users_payload.users
