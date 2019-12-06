@@ -486,11 +486,6 @@ angular.module('BE.seed.controller.inventory_list', [])
         })
       }
 
-      $scope.cycle = {
-        selected_cycle: _.find(cycles.cycles, {id: inventory.cycle_id}),
-        cycles: cycles.cycles
-      };
-
       // Columns
       var defaults = {
         headerCellFilter: 'translate',
@@ -507,7 +502,6 @@ angular.module('BE.seed.controller.inventory_list', [])
           col.cellTemplate = '<div class="ui-grid-cell-contents" uib-tooltip="{{COL_FIELD CUSTOM_FILTERS}}" tooltip-append-to-body="true" tooltip-popup-delay="500">{{COL_FIELD CUSTOM_FILTERS}}</div>';
         }
         if (col.data_type === 'datetime') {
-//          options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
           options.cellFilter = 'date:\'yyyy-MM-dd\'';
           options.filter = inventory_service.dateFilter();
         } else {
@@ -618,7 +612,6 @@ angular.module('BE.seed.controller.inventory_list', [])
 
             if (col.data_type === 'datetime') {
               cleanedValues = _.map(cleanedValues, function (value) {
-//                return $filter('date')(value, 'yyyy-MM-dd h:mm a');
                 return $filter('date')(value, 'yyyy-MM-dd');
               });
             }
@@ -653,6 +646,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         } else if ($scope.inventory_type === 'taxlots') {
           fn = inventory_service.get_taxlots;
         }
+//        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id')).then(function (data) {
         return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id'), $scope.showSubOrgData).then(function (data) {
           $scope.progress = {
             current: data.pagination.end,
@@ -885,7 +879,7 @@ angular.module('BE.seed.controller.inventory_list', [])
           }
         });
       };
-
+	  
       $scope.open_helix_export_modal = function () {
         $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/export_inventory_modal.html',
