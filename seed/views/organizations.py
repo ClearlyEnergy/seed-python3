@@ -23,10 +23,19 @@ from seed.lib.superperms.orgs.models import (
     ROLE_OWNER,
     ROLE_MEMBER,
     ROLE_VIEWER,
-    Organization,
+    #    Organization,
     OrganizationUser,
 )
-from seed.models import Cycle, PropertyView, TaxLotView, Column
+# Helix add
+from helix.models import HELIXOrganization as Organization
+from seed.models.auditlog import (
+    AUDIT_USER_CREATE,
+    AUDIT_USER_EXPORT,
+)
+from seed.models.certification import GreenAssessmentProperty, GreenAssessment, GreenAssessmentPropertyAuditLog
+from seed.models import Cycle, PropertyView, TaxLotView, Column, Measure, PropertyMeasure
+# Helix end add
+# from seed.models import Cycle, PropertyView, TaxLotView, Column
 from seed.tasks import invite_to_organization
 from seed.utils.api import api_endpoint_class
 from seed.utils.organizations import create_organization, create_suborganization
@@ -38,13 +47,17 @@ def _dict_org(request, organizations):
     orgs = []
     for o in organizations:
         org_cycles = Cycle.objects.filter(organization=o).only('id', 'name').order_by('name')
+        org_measures = Measure.objects.filter(organization=o).only('id')
+        org_assessments = GreenAssessment.objects.filter(organization=o).only('id')
         cycles = []
         for c in org_cycles:
             cycles.append({
                 'name': c.name,
                 'cycle_id': c.pk,
                 'num_properties': PropertyView.objects.filter(cycle=c).count(),
-                'num_taxlots': TaxLotView.objects.filter(cycle=c).count()
+                'num_taxlots': TaxLotView.objects.filter(cycle=c).count(),
+                'num_certifications': GreenAssessmentProperty.objects.filter(assessment_id__in=org_assessments).count(),
+                'num_measures': PropertyMeasure.objects.filter(measure_id__in=org_measures).count()
             })
 
         # We don't wish to double count sub organization memberships.
@@ -198,6 +211,7 @@ class OrganizationUserSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=100)
     user_id = serializers.IntegerField()
     role = serializers.CharField(max_length=100)
+    last_login = serializers.DateTimeField()
 
 
 class OrganizationUsersSerializer(serializers.Serializer):
@@ -368,7 +382,14 @@ class OrganizationViewSet(viewsets.ViewSet):
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'user_id': user.pk,
-                'role': _get_js_role(u.role_level)
+                'role': _get_js_role(u.role_level),
+                'last_login': user.last_login.strftime("%Y-%m-%d %I:%M %p") if user.last_login is not None else '',
+                'certifications': GreenAssessmentPropertyAuditLog.objects.filter(
+                    user=user, record_type=AUDIT_USER_CREATE
+                ).count(),
+                'certifications_exported': GreenAssessmentPropertyAuditLog.objects.filter(
+                    user=user, record_type=AUDIT_USER_EXPORT
+                ).count()
             })
 
         return JsonResponse({'status': 'success', 'users': users})
@@ -563,6 +584,76 @@ class OrganizationViewSet(viewsets.ViewSet):
                 domain, user, request.user.username, org.name
             )
 
+        return JsonResponse({'status': 'success'})
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_owner')
+    @detail_route(methods=['PUT'])
+    def add_hes(self, request, pk=None):
+        """
+        Adds Home Energy Score ID to an organization.
+        ---
+        parameters:
+            - name: pk
+              description: Organization ID (Primary key)
+              type: integer
+              required: true
+              paramType: path
+            - name: hes
+              description: Home Energy Score ID to add to the organization
+            - name: hes_partner_name
+              description: name of partner account
+            - name: hes_partner_password
+              description: password for partner account. Note: in clear text because it's passed to the API that way
+            - name: hes_start_date
+              description: date to start data retrieval
+            - name: hes_end_date
+              description: date to end data retrieval
+        type:
+            status:
+                type: string
+                description: success or error
+                required: true
+            message:
+                type: string
+                description: info/error message, if any
+                required: false
+        """
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        org.add_hes(body)
+        return JsonResponse({'status': 'success'})
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_owner')
+    @detail_route(methods=['PUT'])
+    def add_leed(self, request, pk=None):
+        """
+        Adds LEED Information to an organization.
+        ---
+        parameters:
+            - name: pk
+              description: Organization ID (Primary key)
+              type: integer
+              required: true
+              paramType: path
+            - name: leed_geo_id
+              description: LEED Geographic ID to add to the organization
+        type:
+            status:
+                type: string
+                description: success or error
+                required: true
+            message:
+                type: string
+                description: info/error message, if any
+                required: false
+        """
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        org.add_leed(body)
         return JsonResponse({'status': 'success'})
 
     @api_endpoint_class

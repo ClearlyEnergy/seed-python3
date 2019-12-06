@@ -170,11 +170,15 @@ class TestApi(TestCase):
         self.assertEqual(r['organizations'][0]['cycles'], [
             {
                 'name': '2018 Calendar Year',
+                'num_certifications': 0,
+                'num_measures': 0,
                 'num_properties': 0,
                 'num_taxlots': 0,
                 'cycle_id': self.default_cycle.pk,
             }, {
                 'name': 'Test Hack Cycle 2015',
+                'num_certifications': 0,
+                'num_measures': 0,
                 'num_properties': 0,
                 'num_taxlots': 0,
                 'cycle_id': self.cycle.pk,

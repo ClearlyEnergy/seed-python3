@@ -7,12 +7,13 @@
 
 from seed.lib.superperms.orgs.exceptions import TooManyNestedOrgs
 from seed.lib.superperms.orgs.models import (
-    Organization,
+    #    Organization,
     OrganizationUser,
     ROLE_MEMBER
 )
 from seed.models import Column
 from seed.models.data_quality import DataQualityCheck
+from helix.models import HELIXOrganization as Organization
 
 
 def _create_default_columns(organization_id):

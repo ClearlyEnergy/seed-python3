@@ -7,7 +7,7 @@ required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
 :author Paul Munday <paul@paulmunday.net>
 """
-from collections import OrderedDict
+from collections import OrderedDict, Sequence
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
@@ -15,9 +15,11 @@ from past.builtins import basestring
 from rest_framework import serializers
 
 from seed.models import (
-    GreenAssessment, GreenAssessmentProperty, GreenAssessmentURL,
+    GreenAssessmentURL,
     PropertyView
 )
+from helix.models import HELIXGreenAssessment as GreenAssessment
+from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
 from seed.models.auditlog import AUDIT_USER_CREATE
 from seed.utils.api import OrgValidator, OrgValidateMixin
 from seed.utils.strings import titlecase
@@ -89,6 +91,8 @@ class ValidityDurationField(serializers.Field):
         return obj.days
 
     def to_internal_value(self, data):
+        if bool(data) is False:
+            data = None
         if isinstance(data, basestring):
             try:
                 data = int(data)
@@ -116,14 +120,14 @@ class GreenAssessmentSerializer(serializers.ModelSerializer):
         GreenAssessment.RECOGNITION_TYPE_CHOICES
     )
     recognition_description = serializers.SerializerMethodField()
-    validity_duration = ValidityDurationField(required=False)
+    validity_duration = ValidityDurationField(required=True)
 
     class Meta:
         model = GreenAssessment
         fields = (
             'id', 'name', 'award_body', 'recognition_type',
             'recognition_description', 'description', 'is_numeric_score',
-            'is_integer_score', 'validity_duration'
+            'is_integer_score', 'validity_duration', 'is_reso_certification'
         )
 
     def get_recognition_description(self, obj):
@@ -161,13 +165,15 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin, serializers.ModelSeria
         fields = ('id', 'source', 'status', 'status_date', 'score',
                   'metric', 'rating', 'version', 'date', 'target_date',
                   'eligibility', 'expiration_date', 'is_valid', 'year',
-                  'urls', 'assessment', 'view', 'extra_data')
+                  'urls', 'assessment', 'view', 'opt_out')
 
     def create(self, validated_data):
         """Override create to handle urls"""
-        urls = set(validated_data.pop('urls', []))
+        urls = get_url_list(validated_data.pop('urls', []))
+        # HELIX        urls = set(validated_data.pop('urls', []))
         request = self.context.get('request', None)
         user = getattr(request, 'user', None)
+        print(validated_data)
         instance = super().create(
             validated_data
         )
@@ -195,7 +201,8 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin, serializers.ModelSeria
 
     def update(self, instance, validated_data):
         """Override create to handle urls"""
-        urls = set(validated_data.pop('urls', []))
+        urls = get_url_list(validated_data.pop('urls', []))
+        # HELIX        urls = set(validated_data.pop('urls', []))
         request = self.context.get('request', None)
         user = getattr(request, 'user', None)
         instance = super().update(instance, validated_data)
@@ -212,7 +219,7 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin, serializers.ModelSeria
                 property_assessment=instance
             )
             existing = all_urls.filter(url__in=urls).values_list(
-                'url'
+                'url', 'description',
             )
             # delete any not supplied
             to_delete = all_urls.exclude(url__in=urls)
@@ -224,7 +231,8 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin, serializers.ModelSeria
                 [
                     GreenAssessmentURL(
                         property_assessment=instance,
-                        url=url
+                        url=url[0], description=url[1]
+                        # HELIX                        url=url
                     ) for url in urls
                 ]
             )
@@ -304,7 +312,18 @@ class GreenAssessmentPropertyReadOnlySerializer(serializers.BaseSerializer):
 
     def to_representation(self, obj):
         """Serialize green assessment property"""
-        urls = [(url.url, url.description) for url in obj.urls.all()]
+        urls = [(url.url, url.description, url.id) for url in obj.urls.all()]
+
+        """Serialize measures property"""
+        measurements = [(
+            measure.get_measurement_type_display(),
+            measure.get_measurement_subtype_display(),
+            measure.get_fuel_display(),
+            measure.quantity,
+            measure.get_unit_display(),
+            measure.get_status_display(),
+            measure.year) for measure in obj.measurements.all()]
+
         assessment = OrderedDict((
             ('id', obj.assessment.id),
             ('name', obj.assessment.name),
@@ -344,9 +363,20 @@ class GreenAssessmentPropertyReadOnlySerializer(serializers.BaseSerializer):
             ('is_valid', obj.is_valid),
             ('year', obj.year),
             ('date', obj.date),
+            ('reference_id', obj.reference_id),
+            ('opt_out', obj.opt_out),
             ('urls', urls),
             ('assessment', assessment),
+            ('measurements', measurements),
             ('extra_data', obj.extra_data),
             ('reso_dict', obj.to_reso_dict()),
             ('bedes_dict', obj.to_bedes_dict())
         ))
+
+
+def get_url_list(url_list):
+    """Simple helper functions to allow urls supplied as string or seq"""
+    return set([
+        (url[0], url[1]) if isinstance(url, Sequence) else (url, None)
+        for url in url_list
+    ])

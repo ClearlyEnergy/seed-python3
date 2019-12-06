@@ -43,6 +43,28 @@ angular.module('BE.seed.service.organization', []).factory('organization_service
       });
     };
 
+    organization_factory.add_hes = function (org) {
+      return $http.put('/api/v2/organizations/' + org.organization.id + '/add_hes/', {
+        hes: org.hes,
+        hes_partner_name: org.hes_partner_name,
+        hes_partner_password: org.hes_partner_password,
+        hes_start_date: org.hes_start_date,
+        hes_end_date: org.hes_end_date
+      }).then(function (response) {
+        return response.data;
+      });
+    };
+
+    organization_factory.add_leed = function (org) {
+      return $http.put('/api/v2/organizations/' + org.organization.id + '/add_leed/', {
+        leed_geo_id: org.leed_geo_id,
+        leed_start_date: org.leed_start_date,
+        leed_end_date: org.leed_end_date
+      }).then(function (response) {
+        return response.data;
+      });
+    };
+
     organization_factory.get_organization_users = function (org) {
       return $http.get('/api/v2/organizations/' + org.org_id + '/users/').then(function (response) {
         return response.data;

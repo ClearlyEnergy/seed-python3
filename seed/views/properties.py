@@ -38,7 +38,7 @@ from seed.models import (
     Note,
     Property,
     PropertyAuditLog,
-    PropertyMeasure,
+    #    PropertyMeasure,
     PropertyState,
     PropertyView,
     Simulation,
@@ -46,6 +46,9 @@ from seed.models import (
     TaxLotProperty,
     TaxLotView,
 )
+from helix.models import HELIXGreenAssessmentProperty
+from helix.models import HELIXPropertyMeasure as PropertyMeasure
+
 from seed.models import Property as PropertyModel
 from seed.serializers.pint import PintJSONEncoder
 from seed.serializers.pint import (
@@ -58,6 +61,12 @@ from seed.serializers.properties import (
     PropertyViewAsStateSerializer,
     PropertyViewSerializer,
 )
+# HELIX add
+from seed.serializers.certification import (
+    GreenAssessmentPropertyReadOnlySerializer
+)
+from seed.serializers.measures import PropertyMeasureReadOnlySerializer
+# HELIX end add
 from seed.serializers.taxlots import (
     TaxLotViewSerializer,
 )
@@ -814,6 +823,29 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
             lots.append(TaxLotViewSerializer(lot).data)
         return lots
 
+# Helix add
+    def _get_certifications(self, pk):
+        """Get certifications(GreenAssessments)"""
+        certifications = HELIXGreenAssessmentProperty.objects.filter(
+            view=pk
+        ).prefetch_related('assessment', 'urls', 'measurements')
+
+        return [
+            GreenAssessmentPropertyReadOnlySerializer(cert).data
+            for cert in certifications
+        ]
+
+    def _get_measures(self, pk):
+        """Get measures"""
+        measures = PropertyMeasure.objects.filter(
+            property_state_id=pk
+        ).prefetch_related('measure', 'measurements')
+
+        return [
+            PropertyMeasureReadOnlySerializer(meas).data
+            for meas in measures
+        ]
+
     @api_endpoint_class
     @ajax_request_class
     @detail_route(methods=['GET'])
@@ -859,6 +891,7 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
         """
         result = self._get_property_view(pk)
         if result.get('status', None) != 'error':
+            result['property_view_id'] = result['property_view'].id  # Helix add
             property_view = result.pop('property_view')
             result = {'status': 'success'}
             result.update(PropertyViewSerializer(property_view).data)
@@ -875,6 +908,8 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
             result['state'] = PropertyStateSerializer(property_view.state,
                                                       all_extra_data_columns=all_extra_data_columns).data
             result['taxlots'] = self._get_taxlots(property_view.pk)
+            result['certifications'] = self._get_certifications(property_view.pk)  # Helix add
+            result['measures'] = self._get_measures(property_view.state.pk)  # Helix add
             result['history'], master = self.get_history(property_view)
             result = update_result_with_master(result, master)
             return JsonResponse(result, encoder=PintJSONEncoder, status=status.HTTP_200_OK)

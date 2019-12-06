@@ -435,6 +435,57 @@ angular.module('BE.seed.controller.inventory_list', [])
         });
       };
 
+      $scope.generate_green_addendum = function () {
+        spinner_utility.show();
+
+        var property_states = _.map(_.filter($scope.gridApi.selection.getSelectedRows(), function (row) {
+          if ($scope.inventory_type === 'properties') return row.$$treeLevel === 0;
+          return !_.has(row, '$$treeLevel');
+        }), 'property_state_id');
+
+        //loop through states
+        inventory_service.generate_green_addendum(property_states[0]).then(function(response) {	
+            window.open(response.url, '_blank');
+        })
+        .finally(function() {
+            spinner_utility.hide();
+        })
+      }
+
+      $scope.generate_vermont_profile = function () {
+        spinner_utility.show();
+
+        var property_states = _.map(_.filter($scope.gridApi.selection.getSelectedRows(), function (row) {
+          if ($scope.inventory_type === 'properties') return row.$$treeLevel === 0;
+          return !_.has(row, '$$treeLevel');
+        }), 'property_state_id');
+
+        //loop through states
+        inventory_service.generate_vermont_profile(property_states[0]).then(function(response) {	
+            window.open(response.url, '_blank');
+        })
+        .finally(function() {
+            spinner_utility.hide();
+        })
+      }
+
+      $scope.generate_massachusetts_scorecard = function () {
+        spinner_utility.show();
+
+        var property_states = _.map(_.filter($scope.gridApi.selection.getSelectedRows(), function (row) {
+          if ($scope.inventory_type === 'properties') return row.$$treeLevel === 0;
+          return !_.has(row, '$$treeLevel');
+        }), 'property_state_id');
+
+        //loop through states
+        inventory_service.generate_massachusetts_scorecard(property_states[0]).then(function(response) {	
+            window.open(response.url, '_blank');
+        })
+        .finally(function() {
+            spinner_utility.hide();
+        })
+      }
+
       $scope.cycle = {
         selected_cycle: _.find(cycles.cycles, {id: inventory.cycle_id}),
         cycles: cycles.cycles
@@ -456,7 +507,8 @@ angular.module('BE.seed.controller.inventory_list', [])
           col.cellTemplate = '<div class="ui-grid-cell-contents" uib-tooltip="{{COL_FIELD CUSTOM_FILTERS}}" tooltip-append-to-body="true" tooltip-popup-delay="500">{{COL_FIELD CUSTOM_FILTERS}}</div>';
         }
         if (col.data_type === 'datetime') {
-          options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
+//          options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
+          options.cellFilter = 'date:\'yyyy-MM-dd\'';
           options.filter = inventory_service.dateFilter();
         } else {
           options.filter = inventory_service.combinedFilter();
@@ -566,7 +618,8 @@ angular.module('BE.seed.controller.inventory_list', [])
 
             if (col.data_type === 'datetime') {
               cleanedValues = _.map(cleanedValues, function (value) {
-                return $filter('date')(value, 'yyyy-MM-dd h:mm a');
+//                return $filter('date')(value, 'yyyy-MM-dd h:mm a');
+                return $filter('date')(value, 'yyyy-MM-dd');
               });
             }
 
@@ -792,6 +845,47 @@ angular.module('BE.seed.controller.inventory_list', [])
             },
             inventory_type: function () {
               return $scope.inventory_type;
+            },
+            export_type: function () {
+              return 'standard';
+            },
+            profile_id: function () {
+              // Check to see if the profile id is set
+              if ($scope.currentProfile) {
+                return $scope.currentProfile.id;
+              } else {
+                return null;
+              }
+            }
+          }
+        });
+      };
+
+      $scope.open_helix_export_modal = function () {
+        $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/export_inventory_modal.html',
+          controller: 'export_inventory_modal_controller',
+          resolve: {
+            cycle_id: function () {
+              return $scope.cycle.selected_cycle.id;
+            },
+            ids: function () {
+              var visibleRowIds = _.map($scope.gridApi.core.getVisibleRows($scope.gridApi.grid), function (row) {
+                return row.entity.id;
+              });
+              var selectedRowIds = _.map($scope.gridApi.selection.getSelectedRows(), 'id');
+              return _.filter(visibleRowIds, function (id) {
+                return _.includes(selectedRowIds, id);
+              });
+            },
+            columns: function () {
+              return _.map($scope.columns, 'name');
+            },
+            inventory_type: function () {
+              return $scope.inventory_type;
+            },
+            export_type: function() {
+              return 'helix';
             },
             profile_id: function () {
               // Check to see if the profile id is set

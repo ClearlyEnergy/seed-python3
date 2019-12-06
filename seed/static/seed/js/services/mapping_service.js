@@ -72,6 +72,21 @@ angular.module('BE.seed.service.mapping', []).factory('mapping_service', [
       });
     };
 
+	/**
+	* Add certifications.
+	* kick off task to begin adding certifications on the backend.
+	* @param import_file_id: int, represents file import id.
+	*/
+	mapping_factory.add_certifications = function (import_file_id) {
+      return user_service.get_user_id().then(function (this_user_id) {
+        return $http.post('/api/v2/import_files/'+ import_file_id + '/add_certifications/', {
+          user_id: this_user_id
+        }).then(function (response) {
+          return response.data;
+        });
+      });
+    };
+	
     /**
      * remap_buildings
      * kick off task to begin re-mapping on the backend.

@@ -502,7 +502,8 @@ angular.module('BE.seed.controller.mapping', [])
               col.visible = false;
             } else {
               if (col.data_type === 'datetime') {
-                options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
+//                options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
+                options.cellFilter = 'date:\'yyyy-MM-dd\'';
                 options.filter = inventory_service.dateFilter();
               } else {
                 options.filter = inventory_service.combinedFilter();
@@ -516,7 +517,8 @@ angular.module('BE.seed.controller.mapping', [])
               col.visible = false;
             } else {
               if (col.data_type === 'datetime') {
-                options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
+//                options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
+                options.cellFilter = 'date:\'yyyy-MM-dd\'';
                 options.filter = inventory_service.dateFilter();
               } else {
                 options.filter = inventory_service.combinedFilter();
