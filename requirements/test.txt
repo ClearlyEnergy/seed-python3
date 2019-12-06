@@ -26,3 +26,15 @@ sphinx_rtd_theme==0.4.3
 
 # For running the server
 uWSGI==2.0.17.1
+
+# Helix
+-e git+https://github.com/revsys/django-tos.git#egg=django_tos-master
+-e git+https://github.com/ClearlyEnergy/HELIX.git#egg=helix
+-e git+https://github.com/ClearlyEnergy/helix-hes.git#egg=hes
+zeep==2.3.0
+-e git+https://github.com/ClearlyEnergy/helix-leed.git#egg=leed
+googlemaps==2.5.1
+-e git+https://github.com/ClearlyEnergy/helix-label.git#egg=label
+pdfrw==0.4
+reportlab==3.5.21
+boto3==1.9.96
