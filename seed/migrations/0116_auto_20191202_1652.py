@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('seed', '0113_column_geocoding_order'),
+        ('seed', '0115_backfill_organization_columns'),
     ]
 
     operations = [
