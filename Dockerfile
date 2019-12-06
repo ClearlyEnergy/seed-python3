@@ -48,6 +48,8 @@ FROM seedplatform/seed:2.6.1
 ##   - install supervisor that works with Python3.
 ##   - enchant, python-gdbm, libssl-dev, libxml2-dev are no longer explicitly installed
 
+RUN apk add --no-cache jpeg-dev
+
 ### Install python requirements
 WORKDIR /seed
 COPY ./requirements.txt /seed/requirements.txt
