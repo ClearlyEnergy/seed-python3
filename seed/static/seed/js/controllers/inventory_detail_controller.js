@@ -290,7 +290,6 @@ angular.module('BE.seed.controller.inventory_detail', [])
        * save_item: saves the user's changes to the Property/TaxLot State object.
        */
       $scope.save_item = function () {
-        $scope.$emit('show_saving');
         if ($scope.inventory_type === 'properties') {
           inventory_service.update_property($scope.inventory.view_id, $scope.diff())
             .then(function (data) {
@@ -308,11 +307,8 @@ angular.module('BE.seed.controller.inventory_detail', [])
                 // In the short term, we're just refreshing the page after a save so the table
                 // shows new history.
                 // TODO: Refactor so that table is dynamically updated with new information
-                $scope.$emit('finished_saving');
                 $state.reload();
               }
-            }, function () {
-              $scope.$emit('finished_saving');
             })
             .catch(function (data) {
               $log.error(String(data));
@@ -334,11 +330,8 @@ angular.module('BE.seed.controller.inventory_detail', [])
                 // In the short term, we're just refreshing the page after a save so the table
                 // shows new history.
                 // TODO: Refactor so that table is dynamically updated with new information
-                $scope.$emit('finished_saving');
                 $state.reload();
               }
-            }, function () {
-              $scope.$emit('finished_saving');
             })
             .catch(function (data) {
               $log.error(String(data));

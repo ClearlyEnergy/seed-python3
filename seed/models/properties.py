@@ -273,7 +273,7 @@ class PropertyState(models.Model):
     source_eui_modeled = QuantityField('kBtu/ft**2/year', null=True, blank=True)
 
     # HELIX
-    data_quality = models.IntegerField(choices=DATA_QUALITY_TYPES, null=True, blank=True)    
+    data_quality = models.IntegerField(choices=DATA_QUALITY_TYPES, null=True, blank=True)
 
     extra_data = JSONField(default=dict, blank=True)
     hash_object = models.CharField(max_length=32, null=True, blank=True, default=None)

@@ -581,10 +581,10 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
             });
           }],
           propertyInventory: ['inventory_service', function (inventory_service) {
-            return inventory_service.get_properties(1, undefined, undefined, -1);
+            return inventory_service.get_properties(1, undefined, undefined, -1, false);
           }],
           taxlotInventory: ['inventory_service', function (inventory_service) {
-            return inventory_service.get_taxlots(1, undefined, undefined, -1);
+            return inventory_service.get_taxlots(1, undefined, undefined, -1, false);
           }],
           cycles: ['cycle_service', function (cycle_service) {
             return cycle_service.get_cycles();
@@ -1089,14 +1089,6 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
         templateUrl: static_url + 'seed/partials/inventory_list.html',
         controller: 'inventory_list_controller',
         resolve: {
-          inventory: ['$stateParams', 'inventory_service', 'current_profile', function ($stateParams, inventory_service, current_profile) {
-            var profile_id = _.has(current_profile, 'id') ? current_profile.id : undefined;
-            if ($stateParams.inventory_type === 'properties') {
-              return inventory_service.get_properties(1, undefined, undefined, profile_id);
-            } else if ($stateParams.inventory_type === 'taxlots') {
-              return inventory_service.get_taxlots(1, undefined, undefined, profile_id);
-            }
-          }],
           cycles: ['cycle_service', function (cycle_service) {
             return cycle_service.get_cycles();
           }],
@@ -1136,13 +1128,6 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
         templateUrl: static_url + 'seed/partials/inventory_map.html',
         controller: 'inventory_map_controller',
         resolve: {
-          inventory: ['$stateParams', 'inventory_service', function ($stateParams, inventory_service) {
-            // if ($stateParams.inventory_type === 'properties') {
-            return inventory_service.get_properties(1, undefined, undefined, undefined);
-            // } else if ($stateParams.inventory_type === 'taxlots') {
-            //   return inventory_service.get_taxlots(1, undefined, undefined, undefined);
-            // }
-          }],
           cycles: ['cycle_service', function (cycle_service) {
             return cycle_service.get_cycles();
           }],

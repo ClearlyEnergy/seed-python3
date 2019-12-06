@@ -51,14 +51,14 @@ def login_view(request):
                 try:
                     user_accepted_tos = has_user_agreed_latest_tos(new_user)
                 except NoActiveTermsOfService:
-                    #     there's no active ToS, skip interstitial
+                    # there's no active ToS, skip interstitial
                     user_accepted_tos = True
 
                 if user_accepted_tos:
                     login(request, new_user)
                     return HttpResponseRedirect(redirect_to)
                 else:
-                    #     store login info for django-tos to handle
+                    # store login info for django-tos to handle
                     request.session['tos_user'] = new_user.pk
                     request.session['tos_backend'] = new_user.backend
                     # context = RequestContext(request)

@@ -19,7 +19,7 @@ from django.db import (
     transaction,
 )
 from django.db.models import Q
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.utils.translation import ugettext_lazy as _
 
 from seed.lib.superperms.orgs.models import Organization as SuperOrganization
@@ -136,6 +136,7 @@ class Column(models.Model):
         'extra_data',
         'lot_number',
         'normalized_address',
+        'organization',
         'updated',
     ]
 
@@ -212,6 +213,18 @@ class Column(models.Model):
             'display_name': 'Custom ID 1',
             'data_type': 'string',
         }, {
+            # This should never be mapped to!
+            'column_name': 'organization',
+            'table_name': 'PropertyState',
+            'display_name': 'Organization',
+            'data_type': 'string',
+        }, {
+            # This should never be mapped to!
+            'column_name': 'organization',
+            'table_name': 'TaxLotState',
+            'display_name': 'Organization',
+            'data_type': 'string',
+        }, {
             'column_name': 'address_line_1',
             'table_name': 'PropertyState',
             'display_name': 'Address Line 1',
@@ -273,7 +286,7 @@ class Column(models.Model):
             'table_name': 'TaxLotState',
             'display_name': 'Postal Code',
             'data_type': 'string',
-        },  {
+        }, {
             'column_name': 'county',
             'table_name': 'PropertyState',
             'display_name': 'County',
@@ -1121,7 +1134,7 @@ class Column(models.Model):
                 _log.error("could not find data_type for %s" % c)
                 types[c['column_name']] = ''
 
-        return {"types": types}
+        return {'types': types}
 
     @staticmethod
     def retrieve_db_fields(org_id):
@@ -1411,3 +1424,24 @@ def validate_model(sender, **kwargs):
 
 
 pre_save.connect(validate_model, sender=Column)
+
+
+def save_parent_organization_columns(sender, **kwargs):
+    """
+    Save columns to the parent organization as well so that they can be
+    merged easily when users view data a organization and all
+    sub-organizations.
+    """
+    instance = kwargs['instance']
+    if instance.organization is None or instance.organization.parent_org is None:
+        return  # Only dealing with sub-organizations
+    if Column.objects.filter(organization=instance.organization.parent_org,
+                             column_name=instance.column_name).count() > 0:
+        return  # Do not add columns if the already exist
+    parent_col = Column.objects.get(pk=instance.pk)
+    parent_col.pk = None
+    parent_col.organization = instance.organization.parent_org
+    parent_col.save()
+
+
+post_save.connect(save_parent_organization_columns, sender=Column)

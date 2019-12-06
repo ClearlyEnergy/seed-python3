@@ -83,8 +83,9 @@ angular.module('BE.seed.controller.admin', [])
       $scope.org_form.add = function (org) {
         organization_service.add(org).then(function () {
           $scope.org_form.invalid = false;
-          get_organizations();
-          $scope.$emit('organization_list_updated');
+          get_organizations().then(function () {
+            $scope.$emit('organization_list_updated');
+          });
           update_alert(true, 'Organization ' + org.name + ' created');
 
         }, function (data) {
@@ -139,7 +140,7 @@ angular.module('BE.seed.controller.admin', [])
       };
 
       var get_organizations = function () {
-        organization_service.get_organizations().then(process_organizations, function (response) {
+        return organization_service.get_organizations().then(process_organizations, function (response) {
           $log.log({message: 'error from data call', status: response.status, data: response.data});
           update_alert(false, 'error getting organizations: ' + response.data.message);
         });
@@ -156,6 +157,9 @@ angular.module('BE.seed.controller.admin', [])
 
       $scope.org_user.add = function () {
         organization_service.add_user_to_org($scope.org_user).then(function () {
+          get_organizations().then(function () {
+            $scope.$emit('organization_list_updated');
+          });
           $scope.get_organizations_users($scope.org_user.organization);
           update_alert(true, 'user ' + $scope.org_user.user.email + ' added to organization ' + $scope.org_user.organization.name);
         }, function (response) {
@@ -243,8 +247,9 @@ angular.module('BE.seed.controller.admin', [])
                 // Reload page if deleting current org.
                 $window.location.reload();
               } else {
-                get_organizations();
-                $scope.$emit('organization_list_updated');
+                get_organizations().then(function () {
+                  $scope.$emit('organization_list_updated');
+                });
               }
             }, function () {
               // Do nothing

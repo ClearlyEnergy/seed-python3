@@ -9,6 +9,7 @@ All rights reserved.  # NOQA
 """
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db.models import Q
 from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.decorators import detail_route, list_route
@@ -40,7 +41,8 @@ from seed.models import (
     TaxLotState,
     TaxLotView,
     TaxLot,
-)
+    VIEW_LIST,
+    VIEW_LIST_TAXLOT)
 from seed.serializers.pint import (
     apply_display_unit_preferences,
     add_pint_unit_suffix
@@ -76,6 +78,7 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
         per_page = request.query_params.get('per_page', 1)
         org_id = request.query_params.get('organization_id', None)
         cycle_id = request.query_params.get('cycle')
+        show_sub_org_data = request.query_params.get('show_sub_org_data', 'false') == 'true'
         # check if there is a query paramater for the profile_id. If so, then use that one
         profile_id = request.query_params.get('profile_id', profile_id)
         if not org_id:
@@ -100,16 +103,26 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
                     'results': []
                 })
 
+        organization = Organization.objects.get(id=org_id)
+        org_filter = Q(taxlot__organization_id=organization.id)
+        cycle_filter = Q(cycle=cycle)
+        # Matches cycles that start and end during the organization's current
+        # cycle
+        if show_sub_org_data:
+            for sub_org in organization.child_orgs.all():
+                org_filter = org_filter | Q(taxlot__organization_id=sub_org.id)
+                sub_cycle = self._find_org_cycle(cycle, sub_org)
+                if sub_cycle:
+                    cycle_filter = cycle_filter | Q(cycle=sub_cycle)
+
+        final_filter = org_filter & cycle_filter
         # Return taxlot views limited to the 'inventory_ids' list.  Otherwise, if selected is empty, return all
         if 'inventory_ids' in request.data and request.data['inventory_ids']:
-            taxlot_views_list = TaxLotView.objects.select_related('taxlot', 'state', 'cycle') \
-                .filter(taxlot_id__in=request.data['inventory_ids'], taxlot__organization_id=org_id,
-                        cycle=cycle) \
-                .order_by('id')
-        else:
-            taxlot_views_list = TaxLotView.objects.select_related('taxlot', 'state', 'cycle') \
-                .filter(taxlot__organization_id=org_id, cycle=cycle) \
-                .order_by('id')
+            final_filter = Q(taxlot_id__in=request.data['inventory_ids']) & final_filter
+
+        taxlot_views_list = TaxLotView.objects.select_related('taxlot', 'state', 'cycle') \
+            .filter(final_filter) \
+            .order_by('id')
 
         paginator = Paginator(taxlot_views_list, per_page)
 
@@ -129,7 +142,7 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
         columns_from_database = Column.retrieve_all(org_id, 'taxlot', False)
 
         # This uses an old method of returning the show_columns. There is a new method that
-        # is prefered in v2.1 API with the ProfileIdMixin.
+        # is preferred in v2.1 API with the ProfileIdMixin.
         if profile_id is None:
             show_columns = None
         elif profile_id == -1:
@@ -141,8 +154,8 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
                 profile = ColumnListSetting.objects.get(
                     organization=org,
                     id=profile_id,
-                    settings_location=ColumnListSetting.VIEW_LIST,
-                    inventory_type=ColumnListSetting.VIEW_LIST_TAXLOT
+                    settings_location=VIEW_LIST,
+                    inventory_type=VIEW_LIST_TAXLOT
                 )
                 show_columns = list(ColumnListSettingColumn.objects.filter(
                     column_list_setting_id=profile.id
@@ -172,6 +185,21 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
         }
 
         return JsonResponse(response)
+
+    def _find_org_cycle(self, cycle, organization):
+        """
+        Matches the first cycle of a organization that starts and ends
+        within the range of the cycle provided
+
+        :param cycle: Cycle
+        :param organization: Organization
+        :return: Cycle, or None if there is no cycle that matches
+        """
+        range_start = cycle.start
+        range_end = cycle.end
+        cycles = organization.cycles.filter(start__gte=range_start,
+                                            end__gte=range_end)
+        return cycles.first()
 
     # @require_organization_id
     # @require_organization_membership
@@ -229,6 +257,10 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
               description: The number of items per page to return
               required: false
               paramType: query
+            - name: show_sub_org_data
+              description: Show data from sub-organizations as well
+              required: false
+              paramTpe: query
             - name: profile_id
               description: Either an id of a list settings profile, or undefined
               paramType: body
