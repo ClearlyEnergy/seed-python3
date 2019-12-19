@@ -765,7 +765,8 @@ def check_data_chunk(model, ids, dq_id):
         qs = None
     super_org = qs.first().organization
 
-    d = DataQualityCheck.retrieve(super_org.get_parent().id)
+    # HELIX    d = DataQualityCheck.retrieve(super_org.get_parent().id)
+    d = DataQualityCheck.retrieve(super_org.id)
     d.check_data(model, qs.iterator())
     d.save_to_cache(dq_id)
 
