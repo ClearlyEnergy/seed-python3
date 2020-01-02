@@ -11,6 +11,7 @@ All rights reserved.  # NOQA
 from django.apps import apps
 from django.db.models import Subquery
 
+from helix.models import HELIXGreenAssessmentProperty, HelixMeasurement
 from seed.lib.merging import merging
 from seed.models import (
     AUDIT_IMPORT,
@@ -18,6 +19,7 @@ from seed.models import (
     DATA_STATE_MATCHING,
     MERGE_STATE_MERGED,
     MERGE_STATE_UNKNOWN,
+    GreenAssessmentURL,
     Note,
     Property,
     PropertyAuditLog,
@@ -30,6 +32,7 @@ from seed.models import (
     TaxLotProperty,
     TaxLotView,
 )
+from seed.models.certification import GreenAssessmentPropertyAuditLog
 
 
 def merge_states_with_views(state_ids, org_id, log_name, StateClass):
@@ -213,6 +216,38 @@ def _copy_propertyview_relationships(view_ids, new_view):
         # Correct the created and updated times to match the original note
         Note.objects.filter(id=n.id).update(created=note['created'],
                                             updated=note['updated'])
+
+    # Assign certifications to the new view
+    certifications = list(HELIXGreenAssessmentProperty.objects.values(
+        'source','status','status_date','_metric','_rating','version','date','target_date','eligibility',
+        '_expiration_date','extra_data','assessment_id','opt_out','reference_id', 'id',
+    ).filter(view_id__in=view_ids).distinct())
+    
+    #gapauditlog_assessment, measurements
+    for certification in certifications:
+        old_certification_id = certification['id']
+        certification['view'] = new_view
+        del certification['id']
+        c = HELIXGreenAssessmentProperty(**certification)
+        c.save()
+
+        # merge audit urls
+        urls = GreenAssessmentURL.objects.filter(property_assessment_id=old_certification_id)
+        for url in urls:
+            url.property_assessment_id = c.id
+            url.save()
+
+        # merge audit logs
+        audit = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty_id=old_certification_id).last()
+        audit.property_view_id = new_view.id
+        audit.greenassessmentproperty_id = c.id
+        audit.save()
+
+        # merge measurements
+        measurements = HelixMeasurement.objects.filter(assessment_property_id=old_certification_id)
+        for measurement in measurements:
+            measurement.assessment_property_id = c.id
+            measurement.save()
 
     # Associate labels
     PropertyViewLabels = apps.get_model('seed', 'PropertyView_labels')
