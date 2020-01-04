@@ -865,7 +865,7 @@ angular.module('BE.seed.controller.inventory_list', [])
             inventory_type: function () {
               return $scope.inventory_type;
             },
-            export_type: function () {
+            export_category: function () {
               return 'standard';
             },
             profile_id: function () {
@@ -903,8 +903,46 @@ angular.module('BE.seed.controller.inventory_list', [])
             inventory_type: function () {
               return $scope.inventory_type;
             },
-            export_type: function() {
+            export_category: function() {
               return 'helix';
+            },
+            profile_id: function () {
+              // Check to see if the profile id is set
+              if ($scope.currentProfile) {
+                return $scope.currentProfile.id;
+              } else {
+                return null;
+              }
+            }
+          }
+        });
+      };
+
+      $scope.open_duplicates_export_modal = function () {
+        $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/export_inventory_modal.html',
+          controller: 'export_inventory_modal_controller',
+          resolve: {
+            cycle_id: function () {
+              return $scope.cycle.selected_cycle.id;
+            },
+            ids: function () {
+              var visibleRowIds = _.map($scope.gridApi.core.getVisibleRows($scope.gridApi.grid), function (row) {
+                return row.entity.id;
+              });
+              var selectedRowIds = _.map($scope.gridApi.selection.getSelectedRows(), 'id');
+              return _.filter(visibleRowIds, function (id) {
+                return _.includes(selectedRowIds, id);
+              });
+            },
+            columns: function () {
+              return _.map($scope.columns, 'name');
+            },
+            inventory_type: function () {
+              return $scope.inventory_type;
+            },
+            export_category: function() {
+              return 'dups';
             },
             profile_id: function () {
               // Check to see if the profile id is set

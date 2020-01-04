@@ -41,7 +41,7 @@ from seed.views.taxlots import TaxLotViewSet
 from seed.views.ubid import UbidViews
 from seed.views.users import UserViewSet
 
-from helix.views import helix_csv_export, helix_green_addendum, helix_massachusetts_scorecard
+from helix.views import helix_csv_export, helix_green_addendum, helix_massachusetts_scorecard, helix_dups_export
 
 api_v2_router = routers.DefaultRouter()
 api_v2_router.register(r'building_file', BuildingFileViewSet, base_name='building_file')
@@ -80,6 +80,7 @@ urlpatterns = [
     url(r'^version/$', version, name='version'),
     # helix routes
     url(r'helix_csv_export/$', helix_csv_export, name='helix_csv_export'),
+    url(r'helix_dups_export/$', helix_dups_export, name='helix_dups_export'),
     url(r'green_addendum/(?P<pk>\w+)/$', helix_green_addendum, name='green_addendum'),
     url(r'massachusetts_scorecard/(?P<pk>\w+)/', helix_massachusetts_scorecard, name='massachusetts_scorecard'),
     # data uploader related things

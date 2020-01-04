@@ -11,9 +11,9 @@ angular.module('BE.seed.controller.export_inventory_modal', []).controller('expo
   'ids',
   'columns',
   'inventory_type',
-  'export_type',
+  'export_category',
   'profile_id',
-  function ($http, $scope, $uibModalInstance, user_service, cycle_id, ids, columns, inventory_type, export_type, profile_id) {
+  function ($http, $scope, $uibModalInstance, user_service, cycle_id, ids, columns, inventory_type, export_category, profile_id) {
     $scope.export_name = '';
 
     $scope.export_selected = function (export_type) {
@@ -22,7 +22,7 @@ angular.module('BE.seed.controller.export_inventory_modal', []).controller('expo
       var ext = '.' + export_type;
       if (!_.endsWith(filename, ext)) filename += ext;
 
-	  if (export_type === 'standard') {
+	  if (export_category === 'standard') {
         return $http.post('/api/v2.1/tax_lot_properties/export/', {
           ids: ids,
           filename: filename,
@@ -53,8 +53,24 @@ angular.module('BE.seed.controller.export_inventory_modal', []).controller('expo
           return response.data;
         });
       }
-	  if (export_type === 'helix') {
+	  if (export_category === 'helix') {
 	      return $http.post('/api/v2/helix_csv_export/', {
+	        ids: ids,
+	        filename: filename
+	      }, {
+	        params: {
+	          organization_id: user_service.get_organization().id
+	        }
+	      }).then(function (response) {
+	        var blob = new Blob([response.data], {type: 'text/csv'});
+	        saveAs(blob, filename);
+
+	        $scope.close();
+	        return response.data;
+	      });	  		  	
+	  }
+	  if (export_category === 'dups') {
+	      return $http.post('/api/v2/helix_dups_export/', {
 	        ids: ids,
 	        filename: filename
 	      }, {
