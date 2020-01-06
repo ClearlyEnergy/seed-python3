@@ -39,7 +39,8 @@ from seed.models import (
     MERGE_STATE_UNKNOWN,
     TaxLotProperty
 )
-from seed.utils.address import normalize_address_str
+# from seed.utils.address import normalize_address_str
+from helix.utils.address import normalize_address_str, normalize_postal_code, normalize_state
 from seed.utils.generic import (
     compare_orgs_between_label_and_target,
     split_model_fields,
@@ -391,11 +392,18 @@ class PropertyState(models.Model):
         return d
 
     def save(self, *args, **kwargs):
+        if self.postal_code is not None:
+            self.postal_code = normalize_postal_code(self.postal_code)
+
         # Calculate and save the normalized address
         if self.address_line_1 is not None:
-            self.normalized_address = normalize_address_str(self.address_line_1)
+            self.normalized_address, self.extra_data = normalize_address_str(self.address_line_1, self.address_line_2, self.postal_code, self.extra_data)
+            # HELIX self.normalized_address = normalize_address_str(self.address_line_1)
         else:
             self.normalized_address = None
+
+        if self.state is not None:
+            self.state = normalize_state(self.state)
 
         # save a hash of the object to the database for quick lookup
         from seed.data_importer.tasks import hash_state_object
