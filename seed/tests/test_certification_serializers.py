@@ -148,12 +148,13 @@ class TestGreenAssessmentPropertySerializer(DeleteModelsTestCase):
             'metric': 5,
             'version': '0.1',
             'date': '2016-01-01',
-#            'is_reso_certification': True,
+            #            'is_reso_certification': True,
             'eligibility': True,
             'assessment': self.assessment,
             'view': self.property_view,
         }
-        self.urls = ['http://example.com', 'http://example.org']
+#        self.urls = ['http://example.com', 'http://example.org']
+        self.urls = ['http://example.com', 'description']
 
     @mock.patch('seed.serializers.certification.GreenAssessmentURL')
     def test_create(self, mock_url_model):
@@ -161,7 +162,6 @@ class TestGreenAssessmentPropertySerializer(DeleteModelsTestCase):
         serializer = GreenAssessmentPropertySerializer()
         data = self.data.copy()
         data['urls'] = self.urls
-        print(data)
         instance = serializer.create(data)
         mock_url_model.objects.bulk_create.assert_called_with(
             [
@@ -186,7 +186,8 @@ class TestGreenAssessmentPropertySerializer(DeleteModelsTestCase):
             property_assessment=instance
         )
         mock_url_model.assert_called_with(
-            url=['http://example.org'], property_assessment=gap
+            # HELIX            url=['http://example.org'], property_assessment=gap
+            url='d', description='e', property_assessment=gap
         )
 
     def test_validate(self):

@@ -135,7 +135,7 @@ angular.module('BE.seed.controller.merge_modal', [])
         enableSorting: false,
         enableVerticalScrollbar: uiGridConstants.scrollbars.NEVER,
         flatEntityAccess: true,
-        minRowsToShow: 1,
+        minRowsToShow: 2,
         columnDefs: $scope.columns
       };
 
@@ -158,7 +158,7 @@ angular.module('BE.seed.controller.merge_modal', [])
           gridApi.draggableRows.on.rowDropped($scope, updateResult);
         }
       };
-      if (data.length < 10) $scope.gridOptions.minRowsToShow = data.length;
+      if (data.length < 10) $scope.gridOptions.minRowsToShow = data.length+1;
 
       $scope.close = function () {
         $uibModalInstance.close();

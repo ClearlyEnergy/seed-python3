@@ -26,15 +26,13 @@ from faker import Factory
 
 from seed.models import (
     Cycle, Column, GreenAssessmentURL, Measure,
-    Property, PropertyAuditLog, PropertyView,
+    GreenAssessmentProperty, Property, PropertyAuditLog, PropertyView,
     PropertyState, StatusLabel, TaxLot, TaxLotAuditLog, TaxLotProperty,
     TaxLotState, TaxLotView, PropertyMeasure, Note, ColumnListSetting,
     ColumnListSettingColumn,
     VIEW_LIST,
     VIEW_LIST_PROPERTY)
-)
 from helix.models import HELIXGreenAssessment as GreenAssessment
-from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
 from seed.models.auditlog import AUDIT_IMPORT, AUDIT_USER_CREATE
 from seed.utils.strings import titlecase
 
@@ -465,7 +463,6 @@ class FakeGreenAssessmentPropertyFactory(BaseFake):
             'organization': organization,
             'view': property_view,
             'assessment': assessment,
-            'reference_id': 'Fake Ref',
             'date': self.fake.date_time_this_decade().date()
         }
         if metric:
@@ -479,7 +476,6 @@ class FakeGreenAssessmentPropertyFactory(BaseFake):
                                       urls=None, with_url=None, **kw):
         """
         Get a GreenAssessmentProperty instance.
-
         :param assessment: assessment instance
         :type assessment: GreenAssessment
         :param property_view: property_view instance
@@ -492,7 +488,6 @@ class FakeGreenAssessmentPropertyFactory(BaseFake):
         :type urls: list of strings
         :param with_url: number of GreenAssessmentURLs to create
         :type with_url: int
-
         with_urls and urls are mutually exclusive.
         """
         # pylint:disable=too-many-arguments
@@ -508,8 +503,6 @@ class FakeGreenAssessmentPropertyFactory(BaseFake):
         details.update(kw)
         # remove the organization because it is not a valid field
         details.pop('organization', None)
-        print ('IN FAKE')
-        print(details)
 
         gap = GreenAssessmentProperty.objects.create(**details)
         if urls:
@@ -525,12 +518,10 @@ class FakeGreenAssessmentPropertyFactory(BaseFake):
 class FakeStatusLabelFactory(BaseFake):
     """
     Factory Class for producing StatusLabel instances.
-
     Since color choices are limited, we preconstruct a list of
     (color, name) tuples with values derived from COLOR_CHOICES
     and DEFAULT_LABELS, and return a label based on a random(ish)*
     choice from this unless name or color are overridden.
-
     * This is faker, its predictable based on seed passed to fake factory.
     """
 
@@ -751,7 +742,6 @@ class FakeTaxLotViewFactory(BaseFake):
 class FakeColumnListSettingsFactory(BaseFake):
     """
     Factory Class for producing ColumnList Settings
-
     * This is faker, its predictable based on seed passed to fake factory.
     """
 
@@ -880,7 +870,6 @@ def mock_queryset_factory(model, flatten=False, **kwargs):
 
 def mock_as_view(view, request, *args, **kwargs):
     """Mimic as_view() returned callable, but returns view instance.
-
     args and kwargs are the same you would pass to ``reverse()``
     Borrowed from: http://tech.novapost.fr/django-unit-test-your-views-en.html
     """
