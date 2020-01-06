@@ -19,6 +19,8 @@ chown -R uwsgi /seed/collected_static
 ./manage.py migrate
 
 echo "Creating default user"
-./manage.py create_default_user --username=$SEED_ADMIN_USER --password=$SEED_ADMIN_PASSWORD --organization=$SEED_ADMIN_ORG
+if [[ -z $NO_CREATE_USER ]]; then
+    ./manage.py create_default_user --username=$SEED_ADMIN_USER --password=$SEED_ADMIN_PASSWORD --organization=$SEED_ADMIN_ORG
+fi
 
 /usr/bin/uwsgi --ini /seed/docker/uwsgi.ini
