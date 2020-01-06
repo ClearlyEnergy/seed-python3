@@ -18,8 +18,8 @@ chown -R uwsgi /seed/collected_static
 # Run any migrations before starting -- always for now
 ./manage.py migrate
 
-echo "Creating default user"
 if [[ -z $NO_CREATE_USER ]]; then
+    echo "Creating default user"
     ./manage.py create_default_user --username=$SEED_ADMIN_USER --password=$SEED_ADMIN_PASSWORD --organization=$SEED_ADMIN_ORG
 fi
 
