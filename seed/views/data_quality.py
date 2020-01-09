@@ -11,6 +11,7 @@ from celery.utils.log import get_task_logger
 from django.http import JsonResponse, HttpResponse
 from rest_framework import viewsets, serializers, status
 from rest_framework.decorators import list_route, detail_route
+from rest_framework.renderers import JSONRenderer
 from unidecode import unidecode
 
 from seed.data_importer.tasks import do_checks
@@ -23,11 +24,18 @@ from seed.models.data_quality import (
     Rule,
     DataQualityCheck,
 )
-from seed.utils.api import api_endpoint_class
+from seed.utils.api import api_endpoint_class, OrgValidateMixin
 from seed.utils.cache import get_cache_raw
+from seed.utils.viewsets import SEEDOrgCreateUpdateModelViewSet
 
 logger = get_task_logger(__name__)
 
+
+class DataQualityCheckSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = '__all__'
+        model = DataQualityCheck
 
 class RulesSubSerializer(serializers.Serializer):
     field = serializers.CharField(max_length=100)
@@ -222,6 +230,9 @@ class DataQualityViews(viewsets.ViewSet):
         }
 
         dq = DataQualityCheck.retrieve(organization.id)
+        # VB Temp hack
+        dq = dq.first()
+        # End VB Temp hack
         rules = dq.rules.order_by('field', 'severity')
         for rule in rules:
             result['rules'][
@@ -429,3 +440,46 @@ class DataQualityViews(viewsets.ViewSet):
         return JsonResponse({
             'data': data_quality_results
         })
+
+
+class DataQualityCheckViewSet(OrgValidateMixin, SEEDOrgCreateUpdateModelViewSet):
+
+    """API endpoint for viewing and creating data quality rules
+
+        Returns::
+            {
+                'status': 'success',
+                'data': [
+                    {
+                        'id': data quality check primary key,
+                        'name': rule name,
+                        'organization_id': id of associated organization
+                    }
+                ]
+            }
+    
+    retrieve:
+        Return a data quality instance by pk if its associated
+        assessment is within the specified organization.
+
+    list:
+        Return all data quality rules available via specified organization.
+
+    create:
+        Create a new data quality rule within user`s specified org.
+
+    delete:
+        Remove an existing data quality rule
+
+    update:
+        Update a data quality rule
+
+    partial_update:
+        Update one or more fields on an existing data quality rule
+    
+    """
+    serializer_class = DataQualityCheckSerializer
+    pagination_class = None
+    model = DataQualityCheck
+#    orgfilter = 'organization_id'
+

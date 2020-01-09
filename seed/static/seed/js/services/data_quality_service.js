@@ -8,7 +8,8 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
   '$q',
   '$timeout',
   'user_service',
-  function ($http, $q, $timeout, user_service) {
+  'naturalSort',
+  function ($http, $q, $timeout, user_service, naturalSort) {
     var data_quality_factory = {};
 
     /**
@@ -63,6 +64,65 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
         data_quality_rules: data_quality_rules
       }).then(function (response) {
         return response.data;
+      });
+    };
+	
+	/**
+	 * retrieves data quality actions
+	 * @param {int} org_id the id of the organization
+	 */
+    data_quality_factory.get_data_qualities = function (org_id) {
+      return $http.get('/api/v2/data_quality/?organization_id=' + org_id).then(function (response) {
+        var data_qualities = _.filter(response.data.data, {
+        }).sort(function (a, b) {
+          return naturalSort(a.name, b.name);
+        });
+
+        _.forEach(data_qualities, function (dq) {
+          // Remove exact duplicates - this shouldn't be necessary, but it has occurred and will avoid errors and cleanup the database at the same time
+          dq.columns = _.uniqWith(dq.columns, _.isEqual);
+
+          dq.columns = _.sortBy(dq.columns, ['order', 'column_name']);
+        });
+        return data_qualities;
+      });
+    };
+	
+    data_quality_factory.get_last_data_quality = function (organization_id) {
+      return (JSON.parse(localStorage.getItem('data_qualities')) || {})[organization_id];
+    };
+
+    data_quality_factory.save_last_data_quality = function (pk, organization_id) {
+      data_qualities = JSON.parse(localStorage.getItem('data_qualities')) || {};
+	  console.log(data_qualities)
+      data_qualities[organization_id] = _.toInteger(pk);
+      localStorage.setItem('data_qualities', JSON.stringify(data_qualities));
+    };
+
+	/**
+	 * creates new data quality action
+	 * @param {char} name of the new action
+	 * @param {int} org_id the id of the organization
+	 */
+    data_quality_factory.new_data_quality = function (data) {
+      return $http.post('/api/v2/data_quality/', {
+        organization: user_service.get_organization().id,
+	    name: data['name'] 
+      }).then(function (response) {
+        return response.data.data;
+      });
+    };
+	
+	/**
+	 * removes data quality action
+	 * @param {int} id of the data quality action to remove
+	 * @param {int} org_id the id of the organization
+	 */
+    data_quality_factory.remove_data_quality = function (id) {
+      return $http.delete('/api/v2/data_quality/' + id + '/', {
+        params: {
+          organization_id: user_service.get_organization().id
+        }
       });
     };
 

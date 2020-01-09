@@ -10,10 +10,13 @@ angular.module('BE.seed.controller.data_quality_admin', [])
     '$stateParams',
     'columns',
     'organization_payload',
+	'data_qualities_payload',
+    'current_data_quality_payload',
     'data_quality_rules_payload',
     'auth_payload',
     'labels_payload',
     'data_quality_service',
+    'modified_service',
     'organization_service',
     'label_service',
     'spinner_utility',
@@ -29,10 +32,13 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       $stateParams,
       columns,
       organization_payload,
+      data_qualities_payload,
       data_quality_rules_payload,
+      current_data_quality_payload,
       auth_payload,
       labels_payload,
       data_quality_service,
+      modified_service,
       organization_service,
       label_service,
       spinner_utility,
@@ -46,6 +52,9 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       $scope.org = organization_payload.organization;
       $scope.auth = auth_payload.auth;
       $scope.ruleGroups = {};
+	  
+      $scope.data_qualities = data_qualities_payload;
+      $scope.currentDataQuality = current_data_quality_payload;
 
       $scope.state = $state.current;
 
@@ -365,6 +374,120 @@ angular.module('BE.seed.controller.data_quality_admin', [])
           return result + _.filter(ruleGroup, 'enabled').length;
         }, 0);
         return total === enabled;
+      };
+	  
+///// NEW 
+      var ignoreNextChange = true;
+      $scope.$watch('currentDataQuality', function (newDataQuality, oldDataQuality) {
+        if (ignoreNextChange) {
+          ignoreNextChange = false;
+          return;
+        }
+
+        if (!modified_service.isModified()) {
+          switchDataQuality(newDataQuality);
+        } else {
+          $uibModal.open({
+            template: '<div class="modal-header"><h3 class="modal-title" translate>You have unsaved changes</h3></div><div class="modal-body" translate>You will lose your unsaved changes if you switch data quality actions without saving. Would you like to continue?</div><div class="modal-footer"><button type="button" class="btn btn-warning" ng-click="$dismiss()" translate>Cancel</button><button type="button" class="btn btn-primary" ng-click="$close()" autofocus translate>Switch Profiles</button></div>'
+          }).result.then(function () {
+            modified_service.resetModified();
+            switchDataQuality(newDataQuality);
+          }).catch(function () {
+            ignoreNextChange = true;
+            $scope.currentDataQuality = oldDataQuality;
+          });
+        }
+      });
+
+      function switchDataQuality (newDataQuality) {
+        ignoreNextChange = true;
+        if (newDataQuality) {
+          $scope.currentDataQuality = _.find($scope.data_qualities, {id: newDataQuality.id});
+          data_quality_service.save_last_data_quality(newDataQuality.id);
+        } else {
+          $scope.currentDataProfile = undefined;
+        }
+
+//        setColumnsForCurrentProfile();
+      }
+	  	  
+      var currentRules = function () {
+        var rules = [];
+//        _.forEach($scope.gridApi.grid.rows, function (row) {
+//          if (row.isSelected) {
+//            columns.push({
+//              column_name: row.entity.column_name,
+//              id: row.entity.id,
+//              order: columns.length + 1,
+//              pinned: Boolean(row.entity.pinnedLeft),
+//              table_name: row.entity.table_name
+//            });
+//          }
+//        });
+        return rules;
+      };
+	  
+      $scope.renameDataQuality = function () {
+        var oldDataQuality = angular.copy($scope.currentDataQuality);
+
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/settings_data_quality_modal.html',
+          controller: 'settings_data_quality_modal_controller',
+          resolve: {
+            action: _.constant('rename'),
+            data: _.constant($scope.currentDataQuality),
+          }
+        });
+
+        modalInstance.result.then(function (newName) {
+          $scope.currentProfile.name = newName;
+          _.find($scope.profiles, {id: $scope.currentProfile.id}).name = newName;
+          Notification.primary('Renamed ' + oldProfile.name + ' to ' + newName);
+        });
+      };
+
+      $scope.removeDataQuality = function () {
+		  console.log('in remove')
+        var oldDataQuality = angular.copy($scope.currentDataQuality);
+		console.log(oldDataQuality)
+
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/settings_data_quality_modal.html',
+          controller: 'settings_data_quality_modal_controller',
+          resolve: {
+            action: _.constant('remove'),
+            data: _.constant($scope.currentDataQuality),
+          }
+        });
+
+        modalInstance.result.then(function () {
+          _.remove($scope.data_qualities, oldDataQuality);
+          modified_service.resetModified();
+          $scope.currentDataQuality = _.first($scope.data_qualities);
+          Notification.primary('Removed ' + oldDataQuality.name);
+        });
+      };
+	  	  
+      $scope.newDataQuality = function () {
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/settings_data_quality_modal.html',
+          controller: 'settings_data_quality_modal_controller',
+          resolve: {
+            action: _.constant('new'),
+            data: currentRules,
+          }
+        });
+
+        modalInstance.result.then(function (newDataQuality) {
+          $scope.data_qualities.push(newDataQuality);
+          modified_service.resetModified();
+          $scope.currentDataQuality = _.last($scope.data_qualities);
+          Notification.primary('Created ' + newDataQuality.name);
+        });
+      };
+	  
+      $scope.isModified = function () {
+        return modified_service.isModified();
       };
 
     }]);

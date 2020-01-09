@@ -520,23 +520,24 @@ class DataQualityCheck(models.Model):
         :return: obj, DataQualityCheck
         """
 
-        if DataQualityCheck.objects.filter(organization_id=organization_id).count() > 1:
+#VB        if DataQualityCheck.objects.filter(organization_id=organization_id).count() > 1:
             # Ensure that only one object is returned. For an unknown reason, the production
             # database has multiple DataQualityCheck objects for an organization, but there are no
             # calls to create a DataQualityCheck other than the .retrieve method.
-            first = DataQualityCheck.objects.filter(organization_id=organization_id).first()
-            dqcs = DataQualityCheck.objects.filter(organization_id=organization_id).exclude(
-                id__in=[first.pk])
-            for dqc in dqcs:
-                _log.info(
-                    "More than one DataQualityCheck for organization. Deleting {}".format(dqc.name))
-                dqc.delete()
+#VB            first = DataQualityCheck.objects.filter(organization_id=organization_id).first()
+#VB            dqcs = DataQualityCheck.objects.filter(organization_id=organization_id).exclude(
+#VB                id__in=[first.pk])
+#VB            for dqc in dqcs:
+#VB                _log.info(
+#VB                    "More than one DataQualityCheck for organization. Deleting {}".format(dqc.name))
+#VB                dqc.delete()
 
-        dq, _ = DataQualityCheck.objects.get_or_create(organization_id=organization_id)
+#VB        dq, _ = DataQualityCheck.objects.get_or_create(organization_id=organization_id)
+        dq = DataQualityCheck.objects.filter(organization_id=organization_id)
 
-        if dq.rules.count() == 0:
+#        if dq.rules.count() == 0:
             # _log.debug("No rules found in DataQualityCheck, initializing default rules")
-            dq.initialize_rules()
+#            dq.initialize_rules()
 
         return dq
 
