@@ -15,6 +15,10 @@ echo "Waiting for redis to start"
 # set the permissions in the /seed/collected_static folder
 chown -R uwsgi /seed/collected_static
 
+# create label temp directory
+mkdir -p /seed/src/label/label/tmp
+chown -R uwsgi /seed/src/label/label/tmp
+
 # Run any migrations before starting -- always for now
 ./manage.py migrate
 
