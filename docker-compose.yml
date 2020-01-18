@@ -4,6 +4,7 @@ version: '3'
 services:
   db-postgres:
     image: seedplatform/postgres-seed:11.2
+    restart: unless-stopped
     build:
       context: ./docker/postgres
     environment:
@@ -20,8 +21,10 @@ services:
         max-file: '5'
   db-redis:
     image: redis:5.0.1
+    restart: unless-stopped
   web:
     image: seedplatform/seed:latest
+    restart: unless-stopped
     build: .
     environment:
       - AWS_ACCESS_KEY_ID
@@ -54,6 +57,7 @@ services:
         max-file: '5'
   web-celery:
     image: seedplatform/seed:latest
+    restart: unless-stopped
     build: .
     command: /seed/docker/start_celery_docker.sh
     environment:
