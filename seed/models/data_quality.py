@@ -535,9 +535,10 @@ class DataQualityCheck(models.Model):
 #VB        dq, _ = DataQualityCheck.objects.get_or_create(organization_id=organization_id)
         dq = DataQualityCheck.objects.filter(organization_id=organization_id)
 
-#        if dq.rules.count() == 0:
-            # _log.debug("No rules found in DataQualityCheck, initializing default rules")
-#            dq.initialize_rules()
+        for dd in dq:
+            if dd.rules.count() == 0:
+                # _log.debug("No rules found in DataQualityCheck, initializing default rules")
+                dd.initialize_rules()
 
         return dq
 

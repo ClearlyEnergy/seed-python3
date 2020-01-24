@@ -63,6 +63,7 @@ from seed.models import (
     MERGE_STATE_MERGED,
     Cycle,
     Column,
+    DataQualityCheck,
     PropertyAuditLog,
     TaxLotAuditLog,
     AUDIT_USER_EDIT,
@@ -918,9 +919,11 @@ class ImportFileViewSet(viewsets.ViewSet):
               required: true
               paramType: path
         """
-        organization = Organization.objects.get(pk=request.query_params['organization_id'])
+# HELIX        organization = Organization.objects.get(pk=request.query_params['organization_id'])
+        dqs = DataQualityCheck.objects.filter(organization_id=request.query_params['organization_id']).fisrt() #Need to set default data quality check
 
-        return_value = do_checks(organization.id, None, None, pk)
+# HELIX        return_value = do_checks(organization.id, None, None, pk)
+        return_value = do_checks(data_quality_id, None, None, pk)
         # step 5: create a new model instance
         return JsonResponse({
             'progress_key': return_value['progress_key'],

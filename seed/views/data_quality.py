@@ -24,43 +24,15 @@ from seed.models.data_quality import (
     Rule,
     DataQualityCheck,
 )
+from seed.serializers.data_quality import (
+    DataQualityCheckSerializer,
+    RulesSerializer
+)
 from seed.utils.api import api_endpoint_class, OrgValidateMixin
 from seed.utils.cache import get_cache_raw
 from seed.utils.viewsets import SEEDOrgCreateUpdateModelViewSet
 
 logger = get_task_logger(__name__)
-
-
-class DataQualityCheckSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        fields = '__all__'
-        model = DataQualityCheck
-
-class RulesSubSerializer(serializers.Serializer):
-    field = serializers.CharField(max_length=100)
-    severity = serializers.CharField(max_length=100)
-
-
-class RulesSubSerializerB(serializers.Serializer):
-    field = serializers.CharField(max_length=100)
-    enabled = serializers.BooleanField()
-    data_type = serializers.CharField(max_length=100)
-    min = serializers.FloatField()
-    max = serializers.FloatField()
-    severity = serializers.CharField(max_length=100)
-    units = serializers.CharField(max_length=100)
-
-
-class RulesIntermediateSerializer(serializers.Serializer):
-    missing_matching_field = RulesSubSerializer(many=True)
-    missing_values = RulesSubSerializer(many=True)
-    in_range_checking = RulesSubSerializerB(many=True)
-
-
-class RulesSerializer(serializers.Serializer):
-    data_quality_rules = RulesIntermediateSerializer()
-
 
 def _get_js_rule_type(data_type):
     """return the JS friendly data type name for the data data_quality rule
@@ -134,13 +106,15 @@ class DataQualityViews(viewsets.ViewSet):
         body = request.data
         property_state_ids = body['property_state_ids']
         taxlot_state_ids = body['taxlot_state_ids']
-        organization = Organization.objects.get(pk=request.query_params['organization_id'])
+        data_quality_id = request.query_params['data_quality_id']
+# HELIX       organization = Organization.objects.get(pk=request.query_params['organization_id'])
 
         # step 1: validate the check IDs all exist
         # step 2: validate the check IDs all belong to this organization ID
         # step 3: validate the actual user belongs to the passed in org ID
         # step 4: kick off a background task
-        return_value = do_checks(organization.id, property_state_ids, taxlot_state_ids)
+# HELIX        return_value = do_checks(organization.id, property_state_ids, taxlot_state_ids)
+        return_value = do_checks(data_quality_id, property_state_ids, taxlot_state_ids)
         # step 5: create a new model instance
         return JsonResponse({
             'num_properties': len(property_state_ids),
@@ -223,33 +197,32 @@ class DataQualityViews(viewsets.ViewSet):
 
         result = {
             'status': 'success',
-            'rules': {
-                'properties': [],
-                'taxlots': []
-            }
+# HELIX           'rules': {
+# HELIX               'properties': [],
+# HELIX               'taxlots': []
+# HELIX           }
         }
 
-        dq = DataQualityCheck.retrieve(organization.id)
-        # VB Temp hack
-        dq = dq.first()
-        # End VB Temp hack
-        rules = dq.rules.order_by('field', 'severity')
-        for rule in rules:
-            result['rules'][
-                'properties' if rule.table_name == 'PropertyState' else 'taxlots'].append({
-                    'field': rule.field,
-                    'enabled': rule.enabled,
-                    'data_type': _get_js_rule_type(rule.data_type),
-                    'rule_type': rule.rule_type,
-                    'required': rule.required,
-                    'not_null': rule.not_null,
-                    'min': rule.min,
-                    'max': rule.max,
-                    'text_match': rule.text_match,
-                    'severity': _get_js_rule_severity(rule.severity),
-                    'units': rule.units,
-                    'label': rule.status_label_id
-                })
+        dqs = DataQualityCheck.retrieve(organization.id)
+        for dq in dqs:
+            rules = dq.rules.order_by('field', 'severity')
+            result[dq.id] = {'rules': {'properties': [], 'taxlots': []} }
+            for rule in rules:
+                result[dq.id]['rules'][
+                    'properties' if rule.table_name == 'PropertyState' else 'taxlots'].append({
+                        'field': rule.field,
+                        'enabled': rule.enabled,
+                        'data_type': _get_js_rule_type(rule.data_type),
+                        'rule_type': rule.rule_type,
+                        'required': rule.required,
+                        'not_null': rule.not_null,
+                        'min': rule.min,
+                        'max': rule.max,
+                        'text_match': rule.text_match,
+                        'severity': _get_js_rule_severity(rule.severity),
+                        'units': rule.units,
+                        'label': rule.status_label_id
+                    })
 
         return JsonResponse(result)
 
@@ -287,7 +260,8 @@ class DataQualityViews(viewsets.ViewSet):
         """
         organization = Organization.objects.get(pk=request.query_params['organization_id'])
 
-        dq = DataQualityCheck.retrieve(organization.id)
+        dq = DataQualityCheck.objects.get(pk=request.data['data_quality_id'])
+# HELIX        dq = DataQualityCheck.retrieve(organization.id)
         dq.reset_all_rules()
         return self.data_quality_rules(request)
 
@@ -325,7 +299,8 @@ class DataQualityViews(viewsets.ViewSet):
         """
         organization = Organization.objects.get(pk=request.query_params['organization_id'])
 
-        dq = DataQualityCheck.retrieve(organization.id)
+        dq = DataQualityCheck.objects.get(pk=request.data['data_quality_id'])
+# HELIX        dq = DataQualityCheck.retrieve(organization.id)
         dq.reset_default_rules()
         return self.data_quality_rules(request)
 
@@ -364,7 +339,7 @@ class DataQualityViews(viewsets.ViewSet):
         organization = Organization.objects.get(pk=request.query_params['organization_id'])
 
         body = request.data
-        if body.get('data_quality_rules') is None:
+        if (body.get('data_quality_rules') is None) or (body.get('data_quality_id') is None):
             return JsonResponse({
                 'status': 'error',
                 'message': 'missing the data_quality_rules'
@@ -410,7 +385,8 @@ class DataQualityViews(viewsets.ViewSet):
                 }
             )
 
-        dq = DataQualityCheck.retrieve(organization.id)
+# HELIX        dq = DataQualityCheck.retrieve(organization.id)
+        dq = DataQualityCheck.objects.get(pk=body.get('data_quality_id'))
         dq.remove_all_rules()
         for rule in updated_rules:
             try:
@@ -481,5 +457,4 @@ class DataQualityCheckViewSet(OrgValidateMixin, SEEDOrgCreateUpdateModelViewSet)
     serializer_class = DataQualityCheckSerializer
     pagination_class = None
     model = DataQualityCheck
-#    orgfilter = 'organization_id'
 

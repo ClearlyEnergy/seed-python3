@@ -33,8 +33,8 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       columns,
       organization_payload,
       data_qualities_payload,
-      data_quality_rules_payload,
       current_data_quality_payload,
+      data_quality_rules_payload,
       auth_payload,
       labels_payload,
       data_quality_service,
@@ -90,9 +90,8 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       // }
 
       $scope.all_labels = labels_payload;
-      // console.log(labels_payload)
 
-      var loadRules = function (rules_payload) {
+      var loadRules = function (rules_payload, id) {
         var ruleGroups = {
           properties: {},
           taxlots: {}
@@ -122,14 +121,16 @@ angular.module('BE.seed.controller.data_quality_admin', [])
 
         $scope.ruleGroups = ruleGroups;
       };
-      loadRules(data_quality_rules_payload);
+      loadRules(data_quality_rules_payload[$scope.currentDataQuality.id]);
 
       // Restores the default rules
       $scope.restore_defaults = function () {
         spinner_utility.show();
         $scope.defaults_restored = false;
-        data_quality_service.reset_default_data_quality_rules($scope.org.org_id).then(function (rules) {
-          loadRules(rules);
+//        data_quality_service.reset_default_data_quality_rules($scope.org.org_id).then(function (rules) {
+	      data_quality_service.reset_default_data_quality_rules($scope.org.org_id, $scope.currentDataQuality.id).then(function (rules) {
+//          loadRules(rules);
+          loadRules(rules[$scope.currentDataQuality.id]);
           $scope.defaults_restored = true;
         }, function (data) {
           $scope.$emit('app_error', data);
@@ -142,8 +143,10 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       $scope.reset_all_rules = function () {
         spinner_utility.show();
         $scope.rules_reset = false;
-        data_quality_service.reset_all_data_quality_rules($scope.org.org_id).then(function (rules) {
-          loadRules(rules);
+//        data_quality_service.reset_all_data_quality_rules($scope.org.org_id).then(function (rules) {
+	      data_quality_service.reset_all_data_quality_rules($scope.org.org_id, $scope.currentDataQuality.id).then(function (rules) {
+//          loadRules(rules);
+          loadRules(rules[$scope.currentDataQuality.id]);
           $scope.rules_reset = true;
         }, function (data) {
           $scope.$emit('app_error', data);
@@ -203,8 +206,7 @@ angular.module('BE.seed.controller.data_quality_admin', [])
         });
 
         spinner_utility.show();
-        data_quality_service.save_data_quality_rules($scope.org.org_id, rules).then(function (rules) {
-          loadRules(rules);
+        data_quality_service.save_data_quality_rules($scope.org.org_id, rules, $scope.currentDataQuality.id).then(function (rules) {
           $scope.rules_updated = true;
         }, function (data) {
           $scope.$emit('app_error', data);
@@ -376,7 +378,7 @@ angular.module('BE.seed.controller.data_quality_admin', [])
         return total === enabled;
       };
 	  
-///// NEW 
+// HELIX 
       var ignoreNextChange = true;
       $scope.$watch('currentDataQuality', function (newDataQuality, oldDataQuality) {
         if (ignoreNextChange) {
@@ -385,9 +387,9 @@ angular.module('BE.seed.controller.data_quality_admin', [])
         }
 
         if (!modified_service.isModified()) {
-          switchDataQuality(newDataQuality);
+			switchDataQuality(newDataQuality);
         } else {
-          $uibModal.open({
+			$uibModal.open({
             template: '<div class="modal-header"><h3 class="modal-title" translate>You have unsaved changes</h3></div><div class="modal-body" translate>You will lose your unsaved changes if you switch data quality actions without saving. Would you like to continue?</div><div class="modal-footer"><button type="button" class="btn btn-warning" ng-click="$dismiss()" translate>Cancel</button><button type="button" class="btn btn-primary" ng-click="$close()" autofocus translate>Switch Profiles</button></div>'
           }).result.then(function () {
             modified_service.resetModified();
@@ -407,26 +409,9 @@ angular.module('BE.seed.controller.data_quality_admin', [])
         } else {
           $scope.currentDataProfile = undefined;
         }
-
-//        setColumnsForCurrentProfile();
+		loadRules(data_quality_rules_payload[$scope.currentDataQuality.id]);
       }
-	  	  
-      var currentRules = function () {
-        var rules = [];
-//        _.forEach($scope.gridApi.grid.rows, function (row) {
-//          if (row.isSelected) {
-//            columns.push({
-//              column_name: row.entity.column_name,
-//              id: row.entity.id,
-//              order: columns.length + 1,
-//              pinned: Boolean(row.entity.pinnedLeft),
-//              table_name: row.entity.table_name
-//            });
-//          }
-//        });
-        return rules;
-      };
-	  
+	  	  	  
       $scope.renameDataQuality = function () {
         var oldDataQuality = angular.copy($scope.currentDataQuality);
 
@@ -440,16 +425,14 @@ angular.module('BE.seed.controller.data_quality_admin', [])
         });
 
         modalInstance.result.then(function (newName) {
-          $scope.currentProfile.name = newName;
-          _.find($scope.profiles, {id: $scope.currentProfile.id}).name = newName;
-          Notification.primary('Renamed ' + oldProfile.name + ' to ' + newName);
+          $scope.currentDataQuality.name = newName;
+          _.find($scope.data_qualities, {id: $scope.currentDataQuality.id}).name = newName;
+          Notification.primary('Renamed ' + oldDataQuality.name + ' to ' + newName);
         });
       };
 
       $scope.removeDataQuality = function () {
-		  console.log('in remove')
         var oldDataQuality = angular.copy($scope.currentDataQuality);
-		console.log(oldDataQuality)
 
         var modalInstance = $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/settings_data_quality_modal.html',
@@ -474,7 +457,7 @@ angular.module('BE.seed.controller.data_quality_admin', [])
           controller: 'settings_data_quality_modal_controller',
           resolve: {
             action: _.constant('new'),
-            data: currentRules,
+            data: _.constant($scope.org),
           }
         });
 

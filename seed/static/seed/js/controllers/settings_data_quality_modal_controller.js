@@ -18,14 +18,14 @@ angular.module('BE.seed.controller.settings_data_quality_modal', [])
           var id = $scope.data.id;
           var data_quality = _.omit($scope.data, 'id');
           data_quality.name = $scope.newName;
-          data_quality_service.update_settings_data_quality(id, data_quality).then(function (result) {
+          data_quality_service.update_data_quality(id, data_quality).then(function (result) {
             $uibModalInstance.close(result.name);
           });
         }
       };
 
       $scope.remove_data_quality = function () {
-        data_quality_service.remove_settings_data_quality($scope.data.id).then(function () {
+        data_quality_service.remove_data_quality($scope.data.id, $scope.data.organization).then(function () {
           $uibModalInstance.close();
         });
       };
@@ -34,9 +34,8 @@ angular.module('BE.seed.controller.settings_data_quality_modal', [])
         if (!$scope.disabled()) {
           data_quality_service.new_data_quality({
             name: $scope.newName,
-//            columns: $scope.data
+			organization: $scope.data.org_id
           }).then(function (result) {
-//            result.columns = _.sortBy(result.columns, ['order', 'column_name']);
             $uibModalInstance.close(result);
           });
         }

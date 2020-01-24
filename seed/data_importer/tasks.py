@@ -756,16 +756,17 @@ def helix_certification_create(file_pk, user_id):
 
 
 @shared_task(ignore_result=True)
-def check_data_chunk(model, ids, dq_id):
+def check_data_chunk(model, data_quality_id, ids, dq_id):
     if model == 'PropertyState':
         qs = PropertyState.objects.filter(id__in=ids)
     elif model == 'TaxLotState':
         qs = TaxLotState.objects.filter(id__in=ids)
     else:
         qs = None
-    super_org = qs.first().organization
+# HELIX    super_org = qs.first().organization
 
-    d = DataQualityCheck.retrieve(super_org.get_parent().id)
+# HELIX    d = DataQualityCheck.retrieve(super_org.get_parent().id)
+    d = DataQualityCheck.objects.get(pk=data_quality_id)
     d.check_data(model, qs.iterator())
     d.save_to_cache(dq_id)
 
@@ -783,7 +784,7 @@ def finish_checking(progress_key):
     return progress_data.result()
 
 
-def do_checks(org_id, propertystate_ids, taxlotstate_ids, import_file_id=None):
+def do_checks(data_quality_id, propertystate_ids, taxlotstate_ids, import_file_id=None):
     """
     Run the dq checks on the data
 
@@ -812,14 +813,19 @@ def do_checks(org_id, propertystate_ids, taxlotstate_ids, import_file_id=None):
                                 DATA_STATE_DELETE]).values_list('id', flat=True)
         )
 
+# HELIX    tasks = _data_quality_check_create_tasks(
+#        org_id, propertystate_ids, taxlotstate_ids, dq_id
+#    )
     tasks = _data_quality_check_create_tasks(
-        org_id, propertystate_ids, taxlotstate_ids, dq_id
+        data_quality_id, propertystate_ids, taxlotstate_ids, dq_id
     )
     progress_data.total = len(tasks)
     progress_data.save()
     if tasks:
         # specify the chord as an immutable with .si
-        chord(tasks, interval=15)(finish_checking.si(progress_data.key))
+#        chord(tasks, interval=15)(finish_checking.si(progress_data.key))
+        chord(tasks)
+        finish_checking(progress_data.key)
     else:
         finish_checking.s(progress_data.key)
 
@@ -1181,7 +1187,7 @@ def _map_data_create_tasks(import_file_id, progress_key):
     return tasks
 
 
-def _data_quality_check_create_tasks(org_id, property_state_ids, taxlot_state_ids, dq_id):
+def _data_quality_check_create_tasks(data_quality_id, property_state_ids, taxlot_state_ids, dq_id):
     """
     Entry point into running data quality checks.
 
@@ -1198,18 +1204,22 @@ def _data_quality_check_create_tasks(org_id, property_state_ids, taxlot_state_id
     # Initialize the data quality checks with the organization here. It is important to do it here
     # since the .retrieve method in the check_data_chunk method will result in a race condition if celery is
     # running in parallel.
-    DataQualityCheck.retrieve(org_id)
+# HELIX    DataQualityCheck.retrieve(org_id)
+    DataQualityCheck.objects.get(pk=data_quality_id)
 
     tasks = []
     if property_state_ids:
         id_chunks = [[obj for obj in chunk] for chunk in batch(property_state_ids, 100)]
         for ids in id_chunks:
-            tasks.append(check_data_chunk.s("PropertyState", ids, dq_id))
+#            tasks.append(check_data_chunk.s("PropertyState", data_quality_id, ids, dq_id))
+            tasks.append(check_data_chunk("PropertyState", data_quality_id, ids, dq_id))
+# HELIX            tasks.append(check_data_chunk.s("PropertyState", ids, dq_id))
 
     if taxlot_state_ids:
         id_chunks_tl = [[obj for obj in chunk] for chunk in batch(taxlot_state_ids, 100)]
         for ids in id_chunks_tl:
-            tasks.append(check_data_chunk.s("TaxLotState", ids, dq_id))
+            tasks.append(check_data_chunk.s("TaxLotState", data_quality_id, ids, dq_id))
+# HELIX            tasks.append(check_data_chunk.s("TaxLotState", ids, dq_id))
 
     return tasks
 
