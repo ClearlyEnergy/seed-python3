@@ -10,10 +10,13 @@ angular.module('BE.seed.controller.data_quality_admin', [])
     '$stateParams',
     'columns',
     'organization_payload',
+	'data_qualities_payload',
+    'current_data_quality_payload',
     'data_quality_rules_payload',
     'auth_payload',
     'labels_payload',
     'data_quality_service',
+    'modified_service',
     'organization_service',
     'label_service',
     'spinner_utility',
@@ -29,10 +32,13 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       $stateParams,
       columns,
       organization_payload,
+      data_qualities_payload,
+      current_data_quality_payload,
       data_quality_rules_payload,
       auth_payload,
       labels_payload,
       data_quality_service,
+      modified_service,
       organization_service,
       label_service,
       spinner_utility,
@@ -46,6 +52,10 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       $scope.org = organization_payload.organization;
       $scope.auth = auth_payload.auth;
       $scope.ruleGroups = {};
+	  
+      $scope.data_qualities = data_qualities_payload;
+      $scope.currentDataQuality = current_data_quality_payload;
+	  $scope.data_quality_rules_payload = data_quality_rules_payload;
 
       $scope.state = $state.current;
 
@@ -81,9 +91,8 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       // }
 
       $scope.all_labels = labels_payload;
-      // console.log(labels_payload)
 
-      var loadRules = function (rules_payload) {
+      var loadRules = function (rules_payload, id) {
         var ruleGroups = {
           properties: {},
           taxlots: {}
@@ -113,14 +122,16 @@ angular.module('BE.seed.controller.data_quality_admin', [])
 
         $scope.ruleGroups = ruleGroups;
       };
-      loadRules(data_quality_rules_payload);
+      loadRules($scope.data_quality_rules_payload[$scope.currentDataQuality.id]);
 
       // Restores the default rules
       $scope.restore_defaults = function () {
         spinner_utility.show();
         $scope.defaults_restored = false;
-        data_quality_service.reset_default_data_quality_rules($scope.org.org_id).then(function (rules) {
-          loadRules(rules);
+//        data_quality_service.reset_default_data_quality_rules($scope.org.org_id).then(function (rules) {
+	      data_quality_service.reset_default_data_quality_rules($scope.org.org_id, $scope.currentDataQuality.id).then(function (rules) {
+//          loadRules(rules);
+          loadRules(rules[$scope.currentDataQuality.id]);
           $scope.defaults_restored = true;
         }, function (data) {
           $scope.$emit('app_error', data);
@@ -133,8 +144,10 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       $scope.reset_all_rules = function () {
         spinner_utility.show();
         $scope.rules_reset = false;
-        data_quality_service.reset_all_data_quality_rules($scope.org.org_id).then(function (rules) {
-          loadRules(rules);
+//        data_quality_service.reset_all_data_quality_rules($scope.org.org_id).then(function (rules) {
+	      data_quality_service.reset_all_data_quality_rules($scope.org.org_id, $scope.currentDataQuality.id).then(function (rules) {
+//          loadRules(rules);
+          loadRules(rules[$scope.currentDataQuality.id]);
           $scope.rules_reset = true;
         }, function (data) {
           $scope.$emit('app_error', data);
@@ -194,8 +207,7 @@ angular.module('BE.seed.controller.data_quality_admin', [])
         });
 
         spinner_utility.show();
-        data_quality_service.save_data_quality_rules($scope.org.org_id, rules).then(function (rules) {
-          loadRules(rules);
+        data_quality_service.save_data_quality_rules($scope.org.org_id, rules, $scope.currentDataQuality.id).then(function (rules) {
           $scope.rules_updated = true;
         }, function (data) {
           $scope.$emit('app_error', data);
@@ -365,6 +377,104 @@ angular.module('BE.seed.controller.data_quality_admin', [])
           return result + _.filter(ruleGroup, 'enabled').length;
         }, 0);
         return total === enabled;
+      };
+	  
+// HELIX 
+      var ignoreNextChange = true;
+      $scope.$watch('currentDataQuality', function (newDataQuality, oldDataQuality) {
+        if (ignoreNextChange) {
+          ignoreNextChange = false;
+          return;
+        }
+
+        if (!modified_service.isModified()) {
+			switchDataQuality(newDataQuality);
+        } else {
+			$uibModal.open({
+            template: '<div class="modal-header"><h3 class="modal-title" translate>You have unsaved changes</h3></div><div class="modal-body" translate>You will lose your unsaved changes if you switch data quality actions without saving. Would you like to continue?</div><div class="modal-footer"><button type="button" class="btn btn-warning" ng-click="$dismiss()" translate>Cancel</button><button type="button" class="btn btn-primary" ng-click="$close()" autofocus translate>Switch Profiles</button></div>'
+          }).result.then(function () {
+            modified_service.resetModified();
+            switchDataQuality(newDataQuality);
+          }).catch(function () {
+            ignoreNextChange = true;
+            $scope.currentDataQuality = oldDataQuality;
+          });
+        }
+      });
+
+      function switchDataQuality (newDataQuality) {
+        ignoreNextChange = true;
+        if (newDataQuality) {
+          $scope.currentDataQuality = _.find($scope.data_qualities, {id: newDataQuality.id});
+          data_quality_service.save_last_data_quality(newDataQuality.id);
+        } else {
+          $scope.currentDataProfile = undefined;
+        }
+		loadRules($scope.data_quality_rules_payload[$scope.currentDataQuality.id]);
+      }
+	  	  	  
+      $scope.renameDataQuality = function () {
+        var oldDataQuality = angular.copy($scope.currentDataQuality);
+
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/settings_data_quality_modal.html',
+          controller: 'settings_data_quality_modal_controller',
+          resolve: {
+            action: _.constant('rename'),
+            data: _.constant($scope.currentDataQuality),
+          }
+        });
+
+        modalInstance.result.then(function (newName) {
+          $scope.currentDataQuality.name = newName;
+          _.find($scope.data_qualities, {id: $scope.currentDataQuality.id}).name = newName;
+          Notification.primary('Renamed ' + oldDataQuality.name + ' to ' + newName);
+        });
+      };
+
+      $scope.removeDataQuality = function () {
+        var oldDataQuality = angular.copy($scope.currentDataQuality);
+
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/settings_data_quality_modal.html',
+          controller: 'settings_data_quality_modal_controller',
+          resolve: {
+            action: _.constant('remove'),
+            data: _.constant($scope.currentDataQuality),
+          }
+        });
+
+        modalInstance.result.then(function () {
+          _.remove($scope.data_qualities, oldDataQuality);
+          modified_service.resetModified();
+          $scope.currentDataQuality = _.first($scope.data_qualities);
+          Notification.primary('Removed ' + oldDataQuality.name);
+        });
+      };
+	  	  
+      $scope.newDataQuality = function () {
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/settings_data_quality_modal.html',
+          controller: 'settings_data_quality_modal_controller',
+          resolve: {
+            action: _.constant('new'),
+            data: _.constant($scope.org),
+          }
+        });
+
+        modalInstance.result.then(function (newDataQuality) {
+          $scope.data_qualities.push(newDataQuality);
+          $scope.currentDataQuality = _.last($scope.data_qualities);
+		  data_quality_service.data_quality_rules($scope.org.id).then(function(rules) {
+			  $scope.data_quality_rules_payload = rules;
+		      loadRules(rules[$scope.currentDataQuality.id]);		  	
+		  })
+          Notification.primary('Created ' + newDataQuality.name);
+        });
+      };
+	  
+      $scope.isModified = function () {
+        return modified_service.isModified();
       };
 
     }]);

@@ -607,12 +607,16 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
         return JsonResponse({'status': 'success', 'taxlots': resp[1]['seed.TaxLotState']})
 
     def _get_taxlot_view(self, taxlot_pk):
+        organization = Organization.objects.get(id=self.request.GET['organization_id'])
+        all_orgs = list(organization.child_orgs.values_list('id', flat=True))
+        all_orgs.append(organization.id)
+
         try:
             taxlot_view = TaxLotView.objects.select_related(
                 'taxlot', 'cycle', 'state'
             ).get(
                 id=taxlot_pk,
-                taxlot__organization_id=self.request.GET['organization_id']
+                taxlot__organization_id__in=all_orgs
             )
             result = {
                 'status': 'success',

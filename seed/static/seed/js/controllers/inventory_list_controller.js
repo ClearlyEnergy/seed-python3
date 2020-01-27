@@ -18,6 +18,7 @@ angular.module('BE.seed.controller.inventory_list', [])
     'cycles',
     'profiles',
     'current_profile',
+	'data_qualities',
     'labels',
     'all_columns',
     'urls',
@@ -41,6 +42,7 @@ angular.module('BE.seed.controller.inventory_list', [])
       cycles,
       profiles,
       current_profile,
+      data_qualities,
       labels,
       all_columns,
       urls,
@@ -76,6 +78,9 @@ angular.module('BE.seed.controller.inventory_list', [])
       // List Settings Profile
       $scope.profiles = profiles;
       $scope.currentProfile = current_profile;
+	  
+	  // Data Quality Actions
+	  $scope.data_qualities = data_qualities;
 
       if ($scope.currentProfile) {
         $scope.columns = [];
@@ -394,7 +399,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         return cache[record.id];
       };
 
-      $scope.run_data_quality_check = function () {
+      $scope.run_data_quality_check = function (data_quality_id) {
         spinner_utility.show();
 
         var property_states = _.map(_.filter($scope.gridApi.selection.getSelectedRows(), function (row) {
@@ -407,7 +412,7 @@ angular.module('BE.seed.controller.inventory_list', [])
           return !_.has(row, '$$treeLevel');
         }), 'taxlot_state_id');
 
-        data_quality_service.start_data_quality_checks(property_states, taxlot_states).then(function (response) {
+        data_quality_service.start_data_quality_checks(data_quality_id, property_states, taxlot_states).then(function (response) {
           data_quality_service.data_quality_checks_status(response.progress_key).then(function (result) {
             data_quality_service.get_data_quality_results(user_service.get_organization().id, result.unique_id).then(function (dq_result) {
               var modalInstance = $uibModal.open({

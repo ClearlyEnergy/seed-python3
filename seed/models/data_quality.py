@@ -520,23 +520,25 @@ class DataQualityCheck(models.Model):
         :return: obj, DataQualityCheck
         """
 
-        if DataQualityCheck.objects.filter(organization_id=organization_id).count() > 1:
-            # Ensure that only one object is returned. For an unknown reason, the production
-            # database has multiple DataQualityCheck objects for an organization, but there are no
-            # calls to create a DataQualityCheck other than the .retrieve method.
-            first = DataQualityCheck.objects.filter(organization_id=organization_id).first()
-            dqcs = DataQualityCheck.objects.filter(organization_id=organization_id).exclude(
-                id__in=[first.pk])
-            for dqc in dqcs:
-                _log.info(
-                    "More than one DataQualityCheck for organization. Deleting {}".format(dqc.name))
-                dqc.delete()
+# HELIX        if DataQualityCheck.objects.filter(organization_id=organization_id).count() > 1:
+# Ensure that only one object is returned. For an unknown reason, the production
+# database has multiple DataQualityCheck objects for an organization, but there are no
+# calls to create a DataQualityCheck other than the .retrieve method.
+# HELIX            first = DataQualityCheck.objects.filter(organization_id=organization_id).first()
+# HELIX            dqcs = DataQualityCheck.objects.filter(organization_id=organization_id).exclude(
+# HELIX                id__in=[first.pk])
+# HELIX            for dqc in dqcs:
+# HELIX                _log.info(
+# HELIX                    "More than one DataQualityCheck for organization. Deleting {}".format(dqc.name))
+# HELIX                dqc.delete()
 
-        dq, _ = DataQualityCheck.objects.get_or_create(organization_id=organization_id)
+# HELIX        dq, _ = DataQualityCheck.objects.get_or_create(organization_id=organization_id)
+        dq = DataQualityCheck.objects.filter(organization_id=organization_id)
 
-        if dq.rules.count() == 0:
-            # _log.debug("No rules found in DataQualityCheck, initializing default rules")
-            dq.initialize_rules()
+        for dd in dq:
+            if dd.rules.count() == 0:
+                # _log.debug("No rules found in DataQualityCheck, initializing default rules")
+                dd.initialize_rules()
 
         return dq
 

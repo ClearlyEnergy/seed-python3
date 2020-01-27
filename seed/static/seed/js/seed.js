@@ -83,6 +83,7 @@ angular.module('BE.seed.controllers', [
   'BE.seed.controller.profile',
   'BE.seed.controller.rename_column_modal',
   'BE.seed.controller.security',
+  'BE.seed.controller.settings_data_quality_modal',
   'BE.seed.controller.settings_profile_modal',
   'BE.seed.controller.show_populated_columns_modal',
   'BE.seed.controller.ubid_modal',
@@ -936,6 +937,21 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
             var organization_id = $stateParams.organization_id;
             return organization_service.get_organization(organization_id);
           }],
+          data_qualities_payload: ['data_quality_service', '$stateParams', function (data_quality_service, $stateParams) {
+            var organization_id = $stateParams.organization_id;
+            return data_quality_service.get_data_qualities(organization_id);
+          }],
+          current_data_quality_payload: ['data_quality_service', '$stateParams', 'data_qualities_payload', function (data_quality_service, $stateParams, data_qualities_payload) {
+            var organization_id = $stateParams.organization_id;
+            var validDataQualityIds = _.map(data_qualities_payload, 'id');
+            var lastDataQualityId = data_quality_service.get_last_data_quality(organization_id);
+            if (_.includes(validDataQualityIds, lastDataQualityId)) {
+              return _.find(data_qualities_payload, {id: lastDataQualityId});
+            }
+            var currentDataQuality = _.first(data_qualities_payload);
+            if (currentDataQuality) data_quality_service.save_last_data_quality(currentDataQuality.id);
+            return currentDataQuality;
+          }],
           data_quality_rules_payload: ['data_quality_service', '$stateParams', function (data_quality_service, $stateParams) {
             var organization_id = $stateParams.organization_id;
             return data_quality_service.data_quality_rules(organization_id);
@@ -1105,6 +1121,10 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
             var currentProfile = _.first(profiles);
             if (currentProfile) inventory_service.save_last_profile(currentProfile.id, $stateParams.inventory_type);
             return currentProfile;
+          }],
+          data_qualities: ['data_quality_service', 'user_service', '$stateParams', function (data_quality_service, user_service, $stateParams) {
+            var organization_id = user_service.get_organization().id;
+            return data_quality_service.get_data_qualities(organization_id);
           }],
           labels: ['$stateParams', 'label_service', function ($stateParams, label_service) {
             return label_service.get_labels($stateParams.inventory_type).then(function (labels) {

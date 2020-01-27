@@ -52,6 +52,9 @@ from seed.lib.superperms.orgs.permissions import SEEDOrgPermissions
 from seed.models import (
     get_column_mapping,
 )
+from seed.models.data_quality import (
+    DataQualityCheck,
+)
 from seed.models import (
     obj_to_dict,
     PropertyState,
@@ -918,9 +921,11 @@ class ImportFileViewSet(viewsets.ViewSet):
               required: true
               paramType: path
         """
-        organization = Organization.objects.get(pk=request.query_params['organization_id'])
+# HELIX        organization = Organization.objects.get(pk=request.query_params['organization_id'])
+        dq = DataQualityCheck.objects.filter(organization_id=request.query_params['organization_id']).first()  # Need to set default data quality check
 
-        return_value = do_checks(organization.id, None, None, pk)
+# HELIX        return_value = do_checks(organization.id, None, None, pk)
+        return_value = do_checks(dq.id, None, None, pk)
         # step 5: create a new model instance
         return JsonResponse({
             'progress_key': return_value['progress_key'],

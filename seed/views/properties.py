@@ -829,12 +829,16 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
         :param cycle_pk: cycle
         :return:
         """
+        organization = Organization.objects.get(id=self.request.GET['organization_id'])
+        all_orgs = list(organization.child_orgs.values_list('id', flat=True))
+        all_orgs.append(organization.id)
+
         try:
             property_view = PropertyView.objects.select_related(
                 'property', 'cycle', 'state'
             ).get(
                 id=pk,
-                property__organization_id=self.request.GET['organization_id']
+                property__organization_id__in=all_orgs
             )
             result = {
                 'status': 'success',
@@ -922,7 +926,9 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
               required: true
               paramType: query
         """
+        print('in retrieve')
         result = self._get_property_view(pk)
+        print(result)
         if result.get('status', None) != 'error':
             result['property_view_id'] = result['property_view'].id  # Helix add
             property_view = result.pop('property_view')

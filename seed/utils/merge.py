@@ -219,11 +219,11 @@ def _copy_propertyview_relationships(view_ids, new_view):
 
     # Assign certifications to the new view
     certifications = list(HELIXGreenAssessmentProperty.objects.values(
-        'source','status','status_date','_metric','_rating','version','date','target_date','eligibility',
-        '_expiration_date','extra_data','assessment_id','opt_out','reference_id', 'id',
+        'source', 'status', 'status_date', '_metric', '_rating', 'version', 'date', 'target_date', 'eligibility',
+        '_expiration_date', 'extra_data', 'assessment_id', 'opt_out', 'reference_id', 'id',
     ).filter(view_id__in=view_ids).distinct())
-    
-    #gapauditlog_assessment, measurements
+
+    # gapauditlog_assessment, measurements
     for certification in certifications:
         old_certification_id = certification['id']
         certification['view'] = new_view

@@ -25,7 +25,7 @@ from seed.views.columns import ColumnViewSet
 from seed.views.column_mappings import ColumnMappingViewSet
 from seed.views.column_list_settings import ColumnListingViewSet
 from seed.views.cycles import CycleViewSet
-from seed.views.data_quality import DataQualityViews
+from seed.views.data_quality import DataQualityViews, DataQualityCheckViewSet
 from seed.views.datasets import DatasetViewSet
 from seed.views.geocode import GeocodeViews
 from seed.views.labels import LabelViewSet, UpdateInventoryLabelsAPIView
@@ -50,6 +50,7 @@ api_v2_router.register(r'column_mappings', ColumnMappingViewSet, base_name="colu
 api_v2_router.register(r'column_list_settings', ColumnListingViewSet, base_name="column_list_settings")
 api_v2_router.register(r'cycles', CycleViewSet, base_name="cycles")
 api_v2_router.register(r'data_quality_checks', DataQualityViews, base_name='data_quality_checks')
+api_v2_router.register(r'data_quality', DataQualityCheckViewSet, base_name='data_quality')
 api_v2_router.register(r'datasets', DatasetViewSet, base_name="datasets")
 api_v2_router.register(r'import_files', ImportFileViewSet, base_name="import_files")
 api_v2_router.register(r'gbr_properties', GBRPropertyViewSet, base_name="properties")
