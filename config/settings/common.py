@@ -299,3 +299,9 @@ SWAGGER_SETTINGS = {
 # should be a integer representing a number of days
 # GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION=5 * 365
 GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION = None
+
+# Allow super users to register applications for OAuth authentication
+OAUTH2_JWT_PROVIDER = {
+    'ALLOW_SUPERUSERS': True,
+    'DEVELOPER_GROUP': 'admin',
+}
