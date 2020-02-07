@@ -14,6 +14,7 @@ from collections import OrderedDict
 
 import xlsxwriter
 from django.http import JsonResponse, HttpResponse
+from django.db.models import Q
 from quantityfield import ureg
 from rest_framework.decorators import list_route
 from rest_framework.renderers import JSONRenderer
@@ -21,11 +22,14 @@ from rest_framework.viewsets import GenericViewSet
 
 from seed.decorators import ajax_request_class
 from seed.lib.superperms.orgs.decorators import has_perm_class
+from seed.lib.superperms.orgs.models import Organization
+
 from seed.models import (
     PropertyView,
     TaxLotProperty,
     TaxLotView,
     ColumnListSetting,
+    Cycle,
 )
 from seed.models.meters import (
     Meter,
@@ -41,6 +45,7 @@ from seed.serializers.tax_lot_properties import (
     TaxLotPropertySerializer
 )
 from seed.utils.api import api_endpoint_class
+from seed.views.cycles import find_org_cycle
 
 INVENTORY_MODELS = {'properties': PropertyView, 'taxlots': TaxLotView}
 
@@ -122,27 +127,37 @@ class TaxLotPropertyViewSet(GenericViewSet):
         column_name_mappings.update(add_column_name_mappings)
         select_related = ['state', 'cycle']
         ids = request.data.get('ids', [])
-        filter_str = {'cycle': cycle_pk}
+        cycle_filter = Q(cycle=cycle_pk);
+        org_filter = Q(property__organization_id=org_id)
+        id_filter = Q()
+
+        cycle = Cycle.objects.get(organization_id=org_id, pk=cycle_pk)
+        organization = Organization.objects.get(id=org_id)
+        if hasattr(view_klass, 'property') or hasattr(view_klass, 'taxlot'):
+            for sub_org in organization.child_orgs.all():
+                org_filter = org_filter | Q(property__organization_id=sub_org.id)
+                sub_cycle = find_org_cycle(cycle, sub_org)
+                if sub_cycle:
+                    cycle_filter = cycle_filter | Q(cycle=sub_cycle)
+
         if hasattr(view_klass, 'property'):
             select_related.append('property')
             prefetch_related = ['labels']
-            filter_str = {'property__organization_id': org_id}
             if ids:
-                filter_str['property__id__in'] = ids
+                id_filter = Q(property__id__in=ids)
             # always export the labels
             column_name_mappings['property_labels'] = 'Property Labels'
 
         elif hasattr(view_klass, 'taxlot'):
             select_related.append('taxlot')
             prefetch_related = ['labels']
-            filter_str = {'taxlot__organization_id': org_id}
             if ids:
-                filter_str['taxlot__id__in'] = ids
+                id_filter = Q(taxlot__id__in=ids)
             # always export the labels
             column_name_mappings['taxlot_labels'] = 'Tax Lot Labels'
 
         model_views = view_klass.objects.select_related(*select_related).prefetch_related(
-            *prefetch_related).filter(**filter_str).order_by('id')
+            *prefetch_related).filter(org_filter & id_filter & cycle_filter).order_by('id')
 
         # get the data in a dict which includes the related data
         data = TaxLotProperty.get_related(model_views, column_ids, columns_from_database)

@@ -84,6 +84,7 @@ from seed.utils.viewsets import (
     SEEDOrgCreateUpdateModelViewSet,
     SEEDOrgModelViewSet
 )
+from seed.views.cycles import find_org_cycle
 
 # Global toggle that controls whether or not to display the raw extra
 # data fields in the columns returned for the view.
@@ -255,7 +256,7 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
         if show_sub_org_data:
             for sub_org in organization.child_orgs.all():
                 org_filter = org_filter | Q(property__organization_id=sub_org.id)
-                sub_cycle = self._find_org_cycle(cycle, sub_org)
+                sub_cycle = find_org_cycle(cycle, sub_org)
                 if sub_cycle:
                     cycle_filter = cycle_filter | Q(cycle=sub_cycle)
 
@@ -329,21 +330,6 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
         }
 
         return JsonResponse(response)
-
-    def _find_org_cycle(self, cycle, organization):
-        """
-        Matches the first cycle of a organization that starts and ends
-        within the range of the cycle provided
-
-        :param cycle: Cycle
-        :param organization: Organization
-        :return: Cycle, or None if there is no cycle that matches
-        """
-        range_start = cycle.start
-        range_end = cycle.end
-        cycles = organization.cycles.filter(start__gte=range_start,
-                                            end__gte=range_end)
-        return cycles.first()
 
     def _move_relationships(self, old_state, new_state):
         """
