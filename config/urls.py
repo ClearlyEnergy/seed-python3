@@ -34,7 +34,7 @@ urlpatterns = [
     url(r'^api/schema/$', schema_view),
     url(r'^api/swagger/', get_swagger_view(title='SEED API'), name='swagger'),
     url(r'^api/', include(api, namespace='api')),
-    url(r'^oauth/', include('oauth2_jwt_provider.urls', namespace='oauth2_provider'))
+    url(r'^oauth/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 ]
 
 handler404 = 'seed.views.main.error404'

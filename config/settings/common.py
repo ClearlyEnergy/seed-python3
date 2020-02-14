@@ -100,9 +100,9 @@ INSTALLED_APPS = (
     'django_extensions',
     'raven.contrib.django.raven_compat',
     'django_filters',
+    'oauth2_provider',
     'rest_framework',
     'rest_framework_swagger',
-    'oauth2_provider',
     'oauth2_jwt_provider',
     'crispy_forms',  # needed to squash warnings around collectstatic with rest_framework
     'tos',
@@ -265,6 +265,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+OAUTH2_PROVIDER = {
+    'SCOPES': {
+        'read': 'Read scope',
+        'write': 'Write scope',
+        'offline': 'Offline access',
+    }
+}
+
 # Django Rest Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -301,7 +309,7 @@ SWAGGER_SETTINGS = {
 GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION = None
 
 # Allow super users to register applications for OAuth authentication
-OAUTH2_JWT_PROVIDER = {
+OAUTH2_PROVIDER = {
     'ALLOW_SUPERUSERS': True,
     'DEVELOPER_GROUP': 'admin',
 }
