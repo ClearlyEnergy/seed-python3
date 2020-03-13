@@ -36,6 +36,7 @@ from seed.views.organizations import OrganizationViewSet
 from seed.views.projects import ProjectViewSet
 from seed.views.properties import (PropertyViewSet, PropertyStateViewSet,
                                    PropertyViewViewSet, GBRPropertyViewSet)
+from seed.views.pvwatts import PvwattsViews
 from seed.views.reports import Report
 from seed.views.taxlots import TaxLotViewSet
 from seed.views.ubid import UbidViews
@@ -68,6 +69,7 @@ api_v2_router.register(r'projects', ProjectViewSet, base_name="projects")
 api_v2_router.register(r'properties', PropertyViewSet, base_name="properties")
 api_v2_router.register(r'property_states', PropertyStateViewSet, base_name="property_states")
 api_v2_router.register(r'property_views', PropertyViewViewSet, base_name="property_views")
+api_v2_router.register(r'pvwatts', PvwattsViews, base_name="pvwatts")
 api_v2_router.register(r'reverse_and_test', TestReverseViewSet, base_name="reverse_and_test")
 api_v2_router.register(r'taxlots', TaxLotViewSet, base_name="taxlots")
 api_v2_router.register(r'ubid', UbidViews, base_name="ubid")

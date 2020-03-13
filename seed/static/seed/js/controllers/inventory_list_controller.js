@@ -731,6 +731,38 @@ angular.module('BE.seed.controller.inventory_list', [])
         });
       };
 
+      $scope.open_pvwatts_modal = function () {
+		  var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/pvwatts_modal.html',
+          controller: 'pvwatts_modal_controller',
+          resolve: {
+            property_state_ids: function () {
+              return _.map(_.filter($scope.gridApi.selection.getSelectedRows(), function (row) {
+                if ($scope.inventory_type === 'properties') return row.$$treeLevel === 0;
+                return !_.has(row, '$$treeLevel');
+              }), 'property_state_id');
+            },
+            taxlot_state_ids: function () {
+              return _.map(_.filter($scope.gridApi.selection.getSelectedRows(), function (row) {
+                if ($scope.inventory_type === 'taxlots') return row.$$treeLevel === 0;
+                return !_.has(row, '$$treeLevel');
+              }), 'taxlot_state_id');
+            },
+            org_id: function () {
+              return user_service.get_organization().id;
+            },
+            inventory_type: function () {
+              return $scope.inventory_type;
+            }
+          }
+        });
+
+	    modalInstance.result.then(function (/*result*/) {
+	      // dialog was closed with 'Close' button.
+	      refresh_objects();
+	    });
+      };
+
       $scope.open_geocode_modal = function () {
         var modalInstance = $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/geocode_modal.html',
