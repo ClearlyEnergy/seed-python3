@@ -101,15 +101,8 @@ class SEEDUser(AbstractBaseUser, PermissionsMixin):
         if not auth_header:
             return None
 
-#        if auth_header.startswith('Bearer'):
-#            return None
-
-#        if not getattr(request, 'user', None):
-        if not auth_header.startswith('Bearer') or not getattr(request, 'user', None):
+        if auth_header.startswith('Basic'):
             try:
-                if not auth_header.startswith('Basic'):
-                    raise exceptions.AuthenticationFailed('Only Basic HTTP_AUTHORIZATION is supported')
-
                 auth_header = auth_header.split()[1]
                 auth_header = base64.urlsafe_b64decode(auth_header).decode('utf-8')
 
@@ -117,16 +110,15 @@ class SEEDUser(AbstractBaseUser, PermissionsMixin):
 
                 valid_api_key = re.search('^[a-f0-9]{40}$', api_key)
                 if not valid_api_key:
-                    raise exceptions.AuthenticationFailed('Invalid API key')
-                    # return None
+                    return None
 
                 user = SEEDUser.objects.get(api_key=api_key, username=username)
                 return user
             except ValueError:
                 raise exceptions.AuthenticationFailed('Invalid HTTP_AUTHORIZATION Header')
             except SEEDUser.DoesNotExist:
-                raise exceptions.AuthenticationFailed('Invalid API key')
-                # return None
+                return None
+        return None
 
     def get_absolute_url(self):
         return "/users/%s/" % urlquote(self.username)
