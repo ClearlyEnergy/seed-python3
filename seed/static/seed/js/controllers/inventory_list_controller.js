@@ -10,6 +10,7 @@ angular.module('BE.seed.controller.inventory_list', [])
     '$uibModal',
     '$sce',
     '$stateParams',
+	'$location',
     'inventory_service',
     'label_service',
     'data_quality_service',
@@ -34,6 +35,7 @@ angular.module('BE.seed.controller.inventory_list', [])
       $uibModal,
       $sce,
       $stateParams,
+      $location,
       inventory_service,
       label_service,
       data_quality_service,
@@ -652,7 +654,7 @@ angular.module('BE.seed.controller.inventory_list', [])
           fn = inventory_service.get_taxlots;
         }
 //        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id')).then(function (data) {
-        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id'), $scope.showSubOrgData).then(function (data) {
+        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id'), $scope.showSubOrgData, $location.search()).then(function (data) {
           $scope.progress = {
             current: data.pagination.end,
             total: data.pagination.total,

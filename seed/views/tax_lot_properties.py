@@ -127,7 +127,7 @@ class TaxLotPropertyViewSet(GenericViewSet):
         column_name_mappings.update(add_column_name_mappings)
         select_related = ['state', 'cycle']
         ids = request.data.get('ids', [])
-        cycle_filter = Q(cycle=cycle_pk);
+        cycle_filter = Q(cycle=cycle_pk)
         org_filter = Q(property__organization_id=org_id)
         id_filter = Q()
 

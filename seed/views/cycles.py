@@ -156,6 +156,7 @@ class CycleViewSet(SEEDOrgModelViewSet):
         user = self.request.user
         serializer.save(organization_id=org_id, user=user)
 
+
 def find_org_cycle(cycle, organization):
     """
     Matches the first cycle of a organization that starts and ends
