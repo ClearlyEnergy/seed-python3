@@ -12,6 +12,7 @@ from seed.models.properties import PropertyState
 from seed.models.tax_lots import TaxLotState
 
 from seed.utils.api import api_endpoint_class
+from seed.views.pvwatts import pvwatts_buildings
 
 
 class PvwattsViews(viewsets.ViewSet):
@@ -24,14 +25,24 @@ class PvwattsViews(viewsets.ViewSet):
         body = dict(request.data)
         property_ids = body.get('property_ids')
         taxlot_ids = body.get('taxlot_ids')
+        result = {}
 
         if property_ids:
             properties = PropertyState.objects.filter(id__in=property_ids)
-# plug in to calculation here, e.g pvwatts_buildings(properties)
+            calculated, not_calculated = pvwatts_buildings(properties)
+            result["properties"] = {
+                'not_calculated': not_calculated,
+                'calculated': calculated
+            }
 
         if taxlot_ids:
             taxlots = TaxLotState.objects.filter(id__in=taxlot_ids)
-# plug in to calculation here, e.g. pvwatts_buildings(taxlots)
+            calculated, not_calculated = pvwatts_buildings(taxlots)
+            result["taxlots"] = {
+                'not_calculated': not_calculated,
+                'calculated': calculated
+            }
+        return result
 
     @ajax_request_class
     @list_route(methods=['POST'])
@@ -44,14 +55,14 @@ class PvwattsViews(viewsets.ViewSet):
 
         if property_ids:
             result["properties"] = {
-                'not_calculated': 10,
-                'calculated': 20
+                'not_calculated': len(property_ids),
+                'calculated': 0
             }
 
         if tax_lot_ids:
             result["tax_lots"] = {
-                'not_calculated': 10,
-                'calculated': 20
+                'not_calculated': len(tax_lot_ids),
+                'calculated': 0
             }
 
         return result
