@@ -18,7 +18,7 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
       total_taxlots_for_user: 0
     };
 
-    inventory_service.get_properties = function (page, per_page, cycle, profile_id, show_sub_org_data, search_params, inventory_ids) {
+    inventory_service.get_properties = function (page, per_page, cycle, profile_id, show_sub_org_data, inventory_ids) {
       
       if (show_sub_org_data == undefined) show_sub_org_data = false;
 
@@ -28,7 +28,6 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         per_page: per_page || 999999999,
         show_sub_org_data: show_sub_org_data 
       };
-	  params = Object.assign(params, search_params)
 
       return cycle_service.get_cycles().then(function (cycles) {
         var validCycleIds = _.map(cycles.cycles, 'id');
@@ -216,7 +215,7 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
     };
 
 
-    inventory_service.get_taxlots = function (page, per_page, cycle, profile_id, show_sub_org_data, search_params, inventory_ids) {
+    inventory_service.get_taxlots = function (page, per_page, cycle, profile_id, show_sub_org_data, inventory_ids) {
 
       if (show_sub_org_data == undefined) show_sub_org_data = false;
 

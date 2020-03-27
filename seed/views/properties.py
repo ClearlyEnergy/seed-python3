@@ -224,9 +224,6 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
         org_id = request.query_params.get('organization_id', None)
         cycle_id = request.query_params.get('cycle')
         show_sub_org_data = request.query_params.get('show_sub_org_data', 'false') == 'true'
-        postal_code = request.query_params.get('postal_code', None)
-        parcel_id = request.query_params.get('parcel_id', None)
-        street = request.query_params.get('street', None)
         # check if there is a query paramater for the profile_id. If so, then use that one
         profile_id = request.query_params.get('profile_id', profile_id)
 
@@ -265,16 +262,6 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
                     cycle_filter = cycle_filter | Q(cycle=sub_cycle)
 
         final_filter = org_filter & cycle_filter
-
-        if postal_code:
-            final_filter = final_filter & Q(state__postal_code=postal_code)
-
-        if parcel_id:
-            final_filter = final_filter & (Q(state__custom_id_1__icontains=parcel_id) | Q(state__ubid__icontains=parcel_id))
-
-        if street and postal_code:
-            normalized_address, extra_data = normalize_address_str(street, '', postal_code, {})
-            final_filter = final_filter & Q(state__normalized_address=normalized_address)
 
         # Return property views limited to the 'inventory_ids' list.  Otherwise, if selected is empty, return all
         if 'inventory_ids' in request.data and request.data['inventory_ids']:

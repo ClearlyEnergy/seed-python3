@@ -58,7 +58,7 @@ angular.module('BE.seed.controller.inventory_list', [])
       $scope.selectedCount = 0;
       $scope.selectedParentCount = 0;
       $scope.selectedOrder = [];
-
+	  
       $scope.inventory_type = $stateParams.inventory_type;
       $scope.data = [];
       var lastCycleId = inventory_service.get_last_cycle();
@@ -683,6 +683,21 @@ angular.module('BE.seed.controller.inventory_list', [])
         return fetch(page, chunk).then(function (data) {
           // console.timeEnd('fetch');
           processData(data);
+		  // HELIX add URL search terms
+		  if (Object.keys($location.search()).length > 0) {
+			  searchObj = $location.search();
+			  keys = Object.keys(searchObj);
+			  $scope.gridApi.grid.columns.forEach(function(col, i) {
+				  keys.forEach(function(key){
+					  if (col.name.startsWith(key)) {
+						  $scope.gridApi.grid.columns[i].filters[0] = {
+						      term: searchObj[key]
+						    };
+					  }
+				  })
+			  });
+		  }
+		  
           $scope.gridApi.core.notifyDataChange(uiGridConstants.dataChange.EDIT);
           modalInstance.close();
         });
