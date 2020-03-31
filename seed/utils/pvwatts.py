@@ -7,6 +7,7 @@
 import requests
 import simplejson
 from django.conf import settings
+from seed.models import Measure
 
 def get_pvwatts_production(latitude, longitude, capacity, module_type=1, losses=5,
                            array_type=1, tilt=5, azimuth=180):
@@ -26,13 +27,24 @@ def get_pvwatts_production(latitude, longitude, capacity, module_type=1, losses=
         return {'success': True, 'production': response.json()['outputs']['ac_annual']}
     return {'success': False, 'code': response.status_code, 'body': response.json()['errors']}
 
-def pvwatts_buildings(buildings):
+def pvwatts_buildings(buildings, organization):
     updated = 0
+    # May fail if it doesn't get exist
+    measure = Measure.objects.get(name='install_photovoltaic_system',
+                                  category='renewable_energy_systems',
+                                  organization_id=organization.id)
     for building in buildings:
         lat = None
         lng = None
         capacity = 0
         errors = []
+        property_measure = building.propertymeasure_set.filter(measure_id=measure.id)
+        # This should check if the production measurement type in the measure and continue
+        # if the quantity is defined.
+        if len(property_measure) > 0:
+            # Already exists
+            continue
+
         if 'Lat' in building.extra_data:
             lat = building.extra_data['Lat']
         else:
@@ -41,6 +53,8 @@ def pvwatts_buildings(buildings):
             lng = building.extra_data['Long']
         else:
             errors.append('Property has no Long column defined')
+        # Get capacity from install_photovoltaic_system Measure in the capacity measurement
+        # Replacing this:
         if 'CAP Electric PV' in building.extra_data:
             capacity = building.extra_data['CAP Electric PV']
             capacity = simplejson.loads(capacity)['quantity']
@@ -52,4 +66,4 @@ def pvwatts_buildings(buildings):
         if r['success']:
             production = r['production']
             updated += 1
-        return updated, len(buildings) - updated
+    return updated, len(buildings) - updated
