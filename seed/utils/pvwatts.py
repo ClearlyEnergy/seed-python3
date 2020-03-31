@@ -4,10 +4,13 @@
 :copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
+import datetime
 import requests
 import simplejson
+from django.core.exceptions import ValidationError
 from django.conf import settings
-from seed.models import Measure
+from seed.models import Measure, PropertyMeasure
+from helix.models import HelixMeasurement
 
 def get_pvwatts_production(latitude, longitude, capacity, module_type=1, losses=5,
                            array_type=1, tilt=5, azimuth=180):
@@ -38,32 +41,52 @@ def pvwatts_buildings(buildings, organization):
         lng = None
         capacity = 0
         errors = []
-        property_measure = building.propertymeasure_set.filter(measure_id=measure.id)
-        # This should check if the production measurement type in the measure and continue
-        # if the quantity is defined.
-        if len(property_measure) > 0:
-            # Already exists
-            continue
+        property_measures = building.propertymeasure_set.filter(measure_id=measure.id)
+        property_measure = None
+        if property_measures.exists():
+            property_measure = property_measures.get()
+            current_production = property_measure.measurements.filter(measurement_type='PROD')
+            if current_production.exists():
+                # Already exists
+                continue
 
         if 'Lat' in building.extra_data:
             lat = building.extra_data['Lat']
         else:
-            errors.append('Property has no Lat column defined')
+            errors.append(ValidationError('Property has no Lat column defined',
+                                          code='invalid'))
         if 'Long' in building.extra_data:
             lng = building.extra_data['Long']
         else:
-            errors.append('Property has no Long column defined')
-        # Get capacity from install_photovoltaic_system Measure in the capacity measurement
-        # Replacing this:
-        if 'CAP Electric PV' in building.extra_data:
+            errors.append(ValidationError('Property has no Long column defined',
+                                          code='invalid'))
+        if property_measure:
+            capacity = property_measure.measurements.get(measurement_type='CAP').quantity
+        elif 'CAP Electric PV' in building.extra_data:
             capacity = building.extra_data['CAP Electric PV']
             capacity = simplejson.loads(capacity)['quantity']
         else:
-            errors.append('Property has no CAP Electric PV column defined')
+            errors.append(ValidationError('Property has no CAP Electric PV column defined',
+                                          code='invalid'))
         if len(errors) > 0:
-            return JsonResponse({'status': 'error', 'errors': errors}, status=422)
+            raise ValidationError(errors)
         r = utils.get_pvwatts_production(lat, lng, capacity)
         if r['success']:
-            production = r['production']
             updated += 1
+            production = r['production']
+            if property_measure == None:
+                property_measure = PropertyMeasure(measure=measure,
+                                                   property_measure_name='install_photovoltaic_system',
+                                                   property_state=building,
+                                                   implementation_status=PropertyMeasure.MEASURE_COMPLETED)
+                property_measure.save()
+            measurement = HelixMeasurement(measure_propety=property_measure,
+                                           measurement_type='PROD',
+                                           measurement_subtype='PV',
+                                           fuel='ELEC',
+                                           quantity=production,
+                                           unit='KWH',
+                                           status='ESTIMATE',
+                                           year=datetime.date.today().year)
+            measurement.save()
     return updated, len(buildings) - updated

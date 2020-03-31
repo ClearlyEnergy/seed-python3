@@ -1,6 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 
+from django.core.exceptions import ValidationError
+from django.http import JsonResponse
 from rest_framework import viewsets
 from rest_framework.decorators import list_route
 
@@ -33,7 +35,13 @@ class PvwattsViews(viewsets.ViewSet):
 
         if property_ids:
             properties = PropertyState.objects.filter(id__in=property_ids)
-            calculated, not_calculated = pvwatts_buildings(properties, organization)
+            try:
+                calculated, not_calculated = pvwatts_buildings(properties, organization)
+            except ValidationError as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': e.messages,
+                })
             result["properties"] = {
                 'not_calculated': not_calculated,
                 'calculated': calculated
