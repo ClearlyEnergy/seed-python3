@@ -14,8 +14,9 @@ angular.module('BE.seed.controller.pvwatts_modal', [])
       $scope.taxlot_state_ids = _.uniq(taxlot_state_ids);
       $scope.pvwatts_state = 'verify';
       $scope.total_selected_count = $scope.property_state_ids.length + $scope.taxlot_state_ids.length;
+      $scope.org_id = org_id;
 
-      pvwatts_service.calculation_results($scope.property_state_ids, $scope.taxlot_state_ids).then(function (result) {
+      pvwatts_service.calculation_results($scope.property_state_ids, $scope.taxlot_state_ids, $scope.org_id).then(function (result) {
           if (result.properties) {
             $scope.pre_properties_not_calculated = result.properties.not_calculated;
 
@@ -31,7 +32,7 @@ angular.module('BE.seed.controller.pvwatts_modal', [])
 
       $scope.calculate_production = function () {
         if ($scope.property_state_ids) {
-          pvwatts_service.calculate_production($scope.property_state_ids, $scope.taxlot_state_ids).then(function () {
+          pvwatts_service.calculate_production($scope.property_state_ids, $scope.taxlot_state_ids, $scope.org_id).then(function () {
             $scope.pvwatts_state = 'calculate';
 
             pvwatts_service.calculation_results($scope.property_state_ids, $scope.taxlot_state_ids).then(function (result) {

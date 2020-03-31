@@ -7,12 +7,13 @@ from rest_framework.decorators import list_route
 from seed.decorators import ajax_request_class
 
 from seed.lib.superperms.orgs.decorators import has_perm_class
+from seed.models import Organization
 
 from seed.models.properties import PropertyState
 from seed.models.tax_lots import TaxLotState
 
 from seed.utils.api import api_endpoint_class
-from seed.views.pvwatts import pvwatts_buildings
+from seed.utils.pvwatts import pvwatts_buildings
 
 
 class PvwattsViews(viewsets.ViewSet):
@@ -25,11 +26,14 @@ class PvwattsViews(viewsets.ViewSet):
         body = dict(request.data)
         property_ids = body.get('property_ids')
         taxlot_ids = body.get('taxlot_ids')
+        org_id = body.get('org_id')
+        organization = Organization.objects.get(id=org_id)
+
         result = {}
 
         if property_ids:
             properties = PropertyState.objects.filter(id__in=property_ids)
-            calculated, not_calculated = pvwatts_buildings(properties)
+            calculated, not_calculated = pvwatts_buildings(properties, organization)
             result["properties"] = {
                 'not_calculated': not_calculated,
                 'calculated': calculated
@@ -37,7 +41,7 @@ class PvwattsViews(viewsets.ViewSet):
 
         if taxlot_ids:
             taxlots = TaxLotState.objects.filter(id__in=taxlot_ids)
-            calculated, not_calculated = pvwatts_buildings(taxlots)
+            calculated, not_calculated = pvwatts_buildings(taxlots, organization)
             result["taxlots"] = {
                 'not_calculated': not_calculated,
                 'calculated': calculated
