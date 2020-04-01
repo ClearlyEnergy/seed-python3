@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 
-from django.core.exceptions import ValidationError
+# from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from rest_framework import viewsets
 from rest_framework.decorators import list_route
@@ -35,46 +35,20 @@ class PvwattsViews(viewsets.ViewSet):
 
         if property_ids:
             properties = PropertyState.objects.filter(id__in=property_ids)
-            try:
-                calculated, not_calculated = pvwatts_buildings(properties, organization)
-            except ValidationError as e:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': e.messages,
-                })
-            result["properties"] = {
+            calculated, exists, not_calculated, errors = pvwatts_buildings(properties, organization)
+            result = JsonResponse({
                 'not_calculated': not_calculated,
-                'calculated': calculated
-            }
+                'calculated': calculated,
+                'exists': exists,
+                'errors': errors
+            })
 
         if taxlot_ids:
             taxlots = TaxLotState.objects.filter(id__in=taxlot_ids)
             calculated, not_calculated = pvwatts_buildings(taxlots, organization)
             result["taxlots"] = {
                 'not_calculated': not_calculated,
-                'calculated': calculated
+                'calculated': calculated,
+                'exists': exists
             }
-        return result
-
-    @ajax_request_class
-    @list_route(methods=['POST'])
-    def results_summary(self, request):
-        body = dict(request.data)
-        property_ids = body.get('property_ids')
-        tax_lot_ids = body.get('tax_lot_ids')
-
-        result = {}
-
-        if property_ids:
-            result["properties"] = {
-                'not_calculated': len(property_ids),
-                'calculated': 0
-            }
-
-        if tax_lot_ids:
-            result["tax_lots"] = {
-                'not_calculated': len(tax_lot_ids),
-                'calculated': 0
-            }
-
         return result
