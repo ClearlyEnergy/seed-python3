@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.controller.column_settings', [])
@@ -51,6 +51,7 @@ angular.module('BE.seed.controller.column_settings', [])
       var diff = {};
 
       $scope.filter_params = {};
+      $scope.btnText = 'Collapse Help';
 
       $scope.data_types = [
         {id: 'None', label: ''},
@@ -66,13 +67,36 @@ angular.module('BE.seed.controller.column_settings', [])
         {id: 'geometry', label: $translate.instant('Geometry')}
       ];
 
+      $scope.changeText = function(btnText) {
+        if(btnText === 'Collapse Help'){
+          $scope.btnText = 'Expand Help' ;
+        } else {
+          $scope.btnText = 'Collapse Help';
+        }
+      };
       $scope.change_merge_protection = function (column) {
-        column.merge_protection = (column.merge_protection === 'Favor New') ? 'Favor Existing' : 'Favor New';
+        // Keep geocoding results columns aligned in merge protection settings
+        var change_to = (column.merge_protection === 'Favor New') ? 'Favor Existing' : 'Favor New';
+
+        var geocoding_results_columns = ['geocoding_confidence', 'longitude', 'latitude'];
+        if (_.includes(geocoding_results_columns, column.column_name) ) {
+          geocoding_results_columns.forEach(function (geo_col) {
+            _.find($scope.columns, { 'column_name': geo_col }).merge_protection = change_to;
+          })
+        } else {
+          column.merge_protection = change_to;
+        }
+
         $scope.setModified();
       };
 
       $scope.change_is_matching_criteria = function (column) {
         column.is_matching_criteria = !column.is_matching_criteria;
+        $scope.setModified();
+      };
+
+      $scope.change_recognize_empty = function (column) {
+        column.recognize_empty = !column.recognize_empty;
         $scope.setModified();
       };
 
@@ -172,6 +196,32 @@ angular.module('BE.seed.controller.column_settings', [])
 
       default_sort_toggle();
 
+      var display_name_order_sort = function () {
+        $scope.columns = _.sortBy($scope.columns, 'displayName');
+      };
+
+      $scope.toggle_display_name_order_sort = function () {
+        if (($scope.column_sort !== 'display_name_order')) {
+          display_name_order_sort();
+          $scope.column_sort = 'display_name_order';
+        } else {
+          default_sort_toggle();
+        }
+      };
+
+      var column_name_order_sort = function () {
+        $scope.columns = _.sortBy($scope.columns, 'name');
+      };
+
+      $scope.toggle_column_name_order_sort = function () {
+        if (($scope.column_sort !== 'column_name_order')) {
+          column_name_order_sort();
+          $scope.column_sort = 'column_name_order';
+        } else {
+          default_sort_toggle();
+        }
+      };
+
       var geocoding_order_sort = function () {
         $scope.columns = _.sortBy($scope.columns, function (col) {
           // infinity at 0, increasing after
@@ -188,12 +238,82 @@ angular.module('BE.seed.controller.column_settings', [])
         }
       };
 
+      $scope.toggle_recognize_empty_sort = function () {
+        if ($scope.column_sort !== 'recognize_empty') {
+          $scope.columns = _.orderBy($scope.columns, 'recognize_empty', 'desc');
+          
+          $scope.column_sort = 'recognize_empty';
+        } else {
+          default_sort_toggle();
+        }
+      };
+
       $scope.toggle_matching_criteria_sort = function () {
         if ($scope.column_sort !== 'is_matching_criteria') {
-          $scope.columns = _.reverse(_.sortBy($scope.columns, 'is_matching_criteria'));
+          $scope.columns = _.sortBy($scope.columns, function (col) {
+            if (col.is_matching_criteria) {
+              return 0;
+            } else if (col.is_extra_data) {
+              return 2;
+            } else {
+              return 1;
+            }
+          });
           $scope.column_sort = 'is_matching_criteria';
         } else {
           default_sort_toggle();
+        }
+      };
+
+      var column_update_complete = function (match_link_summary) {
+        $scope.columns_updated = true;
+        var diff_count = _.keys(diff).length;
+        Notification.success('Successfully updated ' + diff_count + ' column' + (diff_count === 1 ? '' : 's'));
+
+        if (match_link_summary) {
+          _.forOwn(match_link_summary, function (state_summary, state) {
+            if (state === 'PropertyState') {
+              var type = 'Property';
+            } else {
+              var type = 'TaxLot';
+            }
+
+            var merged_count = state_summary.merged_count;
+            var linked_sets_count = state_summary.linked_sets_count;
+
+            if (merged_count) Notification.info({
+              message: type + ' merge count: ' + merged_count,
+              delay: 10000
+            });
+            if (linked_sets_count) Notification.info({
+              message: type + ' linked sets count: ' + linked_sets_count,
+              delay: 10000
+            });
+          });
+        }
+
+        modified_service.resetModified();
+        $state.reload();
+      };
+
+      $scope.complete_column_update = function () {
+        var matching_criteria_changed = _.find(_.values(diff), function (delta) {
+          return _.has(delta, 'is_matching_criteria');
+        });
+
+        if (matching_criteria_changed) {
+          // reset the spinner and run whole org match merge link
+          spinner_utility.show(undefined, $('.display')[0]);
+
+          organization_service.match_merge_link($scope.org.id, $scope.inventory_type).then(function (response) {
+            organization_service.check_match_merge_link_status(response.progress_key).then(function (completion_notice) {
+              organization_service.get_match_merge_link_result($scope.org.id, completion_notice.unique_id).then(column_update_complete);
+            });
+          }).catch(function () {
+            Notification.error('There was an error trying to match, merge, link records for this organization.');
+          });
+        } else {
+          column_update_complete();
         }
       };
 
@@ -212,22 +332,41 @@ angular.module('BE.seed.controller.column_settings', [])
           return;
         }
 
-        var promises = [];
-        _.forOwn(diff, function (delta, column_id) {
-          promises.push(columns_service.patch_column_for_org($scope.org.id, column_id, delta));
-        });
+        var modal_instance = $scope.open_confirm_column_settings_modal();
+        modal_instance.result.then(function () { // User confirmed
+          var promises = [];
+          _.forOwn(diff, function (delta, column_id) {
+            promises.push(columns_service.patch_column_for_org($scope.org.id, column_id, delta));
+          });
 
-        spinner_utility.show();
-        $q.all(promises).then(function (/*results*/) {
-          $scope.columns_updated = true;
-          modified_service.resetModified();
-          var totalChanged = _.keys(diff).length;
-          Notification.success('Successfully updated ' + totalChanged + ' column' + (totalChanged === 1 ? '' : 's'));
-          $state.reload();
-        }, function (data) {
-          $scope.$emit('app_error', data);
-        }).finally(function () {
-          spinner_utility.hide();
+          spinner_utility.show();
+          $q.all(promises).then($scope.complete_column_update, function (data) {
+            $scope.$emit('app_error', data);
+          });
+        }).catch(function () { // User cancelled
+          return;
+        });
+      };
+
+      $scope.open_confirm_column_settings_modal = function () {
+        return $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/confirm_column_settings_modal.html',
+          controller: 'confirm_column_settings_modal_controller',
+          size: 'lg',
+          resolve: {
+            proposed_changes: function () {
+              return diff;
+            },
+            all_columns: function () {
+              return $scope.columns;
+            },
+            inventory_type: function () {
+              return $scope.inventory_type;
+            },
+            org_id: function () {
+              return $scope.org.id;
+            }
+          }
         });
       };
 

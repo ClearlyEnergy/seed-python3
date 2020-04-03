@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.controller.menu', [])
@@ -56,14 +56,28 @@ angular.module('BE.seed.controller.menu', [])
         if (!$rootScope.route_load_error) {
           $rootScope.route_load_error = true;
           $scope.menu.error_message = data.message;
+          $rootScope.load_error_message = data.data.message;
         }
+      });
+      $scope.$on('app_success', function () {
+        $rootScope.route_load_error = false;
       });
       $scope.$on('organization_list_updated', function () {
         init();
       });
 
       $scope.is_active = function (menu_item) {
-        if (menu_item === $location.path()) {
+        if ($state.current.url.split('/').length > 1) {
+          $location.search('', $state.current.url);
+        }
+        if($rootScope.stay_on_page && menu_item === '/' + $state.current.url.split('/')[1]) {
+          return true;
+        } else if (menu_item === $location.path()) {
+          if ($rootScope.stay_on_page) {
+            return false;
+          } else if (!$rootScope.stay_on_page && menu_item === ('/' + $state.current.url.split('/')[1])) {
+            return true;
+          }
           return true;
         } else if (menu_item !== '/' && _.startsWith($location.path(), menu_item)) {
           return true;
@@ -92,7 +106,7 @@ angular.module('BE.seed.controller.menu', [])
         $scope.collapsed_controller = !isNavExpanded;
         $scope.narrow_controller = isNavExpanded;
         $scope.wide_controller = !isNavExpanded;
-      }
+      };
 
       // returns true if menu toggle has never been clicked, i.e. first run, else returns false
       $scope.menu_toggle_has_never_been_clicked = function () {

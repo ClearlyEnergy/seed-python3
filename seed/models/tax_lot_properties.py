@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 from __future__ import unicode_literals
@@ -28,9 +28,9 @@ logger = logging.getLogger(__name__)
 
 
 class TaxLotProperty(models.Model):
-    property_view = models.ForeignKey('PropertyView')
-    taxlot_view = models.ForeignKey('TaxLotView')
-    cycle = models.ForeignKey('Cycle')
+    property_view = models.ForeignKey('PropertyView', on_delete=models.CASCADE)
+    taxlot_view = models.ForeignKey('TaxLotView', on_delete=models.CASCADE)
+    cycle = models.ForeignKey('Cycle', on_delete=models.CASCADE)
 
     # If there is a complex TaxLot/Property association, this field
     # lists the "main" tax lot that Properties should be reported under.
@@ -388,18 +388,15 @@ class TaxLotProperty(models.Model):
                 if 'campus' in filtered_fields:
                     obj_dict[obj_column_name_mapping['campus']] = obj.property.campus
                 # Do not make these timestamps naive. They persist correctly.
-                if 'created' in filtered_fields:
-                    obj_dict[obj_column_name_mapping['created']] = obj.property.created
-                if 'updated' in filtered_fields:
-                    obj_dict[obj_column_name_mapping['updated']] = obj.property.updated
                 if 'analysis_state' in filtered_fields:
                     obj_dict[obj_column_name_mapping['analysis_state']] = obj.state.get_analysis_state_display()
-            elif lookups['obj_class'] == 'TaxLotView':
-                # Do not make these timestamps naive. They persist correctly.
-                if 'updated' in filtered_fields:
-                    obj_dict[obj_column_name_mapping['updated']] = obj.taxlot.updated
-                if 'created' in filtered_fields:
-                    obj_dict[obj_column_name_mapping['created']] = obj.taxlot.created
+
+            # These are not added in model_to_dict_with_mapping as these fields are not 'editable'
+            # Also, do not make these timestamps naive. They persist correctly.
+            if 'updated' in filtered_fields:
+                obj_dict[obj_column_name_mapping['updated']] = obj.state.updated
+            if 'created' in filtered_fields:
+                obj_dict[obj_column_name_mapping['created']] = obj.state.created
 
             # All the related tax lot states.
             obj_dict['related'] = join_map.get(obj.pk, [])

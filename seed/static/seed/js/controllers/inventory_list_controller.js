@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.controller.inventory_list', [])
@@ -63,7 +63,7 @@ angular.module('BE.seed.controller.inventory_list', [])
       $scope.data = [];
       var lastCycleId = inventory_service.get_last_cycle();
       $scope.cycle = {
-        selected_cycle: lastCycleId ? _.find(cycles.cycles, {id: lastCycleId}) : _.first(cycles.cycles),
+        selected_cycle:  _.find(cycles.cycles, {id: lastCycleId}) || _.first(cycles.cycles),
         cycles: cycles.cycles
       };
 
@@ -179,6 +179,9 @@ angular.module('BE.seed.controller.inventory_list', [])
             },
             inventory_type: function () {
               return $stateParams.inventory_type;
+            },
+            provided_inventory: function () {
+              return null;
             }
           }
         });
@@ -342,6 +345,9 @@ angular.module('BE.seed.controller.inventory_list', [])
               } else {
                 return false;
               }
+            },
+            org_id: function () {
+              return user_service.get_organization().id;
             }
           }
         });
@@ -510,6 +516,8 @@ angular.module('BE.seed.controller.inventory_list', [])
         }
         if (col.data_type === 'datetime') {
           options.cellFilter = 'date:\'yyyy-MM-dd\'';
+          options.filter = inventory_service.dateFilter();
+        } else if (col.data_type === 'date') {
           options.filter = inventory_service.dateFilter();
         } else {
           options.filter = inventory_service.combinedFilter();

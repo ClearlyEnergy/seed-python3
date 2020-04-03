@@ -1,13 +1,13 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 import json
 from datetime import datetime
 
-from django.core.urlresolvers import reverse, reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.test import TestCase
 from django.utils import timezone
 
@@ -520,7 +520,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'organization_id', self.org.pk,
             'page', 1,
             'per_page', 999999999
-        ), data={'profile_id': None})
+        ), data={})
         result = response.json()
         results = result['results'][0]
         self.assertEquals(len(result['results']), 1)
@@ -582,7 +582,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'organization_id', self.org.pk,
             'page', 1,
             'per_page', 999999999
-        ), data={'profile_id': None})
+        ), data={})
         result = response.json()
         results = result['results'][0]
         self.assertEquals(len(result['results']), 1)
@@ -607,7 +607,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'organization_id', self.org.pk,
             'page', 1,
             'per_page', 999999999
-        ), data={'profile_id': None})
+        ), data={})
         result = response.json()
         results = result['results'][0]
 
@@ -679,7 +679,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'organization_id', self.org.pk,
             'page', 1,
             'per_page', 999999999
-        ), data={'profile_id': None})
+        ), data={})
 
         column_name_mappings_related = {}
         column_name_mappings = {}
@@ -725,7 +725,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'organization_id', self.org.pk,
             'page', 1,
             'per_page', 999999999
-        ), data={'profile_id': None})
+        ), data={})
 
         column_name_mappings_related = {}
         column_name_mappings = {}
@@ -775,7 +775,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'organization_id', self.org.pk,
             'page', 1,
             'per_page', 999999999
-        ), data={'profile_id': None})
+        ), data={})
         result = response.json()
 
         column_name_mappings_related = {}
@@ -804,7 +804,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'organization_id', self.org.pk,
             'page', 'one',
             'per_page', 999999999
-        ), data={'profile_id': None})
+        ), data={})
         result = response.json()
 
         self.assertEquals(len(result['results']), 1)
@@ -823,7 +823,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'page', 10,
             'per_page', 999999999
         )
-        response = self.client.post(filter_properties_url, data={'profile_id': None})
+        response = self.client.post(filter_properties_url, data={})
         result = response.json()
         self.assertEquals(len(result['results']), 0)
         pagination = result['pagination']
@@ -1017,7 +1017,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'page', 1,
             'per_page', 999999999,
             'cycle', self.cycle.pk
-        ), data={'profile_id': None})
+        ), data={})
         results = response.json()['results']
 
         column_name_mappings_related = {}
@@ -1110,7 +1110,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'page', 1,
             'per_page', 999999999,
         )
-        response = self.client.post(url, data={'profile_id': None})
+        response = self.client.post(url, data={})
         results = response.json()['results']
 
         self.assertEquals(len(results), 1)
@@ -1129,7 +1129,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'page', 1,
             'per_page', 999999999
         )
-        data = {'profile_id': None}
+        data = {}
         response = self.client.post(url, data=data)
         result = response.json()
 
@@ -1186,7 +1186,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'cycle', self.cycle.pk,
             'page', 1,
             'per_page', 999999999
-        ), data={'profile_id': None})
+        ), data={})
         results = response.json()['results']
         self.assertEquals(len(results), 2)
 
@@ -1257,7 +1257,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'cycle', self.cycle.pk,
             'page', 1,
             'per_page', 999999999,
-        ), data={'profile_id': None})
+        ), data={})
         results = response.json()['results']
 
         column_name_mappings_related = {}
@@ -1296,7 +1296,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'cycle', self.cycle.pk,
             'page', 'bad',
             'per_page', 999999999,
-        ), data={'profile_id': None})
+        ), data={})
         result = response.json()
 
         self.assertEquals(len(result['results']), 1)
@@ -1332,7 +1332,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'cycle', self.cycle.pk,
             'page', 1,
             'per_page', 999999999,
-        ), data={'profile_id': None})
+        ), data={})
         result = response.json()
 
         self.assertEquals(len(result['results']), 1)
@@ -1478,6 +1478,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'unit_name': None,
             'unit_type': None,
             'is_matching_criteria': True,
+            'recognize_empty': False,
         }
         self.assertIn(pm_property_id_col, results)
 
@@ -1494,6 +1495,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'unit_name': None,
             'unit_type': None,
             'is_matching_criteria': False,
+            'recognize_empty': False,
         }
         self.assertIn(expected_property_extra_data_column, results)
 
@@ -1510,6 +1512,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'unit_name': None,
             'unit_type': None,
             'is_matching_criteria': False,
+            'recognize_empty': False,
         }
         self.assertIn(expected_taxlot_extra_data_column, results)
 
@@ -1554,6 +1557,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'unit_name': None,
             'unit_type': None,
             'is_matching_criteria': True,
+            'recognize_empty': False,
         }
         self.assertIn(jurisdiction_tax_lot_id_col, results)
 
@@ -1570,6 +1574,7 @@ class InventoryViewTests(DeleteModelsTestCase):
             'unit_name': None,
             'unit_type': None,
             'is_matching_criteria': False,
+            'recognize_empty': False,
         }
         self.assertIn(expected_property_extra_data_column, results)
 
@@ -1586,5 +1591,6 @@ class InventoryViewTests(DeleteModelsTestCase):
             'unit_name': None,
             'unit_type': None,
             'is_matching_criteria': False,
+            'recognize_empty': False,
         }
         self.assertIn(expected_taxlot_extra_data_column, results)
