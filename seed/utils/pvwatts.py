@@ -50,7 +50,7 @@ def pvwatts_buildings(buildings, organization):
         if property_measures.exists():
             property_measure = property_measures.get()
             current_production = property_measure.measurements.filter(measurement_type='PROD')
-            if current_production.exists():
+            if current_production.exists() and current_production.first().quantity is not None:
                 # Already exists
                 exists += 1
                 continue
