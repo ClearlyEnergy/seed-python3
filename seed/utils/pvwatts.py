@@ -20,7 +20,7 @@ def get_pvwatts_production(latitude, longitude, capacity, module_type=1, losses=
         'system_capacity': capacity,
         'losses': losses,
         'array_type': array_type,
-        'tilt': latitude,
+        'tilt': 20,
         'azimuth': azimuth,
         'module_type': module_type,
         'lat': latitude,
@@ -104,4 +104,8 @@ def pvwatts_buildings(buildings, organization):
                                                status='ESTIMATE',
                                                year=datetime.date.today().year)
                 measurement.save()
+            if 'Measurement Production Quantity' in building.extra_data:
+                building.extra_data['Measurement Production Quantity'] = production
+                building.save()
+                
     return updated, exists, len(buildings) - updated - exists, errors
