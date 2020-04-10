@@ -1723,7 +1723,6 @@ def save_raw_data(file_pk):
             _save_greenbutton_data_create_tasks.s(file_pk, progress_data.key).delay()
         else:
             _save_raw_data_create_tasks.s(file_pk, progress_data.key).delay()
->>>>>>> upstream-develop
     except StopIteration:
         progress_data.finish_with_error('StopIteration Exception', traceback.format_exc())
     except Error as e:

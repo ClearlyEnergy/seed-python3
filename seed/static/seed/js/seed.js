@@ -640,12 +640,12 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
         name: 'certification_list',
         url: '/certifications',
         templateUrl: static_url + 'seed/partials/certification_list.html',
-		controller: 'certification_list_controller',
-		resolve: {
-  		  certifications_payload: ['certification_service', function (certification_service) {
-	        return certification_service.get_certifications();
+        controller: 'certification_list_controller',
+        resolve: {
+          certifications_payload: ['certification_service', function (certification_service) {
+            return certification_service.get_certifications();
           }],
-		}
+        }
       })
       .state({
         name: 'dataset_list',

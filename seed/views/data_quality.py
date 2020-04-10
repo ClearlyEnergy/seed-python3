@@ -10,7 +10,7 @@ import csv
 from celery.utils.log import get_task_logger
 from django.http import JsonResponse, HttpResponse
 from rest_framework import viewsets, serializers, status
-from rest_framework.decorators import action, list_route, detail_route
+from rest_framework.decorators import action
 from unidecode import unidecode
 
 from seed.data_importer.tasks import do_checks

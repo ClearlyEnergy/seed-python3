@@ -801,7 +801,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def add_certifications(self, request, pk=None):
         """
         Starts a background task to add green certifications to PropertyState
@@ -822,7 +822,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def leed_upload(self, request, pk=None):
         org = Organization.objects.get(pk=pk)
 
@@ -835,7 +835,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def hes_upload(self, request, pk=None):
         body = request.data
         org = Organization.objects.get(pk=pk)
@@ -848,7 +848,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def helix_results(self, request, pk=None):
         body = request.data
         org = Organization.objects.get(pk=pk)
@@ -865,7 +865,6 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
     @action(detail=True, methods=['POST'])
     def start_system_matching_and_geocoding(self, request, pk=None):
         """

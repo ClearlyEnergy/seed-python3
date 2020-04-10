@@ -634,7 +634,7 @@ class OrganizationViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('requires_owner')
-    @detail_route(methods=['PUT'])
+    @action(detail=True, methods=['PUT'])
     def add_hes(self, request, pk=None):
         """
         Adds Home Energy Score ID to an organization.
@@ -673,7 +673,7 @@ class OrganizationViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('requires_owner')
-    @detail_route(methods=['PUT'])
+    @action(detail=True, methods=['PUT'])
     def add_leed(self, request, pk=None):
         """
         Adds LEED Information to an organization.
@@ -704,7 +704,6 @@ class OrganizationViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('requires_owner')
-    @detail_route(methods=['PUT'])
     @action(detail=True, methods=['PUT'])
     def save_settings(self, request, pk=None):
         """

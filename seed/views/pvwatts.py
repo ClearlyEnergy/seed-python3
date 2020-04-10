@@ -4,7 +4,7 @@
 # from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from rest_framework import viewsets
-from rest_framework.decorators import list_route
+from rest_framework.decorators import action
 
 from seed.decorators import ajax_request_class
 
@@ -23,7 +23,7 @@ class PvwattsViews(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @list_route(methods=['POST'])
+    @action(detail=False, methods=['POST'])
     def pvwatts_by_ids(self, request):
         body = dict(request.data)
         property_ids = body.get('property_ids')

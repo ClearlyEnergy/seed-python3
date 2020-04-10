@@ -265,6 +265,7 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
 
         # Return property views limited to the 'inventory_ids' list.  Otherwise, if selected is empty, return all
         if 'inventory_ids' in request.data and request.data['inventory_ids']:
+            print(request.data['inventory_ids'])
             final_filter = Q(property_id__in=request.data['inventory_ids']) & final_filter
 
         property_views_list = PropertyView.objects.select_related('property', 'state', 'cycle') \

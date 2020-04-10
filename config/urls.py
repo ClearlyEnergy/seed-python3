@@ -20,7 +20,7 @@ schema_view = get_schema_view(title='SEED API Schema')
 
 urlpatterns = [
     # HELIX
-    url(r'^helix/', include('helix.urls', namespace="helix", app_name="helix")),
+    url(r'^helix/', include(('helix.urls', 'helix'), namespace='helix')),
 
     url(r'^accounts/password/reset/done/$', password_reset_done, name='password_reset_done'),
     url(
@@ -41,7 +41,7 @@ urlpatterns = [
     url(r'^app/', include(('seed.urls', "seed"), namespace="seed")),
 
     # root configuration items
-    url(r'^eula/', include('tos.urls', namespace='tos', app_name='tos')),
+    url(r'^eula/', include(('tos.urls', 'tos'), namespace='tos')),
     url(r'^i18n/', include('django.conf.urls.i18n')),
     url(r'^robots\.txt', robots_txt, name='robots_txt'),
 
