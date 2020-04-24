@@ -20,7 +20,7 @@ def get_pvwatts_production(latitude, longitude, capacity, module_type=1, losses=
         'system_capacity': capacity,
         'losses': losses,
         'array_type': array_type,
-        'tilt': latitude,
+        'tilt': 20,
         'azimuth': azimuth,
         'module_type': module_type,
         'lat': latitude,
@@ -50,7 +50,7 @@ def pvwatts_buildings(buildings, organization):
         if property_measures.exists():
             property_measure = property_measures.get()
             current_production = property_measure.measurements.filter(measurement_type='PROD')
-            if current_production.exists():
+            if current_production.exists() and current_production.first().quantity is not None:
                 # Already exists
                 exists += 1
                 continue
@@ -90,13 +90,22 @@ def pvwatts_buildings(buildings, organization):
                                                    property_state=building,
                                                    implementation_status=PropertyMeasure.MEASURE_COMPLETED)
                 property_measure.save()
-            measurement = HelixMeasurement(measure_property=property_measure,
-                                           measurement_type='PROD',
-                                           measurement_subtype='PV',
-                                           fuel='ELEC',
-                                           quantity=production,
-                                           unit='KWH',
-                                           status='ESTIMATE',
-                                           year=datetime.date.today().year)
-            measurement.save()
+            if current_production.exists() and current_production.first().quantity is None:
+                current_production = current_production.first()
+                current_production.quantity = production
+                current_production.save()
+            else:
+                measurement = HelixMeasurement(measure_property=property_measure,
+                                               measurement_type='PROD',
+                                               measurement_subtype='PV',
+                                               fuel='ELEC',
+                                               quantity=production,
+                                               unit='KWH',
+                                               status='ESTIMATE',
+                                               year=datetime.date.today().year)
+                measurement.save()
+            if 'Measurement Production Quantity' in building.extra_data:
+                building.extra_data['Measurement Production Quantity'] = production
+                building.save()
+                
     return updated, exists, len(buildings) - updated - exists, errors

@@ -1020,9 +1020,7 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
               required: true
               paramType: query
         """
-        print('in retrieve')
         result = self._get_property_view(pk)
-        print(result)
         if result.get('status', None) != 'error':
             result['property_view_id'] = result['property_view'].id  # Helix add
             property_view = result.pop('property_view')
