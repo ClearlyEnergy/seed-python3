@@ -60,7 +60,7 @@ probablepeople==0.5.4
 geojson==2.5.0
 
 # Helix
--e git+https://github.com/revsys/django-tos.git#egg=django_tos-master
+-e git+https://github.com/revsys/django-tos.git#egg=django-tos-master
 -e git+https://github.com/ClearlyEnergy/HELIX.git#egg=helix
 -e git+https://github.com/ClearlyEnergy/helix-hes.git#egg=hes
 zeep==2.3.0
