@@ -105,7 +105,6 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework_swagger',
     'drf_yasg',
-    'oauth2_provider',
     'oauth2_jwt_provider',
     'crispy_forms',  # needed to squash warnings around collectstatic with rest_framework
     'tos',
