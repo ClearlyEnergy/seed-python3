@@ -46,14 +46,6 @@ def pvwatts_buildings(buildings, organization):
         lng = None
         capacity = 0
         property_measures = building.propertymeasure_set.filter(measure_id=measure.id)
-        property_measure = None
-        if property_measures.exists():
-            property_measure = property_measures.get()
-            current_production = property_measure.measurements.filter(measurement_type='PROD')
-            if current_production.exists() and current_production.first().quantity is not None:
-                # Already exists
-                exists += 1
-                continue
 
         if building.latitude:
             lat = building.latitude
@@ -71,41 +63,34 @@ def pvwatts_buildings(buildings, organization):
             errors.append('Property ' + building.address_line_1 + ' has no longitude column defined')
 #            errors.append(ValidationError('Property has no longitude column defined',
 #                                          code='invalid'))
-        if property_measure:
-            capacity = property_measure.measurements.get(measurement_type='CAP').quantity
-        elif 'CAP Electric PV' in building.extra_data:
-            capacity = building.extra_data['CAP Electric PV']
-            capacity = simplejson.loads(capacity)['quantity']
+
+        if property_measures.exists():
+            for property_measure in property_measures:
+                current_production = property_measure.measurements.filter(measurement_type='PROD')
+                if current_production.exists() and current_production.first().quantity is not None:
+                    # Already exists
+                    exists += 1
+                    continue
+
+                capacity = property_measure.measurements.get(measurement_type='CAP').quantity
+                r = get_pvwatts_production(lat, lng, capacity)
+                if r['success']:
+                    updated += 1
+                    production = round(r['production'])
+                    measurement = HelixMeasurement(measure_property=property_measure,
+                                                   measurement_type='PROD',
+                                                   measurement_subtype='PV',
+                                                   fuel='ELEC',
+                                                   quantity=production,
+                                                   unit='KWH',
+                                                   status='ESTIMATE',
+                                                   year=datetime.date.today().year)
+                    measurement.save()
+                    building.extra_data['Measurement Production Quantity'] = production
+                    building.save()                
         else:
             errors.append('Property ' + building.address_line_1 + ' has no solar capacity defined')
 #            errors.append(ValidationError('Property has no solar capacity defined',
 #                                          code='invalid'))
-        r = get_pvwatts_production(lat, lng, capacity)
-        if r['success']:
-            updated += 1
-            production = round(r['production'])
-            if property_measure is None:
-                property_measure = PropertyMeasure(measure=measure,
-                                                   property_measure_name='install_photovoltaic_system',
-                                                   property_state=building,
-                                                   implementation_status=PropertyMeasure.MEASURE_COMPLETED)
-                property_measure.save()
-            if current_production.exists() and current_production.first().quantity is None:
-                current_production = current_production.first()
-                current_production.quantity = production
-                current_production.save()
-            else:
-                measurement = HelixMeasurement(measure_property=property_measure,
-                                               measurement_type='PROD',
-                                               measurement_subtype='PV',
-                                               fuel='ELEC',
-                                               quantity=production,
-                                               unit='KWH',
-                                               status='ESTIMATE',
-                                               year=datetime.date.today().year)
-                measurement.save()
-            if 'Measurement Production Quantity' in building.extra_data:
-                building.extra_data['Measurement Production Quantity'] = production
-                building.save()
                 
     return updated, exists, len(buildings) - updated - exists, errors
