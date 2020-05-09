@@ -74,7 +74,7 @@ def login_view(request):
     else:
         form = LoginForm()
 
-    return render(request, 'landing/login.html', locals())
+    return render(request, 'landing/oauth_login.html', locals())
 
 
 def password_set(request, uidb64=None, token=None):
