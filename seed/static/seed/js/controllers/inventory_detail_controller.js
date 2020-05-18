@@ -686,6 +686,52 @@ angular.module('BE.seed.controller.inventory_detail', [])
       };
 	  
       /**
+       * open up modal to confirm create of measure, refresh list
+       */
+
+      $scope.confirm_create_measure = function (property_measure) {
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/create_measure_modal.html',
+          controller: 'create_measure_modal_controller',
+          resolve: {
+	      property_state: $scope.item_state.id,
+          }
+        });
+
+        modalInstance.result.finally(function () {
+//          refresh_measure();
+        });
+      };
+	  
+      /**
+       * refresh_measures: refreshes measures list
+       */
+      var refresh_measures = function () {
+        measures_service.get_property_measures().then(function (measures) {
+  		$scope.measures = measures.data;
+        });
+      };
+	  
+	  
+      /**
+       * open up modal to confirm delete of measure, refresh page
+       */
+      $scope.confirm_delete_measure = function (measure) {
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/delete_measure_modal.html',
+          controller: 'delete_measure_modal_controller',
+          resolve: {
+	      measure: measure
+          }
+        });
+
+        modalInstance.result.finally(function () {
+            $state.reload();
+        });
+      };
+	  
+	  
+      /**
        * Functions for dealing with editing an assessment's opt-out status
        */	
       $scope.edit_assessment_status = function (certification) {

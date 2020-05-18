@@ -23,6 +23,7 @@ from seed.models import (
     Cycle,
     GreenAssessment,
     GreenAssessmentProperty,
+    Measure,
     PropertyState,
     PropertyView,
     StatusLabel as Label
@@ -101,6 +102,15 @@ class CycleFilterSet(FilterSet):
             end = end - relativedelta(hours=max_time_diff)
             cycles = queryset.filter(start__lte=start, end__gte=end)
         return cycles
+
+
+class MeasureFilterSet(FilterSet):
+    """Provide filtering for Measure by category"""
+    category = CharFilter(field_name='category', lookup_expr='exact')
+
+    class Meta:
+        model = Measure
+        fields = ['category']
 
 
 class PropertyViewFilterSet(FilterSet):
