@@ -151,6 +151,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
 				  $scope.step.number = 12;	  				  	
 			  } else {
 				  $scope.dataset.import_file_id = result.file_pk;
+				  $scope.source_type = 'Assessed Raw';
 				  $scope.step.number = 3;			  	
 			  }
 		  }, function(data) {
@@ -175,6 +176,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
 			  uploader_service.check_progress_loop(result.progress_key, 0, 1, function(data) {
 				  uploader_service.get_helix_results($scope.organization.org_id, data.unique_id, $scope.dataset.id, $scope.selectedCycle.id, 'leed').then(function(result) {
 					  $scope.dataset.import_file_id = result.file_pk;
+					  $scope.source_type = 'Assessed Raw';
 					  $scope.step.number = 3;
 				  }); // end get_helix_results			  	
 			  }, function (data) {

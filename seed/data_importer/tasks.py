@@ -555,9 +555,8 @@ def _helix_leed_create_tasks(googlemaps_key, leed_ids, progress_key, dq_id):
     if leed_ids:
         id_chunks = [[obj for obj in chunk] for chunk in batch(leed_ids, 15)]
         for ids in id_chunks:
-            # tasks.append(helix_leed_task.s(googlemaps_key, ids, progress_key, dq_id).delay(60))
             tasks.append(helix_leed_task.s(googlemaps_key, ids, progress_key, dq_id))
-            # tasks.append(helix_leed_task(googlemaps_key, ids, dq_id))
+#             tasks.append(helix_leed_task(googlemaps_key, ids, progress_key, dq_id))
 
     return tasks
 
@@ -611,12 +610,12 @@ def helix_hes_to_file(user, org, dataset, cycle):
         return progress_data.finish_with_error('No HES partner information')
 
     if org.hes_start_date is None:
-        start_date = dt.date.today() - dt.timedelta(100)
+        start_date = date.today() - datetime.timedelta(100)
     else:
         start_date = org.hes_start_date
 
     if org.hes_end_date is None:
-        end_date = dt.date.today()
+        end_date = date.today()
     else:
         end_date = org.hes_end_date
 
@@ -635,7 +634,7 @@ def helix_hes_to_file(user, org, dataset, cycle):
         file_pk = helix_utils.save_and_load(user, dataset, cycle, result, "hes.csv")
         save_raw_data(file_pk)
         if org.hes_end_date is None:
-            org.hes_start_date = dt.date.today()
+            org.hes_start_date = date.today()
         else:
             org.hes_start_date = org.hes_end_date
             org.hes_end_date = None
@@ -665,12 +664,12 @@ def helix_leed_to_file(user, org):
         return progress_data.finish_with_error('No LEED geographic identifier')
 
     if org.leed_start_date is None:
-        start_date = dt.date.today() - dt.timedelta(100)
+        start_date = date.today() - datetime.timedelta(100)
     else:
         start_date = org.leed_start_date
 
     if org.leed_end_date is None:
-        end_date = dt.date.today()
+        end_date = date.today()
     else:
         end_date = org.leed_end_date
 
@@ -690,9 +689,10 @@ def helix_leed_to_file(user, org):
         if tasks:
             chord(tasks, interval=15)(finish_checking.si(progress_data.key))
 #            tasks
+            print('after tasks')
+            print(progress_data.result())
         else:
             return progress_data.finish_with_error('No LEED data retrieved')
-#            finish_checking.s(progress_data.key)
 
     return progress_data.result()
 
@@ -717,13 +717,13 @@ def helix_save_results(user, org, dataset, cycle, source, data_id):
 
     if (source == 'leed'):
         if org.leed_end_date is None:
-            org.leed_start_date = dt.date.today()
+            org.leed_start_date = date.today()
         else:
             org.leed_start_date = org.leed_end_date
             org.leed_end_date = None
     elif (source == 'hes'):
         if org.hes_end_date is None:
-            org.hes_start_date = dt.date.today()
+            org.hes_start_date = date.today()
         else:
             org.hes_start_date = org.hes_end_date
             org.hes_end_date = None
@@ -827,7 +827,7 @@ def do_checks(data_quality_id, propertystate_ids, taxlotstate_ids, import_file_i
     progress_data.save()
     if tasks:
         # specify the chord as an immutable with .si
-#        chord(tasks, interval=15)(finish_checking.si(progress_data.key))
+        #        chord(tasks, interval=15)(finish_checking.si(progress_data.key))
         chord(tasks)
         finish_checking(progress_data.key)
     else:
@@ -1308,15 +1308,15 @@ def _data_quality_check_create_tasks(data_quality_id, property_state_ids, taxlot
     if property_state_ids:
         id_chunks = [[obj for obj in chunk] for chunk in batch(property_state_ids, 100)]
         for ids in id_chunks:
-#            tasks.append(check_data_chunk.s("PropertyState", data_quality_id, ids, dq_id))
+            #            tasks.append(check_data_chunk.s("PropertyState", data_quality_id, ids, dq_id))
             tasks.append(check_data_chunk("PropertyState", data_quality_id, ids, dq_id))
-# HELIX            tasks.append(check_data_chunk.s("PropertyState", ids, dq_id))
+            # HELIX            tasks.append(check_data_chunk.s("PropertyState", ids, dq_id))
 
     if taxlot_state_ids:
         id_chunks_tl = [[obj for obj in chunk] for chunk in batch(taxlot_state_ids, 100)]
         for ids in id_chunks_tl:
             tasks.append(check_data_chunk.s("TaxLotState", data_quality_id, ids, dq_id))
-# HELIX            tasks.append(check_data_chunk.s("TaxLotState", ids, dq_id))
+            # HELIX            tasks.append(check_data_chunk.s("TaxLotState", ids, dq_id))
 
     return tasks
 

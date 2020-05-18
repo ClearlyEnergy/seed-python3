@@ -6,10 +6,9 @@
 """
 import datetime
 import requests
-import simplejson
 # from django.core.exceptions import ValidationError
 from django.conf import settings
-from seed.models import Measure, PropertyMeasure
+from seed.models import Measure
 from helix.models import HelixMeasurement
 
 
@@ -87,10 +86,10 @@ def pvwatts_buildings(buildings, organization):
                                                    year=datetime.date.today().year)
                     measurement.save()
                     building.extra_data['Measurement Production Quantity'] = production
-                    building.save()                
+                    building.save()
         else:
             errors.append('Property ' + building.address_line_1 + ' has no solar capacity defined')
 #            errors.append(ValidationError('Property has no solar capacity defined',
 #                                          code='invalid'))
-                
+
     return updated, exists, len(buildings) - updated - exists, errors

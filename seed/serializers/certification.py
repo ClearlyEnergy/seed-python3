@@ -173,7 +173,6 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin, serializers.ModelSeria
         # HELIX        urls = set(validated_data.pop('urls', []))
         request = self.context.get('request', None)
         user = getattr(request, 'user', None)
-        print(validated_data)
         instance = super().create(
             validated_data
         )

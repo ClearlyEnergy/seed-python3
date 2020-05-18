@@ -15,7 +15,6 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
 from rest_framework.viewsets import GenericViewSet
-from helix.utils.address import normalize_address_str
 
 from seed.utils.match import match_merge_link
 from seed.decorators import ajax_request_class
