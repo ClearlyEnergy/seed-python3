@@ -689,8 +689,6 @@ def helix_leed_to_file(user, org):
         if tasks:
             chord(tasks, interval=15)(finish_checking.si(progress_data.key))
 #            tasks
-            print('after tasks')
-            print(progress_data.result())
         else:
             return progress_data.finish_with_error('No LEED data retrieved')
 
