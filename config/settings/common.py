@@ -279,7 +279,7 @@ OAUTH2_PROVIDER = {
 }
 
 AUTHENTICATION_BACKENDS = [
-    'mozilla_django_oidc.auth.OIDCAuthenticationBackend',
+    'seed.authentication.SeedOpenIDAuthenticationBackend',
     'oauth2_provider.backends.OAuth2Backend',
     'django.contrib.auth.backends.ModelBackend',
 ]
@@ -342,4 +342,7 @@ OAUTH2_PROVIDER = {
 
 OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://sparkplatform.com/openid/authorize'
 OIDC_OP_TOKEN_ENDPOINT = 'https://sparkplatform.com/openid/token'
-OIDC_OP_USER_ENDPOINT = 'https://sparkplatform.com/v1/my/account'
+OIDC_OP_USER_ENDPOINT = 'https://sparkplatform.com/openid/userinfo'
+OIDC_OP_JWKS_ENDPOINT = 'https://sparkplatform.com/openid/jwks.json'
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_SEED_ORG = 'Spark'

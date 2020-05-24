@@ -10,6 +10,7 @@
                 <div class="clearfix"></div>
                 <div class="form_title">
                     <h2>{% trans "Log in to HELIX Platform" %}</h2>
+                    {% block login-pretext %}{% endblock %}
                     {% if 'setup_complete' in request.GET %}
                         <p>{% trans "Thank you for creating your account! Please sign in below." %}
                     {% endif %}
