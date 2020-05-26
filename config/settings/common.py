@@ -81,6 +81,7 @@ MIDDLEWARE = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'mozilla_django_oidc.middleware.SessionRefresh',
 )
 
 ROOT_URLCONF = 'config.urls'
@@ -108,6 +109,7 @@ INSTALLED_APPS = (
     'oauth2_jwt_provider',
     'crispy_forms',  # needed to squash warnings around collectstatic with rest_framework
     'tos',
+    'mozilla_django_oidc',
 )
 
 SEED_CORE_APPS = (
@@ -277,6 +279,7 @@ OAUTH2_PROVIDER = {
 }
 
 AUTHENTICATION_BACKENDS = [
+    'seed.authentication.SeedOpenIDAuthenticationBackend',
     'oauth2_provider.backends.OAuth2Backend',
     'django.contrib.auth.backends.ModelBackend',
 ]
@@ -284,6 +287,7 @@ AUTHENTICATION_BACKENDS = [
 # Django Rest Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'mozilla_django_oidc.contrib.drf.OIDCAuthentication',
         'oauth2_provider.ext.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
         'seed.authentication.SEEDAuthentication',
@@ -335,3 +339,10 @@ OAUTH2_PROVIDER = {
     'ALLOW_SUPERUSERS': True,
     'DEVELOPER_GROUP': 'admin',
 }
+
+OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://sparkplatform.com/openid/authorize'
+OIDC_OP_TOKEN_ENDPOINT = 'https://sparkplatform.com/openid/token'
+OIDC_OP_USER_ENDPOINT = 'https://sparkplatform.com/openid/userinfo'
+OIDC_OP_JWKS_ENDPOINT = 'https://sparkplatform.com/openid/jwks.json'
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_SEED_ORG = 'Spark'

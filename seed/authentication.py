@@ -5,9 +5,13 @@
 :author
 """
 
+from django.conf import settings
 from rest_framework import authentication
-
+from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 from seed.landing.models import SEEDUser as User
+from seed.lib.superperms.orgs.models import OrganizationUser
+from helix.models import HELIXOrganization as Organization
+from seed.utils.organizations import create_organization
 
 
 class SEEDAuthentication(authentication.BaseAuthentication):
@@ -18,3 +22,17 @@ class SEEDAuthentication(authentication.BaseAuthentication):
 
     def authenticate(self, request):
         return User.process_header_request(request), None  # return None per base class
+
+class SeedOpenIDAuthenticationBackend(OIDCAuthenticationBackend):
+    def create_user(self, claims):
+        if User.objects.filter(username=claims['email']).exists():
+            return User.objects.get(username=claims['email'])
+        user = User.objects.create_user(claims['email'].lower(), claims['email'], '')
+        user.generate_key()
+        organization = Organization.objects.filter(name=settings.OIDC_SEED_ORG)
+        if organization.exists():
+            organization = organization.get()
+            OrganizationUser.objects.get_or_create(user=user, organization=organization)
+        else:
+            organization, _, user_added = create_organization(user, settings.OIDC_SEED_ORG)
+        return user

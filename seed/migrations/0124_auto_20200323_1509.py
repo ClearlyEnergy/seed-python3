@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('seed', '0123_auto_20200324_1424'),
+        ('seed', '0123_merge_20200410_1509'),
     ]
 
     operations = [

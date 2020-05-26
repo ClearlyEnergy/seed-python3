@@ -49,6 +49,7 @@ urlpatterns = [
         password_reset_confirm,
         name='password_reset_confirm'
     ),
+    url(r'^oidc/', include('mozilla_django_oidc.urls')),
     # Application
     url(r'^', include(('seed.landing.urls', "seed.landing"), namespace="landing")),
     url(r'^app/', include(('seed.urls', "seed"), namespace="seed")),

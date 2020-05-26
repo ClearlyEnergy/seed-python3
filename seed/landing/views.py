@@ -26,7 +26,7 @@ def landing_page(request):
     if request.user.is_authenticated:
         return HttpResponseRedirect(reverse('seed:home'))
     login_form = LoginForm()
-    return render(request, 'landing/home.html', locals())
+    return render(request, 'landing/oauth_home.html', locals())
 
 
 def login_view(request):
@@ -74,7 +74,7 @@ def login_view(request):
     else:
         form = LoginForm()
 
-    return render(request, 'landing/login.html', locals())
+    return render(request, 'landing/oauth_login.html', locals())
 
 
 def password_set(request, uidb64=None, token=None):
