@@ -350,7 +350,8 @@ class GreenAssessmentProperty(models.Model):
                 reso_dict[field] = getattr(self, key)
 #            else:
 #                reso_dict[field] = ''
-        reso_dict[url_field] = [url.url for url in self.urls.all()]
+#        reso_dict[url_field] = [url.url for url in self.urls.all()]
+        reso_dict[url_field] = self.urls.order_by('-id')[0].url        
         return reso_dict
 
 
