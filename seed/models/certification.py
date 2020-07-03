@@ -351,7 +351,10 @@ class GreenAssessmentProperty(models.Model):
 #            else:
 #                reso_dict[field] = ''
 #        reso_dict[url_field] = [url.url for url in self.urls.all()]
-        reso_dict[url_field] = self.urls.order_by('-id')[0].url        
+        if self.urls.count() > 0:
+            reso_dict[url_field] = self.urls.order_by('-id')[0].url        
+        else:
+            reso_dict[url_field] = ''
         return reso_dict
 
 
