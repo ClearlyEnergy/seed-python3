@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.utils import ErrorList
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from tos.models import has_user_agreed_latest_tos, TermsOfService, NoActiveTermsOfService
 
 from .forms import LoginForm
@@ -87,14 +87,23 @@ def password_set(request, uidb64=None, token=None):
 
 
 def password_reset(request):
-    return auth.views.PasswordResetView.as_view(template_name='landing/password_reset.html')(
-        request,
-        subject_template_name='landing/password_reset_subject.txt',
-        email_template_name='landing/password_reset_email.html',
-        post_reset_redirect=reverse('landing:password_reset_done'),
-        from_email=settings.PASSWORD_RESET_EMAIL,
-    )
-
+    """
+    Replaces auth.views.PasswordResetView in HELIX due to from_email not being populated
+    in the final email, causing email backends to crash. See Task #1160 for details.
+    """
+    if request.method == 'POST':
+        form = auth.forms.PasswordResetForm(data=request.POST)
+        if form.is_valid():
+            form.save(subject_template_name='landing/password_reset_subject.txt',
+                      email_template_name='landing/password_reset_email.html',
+                      from_email=settings.PASSWORD_RESET_EMAIL)
+        return redirect('landing:password_reset_done')
+    else:
+        form = auth.forms.PasswordResetForm()
+        context = {
+            'form': form,
+        }
+        return render(request, 'landing/password_reset.html', context)
 
 def password_reset_done(request):
     return auth.views.PasswordResetDoneView.as_view(
