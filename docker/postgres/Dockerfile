@@ -19,7 +19,8 @@ FROM seedplatform/postgres-seed:11.2
 #    apt-get purge -y --auto-remove apt-transport-https ca-certificates wget && \
 #    rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update || true && \ # Update errors due to HTTPS packagecloud repo
+# Update errors due to HTTPS packagecloud repo
+RUN apt-get update || true && \
     apt-get install -y apt-transport-https
 
 RUN apt-get update && \
