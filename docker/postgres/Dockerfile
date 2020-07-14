@@ -19,6 +19,15 @@ FROM seedplatform/postgres-seed:11.2
 #    apt-get purge -y --auto-remove apt-transport-https ca-certificates wget && \
 #    rm -rf /var/lib/apt/lists/*
 
+# Update errors due to HTTPS packagecloud repo
+RUN apt-get update || true && \
+    apt-get install -y apt-transport-https
+
+RUN apt-get update && \
+    apt-get install -y timescaledb-postgresql-11 && \
+    apt-get purge -y --auto-remove apt-transport-https ca-certificates wget && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN mkdir -p /docker-entrypoint-initdb.d
 COPY ./initdb-postgis.sh /docker-entrypoint-initdb.d/postgis.sh
 COPY ./initdb-timescaledb.sh /docker-entrypoint-initdb.d/timescaledb.sh
