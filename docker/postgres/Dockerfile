@@ -28,6 +28,8 @@ RUN apt-get update && \
     apt-get purge -y --auto-remove apt-transport-https ca-certificates wget && \
     rm -rf /var/lib/apt/lists/*
 
+RUN echo "shared_preload_libraries = 'timescaledb'" >> /var/lib/postgresql/data/postgresql.conf
+
 RUN mkdir -p /docker-entrypoint-initdb.d
 COPY ./initdb-postgis.sh /docker-entrypoint-initdb.d/postgis.sh
 COPY ./initdb-timescaledb.sh /docker-entrypoint-initdb.d/timescaledb.sh
