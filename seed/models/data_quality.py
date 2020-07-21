@@ -539,6 +539,11 @@ class DataQualityCheck(models.Model):
 # HELIX                dqc.delete()
 
 # HELIX        dq, _ = DataQualityCheck.objects.get_or_create(organization_id=organization_id)
+
+        # HELIX
+        if not DataQualityCheck.objects.filter(organization_id=organization_id).exists():
+            dq = DataQualityCheck.objects.create(organization_id=organization_id)
+
         dq = DataQualityCheck.objects.filter(organization_id=organization_id)
 
         for dd in dq:
