@@ -542,7 +542,7 @@ class DataQualityCheck(models.Model):
 
         # HELIX
         if not DataQualityCheck.objects.filter(organization_id=organization_id).exists():
-            dq = DataQualityCheck.objects.create(organization_id=organization_id)
+            DataQualityCheck.objects.create(organization_id=organization_id)
 
         dq = DataQualityCheck.objects.filter(organization_id=organization_id)
 
