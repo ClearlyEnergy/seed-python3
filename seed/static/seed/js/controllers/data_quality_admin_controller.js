@@ -10,7 +10,7 @@ angular.module('BE.seed.controller.data_quality_admin', [])
     '$stateParams',
     'columns',
     'organization_payload',
-	'data_qualities_payload',
+	  'data_qualities_payload',
     'current_data_quality_payload',
     'data_quality_rules_payload',
     'auth_payload',
@@ -52,10 +52,10 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       $scope.org = organization_payload.organization;
       $scope.auth = auth_payload.auth;
       $scope.ruleGroups = {};
-	  
+
       $scope.data_qualities = data_qualities_payload;
       $scope.currentDataQuality = current_data_quality_payload;
-	  $scope.data_quality_rules_payload = data_quality_rules_payload;
+  	  $scope.data_quality_rules_payload = data_quality_rules_payload;
 
       $scope.state = $state.current;
 
@@ -127,7 +127,7 @@ angular.module('BE.seed.controller.data_quality_admin', [])
       $scope.isModified = function() {
         return modified_service.isModified();
       };
-      var originalRules = angular.copy(data_quality_rules_payload.rules);
+      var originalRules = angular.copy($scope.data_quality_rules_payload[$scope.currentDataQuality.id].rules);
       $scope.original = originalRules;
       $scope.change_rules = function() {
         $scope.setModified();
@@ -138,11 +138,17 @@ angular.module('BE.seed.controller.data_quality_admin', [])
         $scope.defaults_restored = false;
         var cleanRules = angular.copy($scope.ruleGroups);
         _.each(originalRules, function (rules, index) {
-          $scope.rules = rules;
-          Object.keys(rules).forEach(function (key) {
-            _.reduce(cleanRules[index][rules[key].field], function (result, value) {
-              return _.isEqual(value, rules[key]) ? modified_service.setModified() : modified_service.resetModified();
-            }, []);
+          var i = 0;
+          $scope.rules = angular.copy(rules);
+          Object.keys(cleanRules[index]).forEach(function (key) {
+            _.each(cleanRules[index][key], function (value) {
+              if (!_.isEqual(value, rules[i])) {
+                  modified_service.setModified();
+              }
+              if (i < rules.length) {
+                i++;
+              }
+            });
           });
         });
       };
@@ -419,8 +425,8 @@ angular.module('BE.seed.controller.data_quality_admin', [])
         }, 0);
         return total === enabled;
       };
-	  
-// HELIX 
+
+// HELIX
       var ignoreNextChange = true;
       $scope.$watch('currentDataQuality', function (newDataQuality, oldDataQuality) {
         if (ignoreNextChange) {
@@ -453,7 +459,7 @@ angular.module('BE.seed.controller.data_quality_admin', [])
         }
 		loadRules($scope.data_quality_rules_payload[$scope.currentDataQuality.id]);
       }
-	  	  	  
+
       $scope.renameDataQuality = function () {
         var oldDataQuality = angular.copy($scope.currentDataQuality);
 
@@ -492,7 +498,7 @@ angular.module('BE.seed.controller.data_quality_admin', [])
           Notification.primary('Removed ' + oldDataQuality.name);
         });
       };
-	  	  
+
       $scope.newDataQuality = function () {
         var modalInstance = $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/settings_data_quality_modal.html',
@@ -508,12 +514,12 @@ angular.module('BE.seed.controller.data_quality_admin', [])
           $scope.currentDataQuality = _.last($scope.data_qualities);
 		  data_quality_service.data_quality_rules($scope.org.id).then(function(rules) {
 			  $scope.data_quality_rules_payload = rules;
-		      loadRules(rules[$scope.currentDataQuality.id]);		  	
-		  })
+		      loadRules(rules[$scope.currentDataQuality.id]);
+		  });
           Notification.primary('Created ' + newDataQuality.name);
         });
       };
-	  
+
       $scope.isModified = function () {
         return modified_service.isModified();
       };
