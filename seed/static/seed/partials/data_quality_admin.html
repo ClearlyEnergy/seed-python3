@@ -109,11 +109,11 @@
                             <td>
                                 <select class="form-control input-sm" ng-model="rule.data_type" ng-options="type.id as type.label for type in ::data_types" ng-change="rule.rule_type = 1; change_data_type(rule, '{$ rule.data_type $}'); change_rules()"></select>
                             </td>
-                            <td ng-click="change_required(rule)" class="text-center">
-                                <input type="checkbox" ng-model="rule.required" class="no-click" ng-change="rule.rule_type = 1; change_rules()">
+                            <td ng-click="change_required(rule); change_rules()" class="text-center">
+                                <input type="checkbox" ng-model="rule.required" class="no-click" ng-change="rule.rule_type = 1">
                             </td>
-                            <td ng-click="change_not_null(rule)" class="text-center">
-                                <input type="checkbox" ng-model="rule.not_null" class="no-click" ng-change="rule.rule_type = 1; change_rules()">
+                            <td ng-click="change_not_null(rule); change_rules()" class="text-center">
+                                <input type="checkbox" ng-model="rule.not_null" class="no-click" ng-change="rule.rule_type = 1">
                             </td>
                             <td ng-if="rule.data_type === 'string'" colspan="2">
                                 <input class="form-control input-sm" type="text" maxlength="200" ng-model="rule.text_match" ng-change="rule.rule_type = 1; change_rules()" placeholder="{$:: '(field must contain this text)' | translate $}">
