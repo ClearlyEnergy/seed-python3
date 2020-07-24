@@ -60,6 +60,14 @@ def invite_to_seed(domain, email_address, token, user_pk, first_name):
         'seed/account_create_email.html',
         context
     )
+    print("EMAIL SUBJECT")
+    print(subject)
+    print("EMAIL BODY")
+    print(email_body)
+    print("EMAIL SERVER EMAIL")
+    print(settings.SERVER_EMAIL)
+    print("DESTINATION ADDRESSES")
+    print([email_address])
     send_mail(subject, email_body, settings.SERVER_EMAIL, [email_address])
     try:
         bcc_address = settings.SEED_ACCOUNT_CREATION_BCC
