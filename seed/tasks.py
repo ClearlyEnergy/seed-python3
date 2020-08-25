@@ -32,7 +32,7 @@ logger = get_task_logger(__name__)
 
 
 @shared_task
-def invite_to_seed(domain, email_address, token, user_pk, first_name):
+def invite_to_seed(protocol, domain, email_address, token, user_pk, first_name):
     """Send invitation email to newly created user.
 
     domain -- The domain name of the running seed instance
@@ -50,7 +50,7 @@ def invite_to_seed(domain, email_address, token, user_pk, first_name):
     context = {
         'email': email_address,
         'domain': domain,
-        'protocol': 'https',
+        'protocol': protocol,
         'first_name': first_name,
         'signup_url': signup_url
     }
@@ -70,7 +70,7 @@ def invite_to_seed(domain, email_address, token, user_pk, first_name):
 
 
 @shared_task
-def invite_to_organization(domain, new_user, requested_by, new_org):
+def invite_to_organization(protocol, domain, new_user, requested_by, new_org):
     """Send invitation to a newly created organization.
 
     domain -- The domain name of the running seed instance
@@ -85,7 +85,7 @@ def invite_to_organization(domain, new_user, requested_by, new_org):
         'new_user': new_user,
         'first_name': new_user.first_name,
         'domain': domain,
-        'protocol': 'https',
+        'protocol': protocol,
         'new_org': new_org,
         'requested_by': requested_by,
     }
