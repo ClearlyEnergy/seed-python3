@@ -10,6 +10,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from django.http import JsonResponse
 from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
@@ -230,12 +231,17 @@ class UserViewSet(viewsets.ViewSet):
             user.last_name = last_name
         user.save()
 
+        if settings.FORCE_SSL_PROTOCOL:
+            protocol = 'https'
+        else:
+            protocol = request.scheme
+
         try:
             domain = request.get_host()
         except Exception:
             domain = 'seed-platform.org'
         invite_to_seed(
-            request.scheme, domain, user.email, default_token_generator.make_token(user), user.pk, first_name
+            protocol, domain, user.email, default_token_generator.make_token(user), user.pk, first_name
         )
 
         return JsonResponse({

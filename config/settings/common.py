@@ -346,3 +346,7 @@ OIDC_OP_USER_ENDPOINT = 'https://sparkplatform.com/openid/userinfo'
 OIDC_OP_JWKS_ENDPOINT = 'https://sparkplatform.com/openid/jwks.json'
 OIDC_RP_SIGN_ALGO = 'RS256'
 OIDC_SEED_ORG = 'Spark'
+
+# Determines if SEED respects request.scheme or assumes that things are using
+# HTTPS. This is useful for instances behind a reverse proxy that resolves SSL.
+FORCE_SSL_PROTOCOL = False

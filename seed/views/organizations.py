@@ -11,6 +11,7 @@ from celery import shared_task
 from django.contrib.postgres.aggregates.general import ArrayAgg
 from django.contrib.auth.decorators import permission_required
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 
@@ -619,6 +620,11 @@ class OrganizationViewSet(viewsets.ViewSet):
 
         _orguser, status = org.add_member(user)
 
+        if settings.FORCE_SSL_PROTOCOL:
+            protocol = 'https'
+        else:
+            protocol = request.scheme
+
         # Send an email if a new user has been added to the organization
         if status:
             try:
@@ -626,7 +632,7 @@ class OrganizationViewSet(viewsets.ViewSet):
             except Exception:
                 domain = 'seed-platform.org'
             invite_to_organization(
-                request.scheme, domain, user, request.user.username, org.name
+                protocol, domain, user, request.user.username, org.name
             )
 
         return JsonResponse({'status': 'success'})
