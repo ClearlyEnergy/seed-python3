@@ -85,3 +85,4 @@ jwt-oauth2>=0.1.1
 django-oauth-toolkit==0.12.0
 
 future==0.18.2
+django-cors-headers

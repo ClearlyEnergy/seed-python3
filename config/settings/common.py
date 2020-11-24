@@ -72,6 +72,7 @@ TEMPLATES = [
 ]
 MIDDLEWARE = (
     'django.middleware.gzip.GZipMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.BrokenLinkEmailsMiddleware',
@@ -108,6 +109,7 @@ INSTALLED_APPS = (
     'drf_yasg',
     'oauth2_jwt_provider',
     'crispy_forms',  # needed to squash warnings around collectstatic with rest_framework
+    'corsheaders',
     'tos',
     'mozilla_django_oidc',
 )
@@ -350,3 +352,6 @@ OIDC_SEED_ORG = 'Spark'
 # Determines if SEED respects request.scheme or assumes that things are using
 # HTTPS. This is useful for instances behind a reverse proxy that resolves SSL.
 FORCE_SSL_PROTOCOL = False
+
+# There are publicly available API endpoints
+CORS_ALL_ALL_ORIGINS = True
