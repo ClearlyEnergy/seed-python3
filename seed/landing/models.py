@@ -112,8 +112,7 @@ class SEEDUser(AbstractBaseUser, PermissionsMixin):
                 if not valid_api_key:
                     return None
 
-                user = SEEDUser.objects.get(api_key=api_key, username=username)
-                return user
+                return SEEDUser.objects.get(api_key=api_key, username=username)
             except ValueError:
                 raise exceptions.AuthenticationFailed('Invalid HTTP_AUTHORIZATION Header')
             except SEEDUser.DoesNotExist:

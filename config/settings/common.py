@@ -71,8 +71,8 @@ TEMPLATES = [
     },
 ]
 MIDDLEWARE = (
-    'django.middleware.gzip.GZipMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.BrokenLinkEmailsMiddleware',
@@ -107,7 +107,6 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework_swagger',
     'drf_yasg',
-    'oauth2_jwt_provider',
     'crispy_forms',  # needed to squash warnings around collectstatic with rest_framework
     'corsheaders',
     'tos',
@@ -272,13 +271,17 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Allow super users to register applications for OAuth authentication
 OAUTH2_PROVIDER = {
+    'ALLOW_SUPERUSERS': True,
+    'DEVELOPER_GROUP': 'admin',
     'SCOPES': {
         'read': 'Read scope',
         'write': 'Write scope',
         'offline': 'Offline access',
     }
 }
+#OAUTH2_PROVIDER_APPLICATION_MODEL = 'helix.authentication.HELIXClientCredentialsOAuthApplication'
 
 AUTHENTICATION_BACKENDS = [
     'seed.authentication.SeedOpenIDAuthenticationBackend',
@@ -290,7 +293,7 @@ AUTHENTICATION_BACKENDS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'mozilla_django_oidc.contrib.drf.OIDCAuthentication',
-        'oauth2_provider.ext.rest_framework.OAuth2Authentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
         'seed.authentication.SEEDAuthentication',
     ),
@@ -336,12 +339,6 @@ SWAGGER_SETTINGS = {
 # GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION=5 * 365
 GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION = None
 
-# Allow super users to register applications for OAuth authentication
-OAUTH2_PROVIDER = {
-    'ALLOW_SUPERUSERS': True,
-    'DEVELOPER_GROUP': 'admin',
-}
-
 OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://sparkplatform.com/openid/authorize'
 OIDC_OP_TOKEN_ENDPOINT = 'https://sparkplatform.com/openid/token'
 OIDC_OP_USER_ENDPOINT = 'https://sparkplatform.com/openid/userinfo'
@@ -354,4 +351,4 @@ OIDC_SEED_ORG = 'Spark'
 FORCE_SSL_PROTOCOL = False
 
 # There are publicly available API endpoints
-CORS_ALL_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = True
