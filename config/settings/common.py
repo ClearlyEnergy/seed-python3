@@ -281,7 +281,6 @@ OAUTH2_PROVIDER = {
         'offline': 'Offline access',
     }
 }
-#OAUTH2_PROVIDER_APPLICATION_MODEL = 'helix.authentication.HELIXClientCredentialsOAuthApplication'
 
 AUTHENTICATION_BACKENDS = [
     'seed.authentication.SeedOpenIDAuthenticationBackend',
