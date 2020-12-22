@@ -270,7 +270,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Allow super users to register applications for OAuth authentication
 OAUTH2_PROVIDER = {
+    'ALLOW_SUPERUSERS': True,
+    'DEVELOPER_GROUP': 'admin',
     'SCOPES': {
         'read': 'Read scope',
         'write': 'Write scope',
@@ -333,12 +336,6 @@ SWAGGER_SETTINGS = {
 # should be a integer representing a number of days
 # GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION=5 * 365
 GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION = None
-
-# Allow super users to register applications for OAuth authentication
-OAUTH2_PROVIDER = {
-    'ALLOW_SUPERUSERS': True,
-    'DEVELOPER_GROUP': 'admin',
-}
 
 OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://sparkplatform.com/openid/authorize'
 OIDC_OP_TOKEN_ENDPOINT = 'https://sparkplatform.com/openid/token'
