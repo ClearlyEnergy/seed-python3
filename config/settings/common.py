@@ -282,6 +282,7 @@ OAUTH2_PROVIDER = {
 }
 
 AUTHENTICATION_BACKENDS = [
+    'seed.authentication.SEEDKeyAuthentication',
     'seed.authentication.SeedOpenIDAuthenticationBackend',
     'oauth2_provider.backends.OAuth2Backend',
     'django.contrib.auth.backends.ModelBackend',
