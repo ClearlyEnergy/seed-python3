@@ -161,7 +161,8 @@ def get_api_request_user(request):
     """
     Determines if this is an API request and returns the corresponding user if so.
     """
-    if request.is_ajax():
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if auth_header is None and request.is_ajax():
         return False
 
     return User.process_header_request(request)
