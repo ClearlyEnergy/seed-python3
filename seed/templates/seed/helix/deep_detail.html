@@ -1,0 +1,84 @@
+{% extends "helix/deep_base.html" %}
+{% block content %}
+<div class="section_header_container">
+  <div class="section_header fixed_height_short has_no_padding">
+    <h2><span><i class="fa fa-building">{% trans "Property" %}: {{ name }}</span></h2>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="section_header fixed_height_short has_no_padding">
+    <h2><span><i class="fa fa-leaf">{% trans "Certifications" %}</span></h2>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="table_list_container table_item_detail">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          {% for column in certification_columns %}
+          <th scope="col">{{ column }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for certification in certifications %}
+        <tr>
+          {% for value in certification.values %}
+          <th scope="row">{{ value }}</th>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="section_header fixed_height_short has_no_padding">
+    <h2><span><i class="fa fa-leaf">{% trans "Measures" %}</span></h2>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="table_list_container table_item_detail">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          {% for column in measure_columns %}
+          <th scope="col">{{ column }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for measure in measures %}
+        <tr>
+          {% for value in measure.values %}
+          <th scope="row">{{ value }}</th>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="table_list_container table_item_detail">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          {% for column in property_columns %}
+          <th scope="col">{{ column }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for field in property_fields %}
+        <tr>
+          {% for value in property_fields.values %}
+          <th scope="row">{{ value }}</th>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock content %}

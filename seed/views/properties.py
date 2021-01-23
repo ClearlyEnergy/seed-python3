@@ -10,7 +10,9 @@ All rights reserved.  # NOQA
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseNotFound
+from django.shortcuts import render
+from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
@@ -1464,3 +1466,61 @@ def diffupdate(old, new):
         changed_fields.remove('extra_data')
         changed_extra_data, _ = diffupdate(old['extra_data'], new['extra_data'])
     return changed_fields, changed_extra_data
+
+def deep_list(request):
+    """
+    HELIX:
+    Generates a static view of a list of properties that can be used for
+    showing deep links into SEED on 3rd part websites
+    """
+    # Requires:
+    # columns - the list of columns in the table
+    # table_list - the list of properties as a dict mapping columns to content
+    # STATIC_URL - the absolute URL to /static/
+    server_name = request.META['SERVER_NAME']
+    context = {
+        'STATIC_URL': f'{request.scheme}://{server_name}{settings.STATIC_URL}'
+    }
+    return render(request, 'helix/deep_list.html', context=context)
+
+def deep_detail(request, pk):
+    """
+    HELIX:
+    Generates a static view of a property that can be used for showing deep
+    links into SEED on 3rd part websites
+    """
+    # Requires:
+    # name - the property name
+    # certification_columns - the columns in the certifications table
+    # certifications - the certifications as a dict mapping columns to content
+    # measure_columns - the columns in the measures table
+    # measures - the measures as a dict mapping columns to content
+    # property_columns - the columns to show in the property fields table
+    # property_fields - the fields for the property as a dict mapping property columns to values
+    # STATIC_URL - the absolute URL to /static/
+    try:
+        property_view = PropertyView.objects.select_related(
+            'property', 'cycle', 'state'
+        ).get(
+            id=pk
+        )
+    except PropertyView.DoesNotExist:
+        return HttpResponseNotFound("Property not found")
+
+    
+    name = property_view.state.property_name
+    certifications = property_view.greenassessmentproperty_set.all()
+    measures = property_view.state.measures
+    property_fields = property_view.state.to_dict()
+    server_name = request.META['SERVER_NAME']
+    context = {
+        'name': name,
+        'certification_columns': [],
+        'certifications': certifications,
+        'measures_columns': [],
+        'measures': measures,
+        'property_columns': ['Master',],
+        'property_fields': property_fields,
+        'STATIC_URL': f'{request.scheme}://{server_name}{settings.STATIC_URL}',
+    }
+    return render(request, 'helix/deep_detail.html', context=context)

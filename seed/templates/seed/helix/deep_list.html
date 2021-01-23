@@ -1,0 +1,21 @@
+{% extends "helix/deep_base.html" %}
+{% block content %}
+<table class="table">
+  <thead>
+    <tr>
+      {% for column in table_columns %}
+      <th scope="col">{{ column }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in table_list %}
+    <tr>
+      {% for value in item.values %}
+      <th scope="row">{{ value }}</th>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}
