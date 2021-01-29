@@ -1,4 +1,3 @@
-{% load compress $}
 {% load i18n %}
 <!DOCTYPE html>
 <html>
@@ -9,12 +8,11 @@
     <!--HELIX code to change font to roboto-->
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css">
     <!--end -->
-    {% compress css %}
     <link href="{{STATIC_URL}}node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <script src="{{STATIC_URL}}node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
     <link href="{{STATIC_URL}}seed/scss/style.scss" rel="stylesheet" type="text/x-scss">
     <!-- HELIX code to change color for organization name-->
     <link href="{{STATIC_URL}}seed/css/style_mod.css" rel="stylesheet" type="text/css">
-    {% endcompress %}
   </head>
   <body>
     {% block content %}

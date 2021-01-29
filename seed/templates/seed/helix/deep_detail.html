@@ -1,4 +1,5 @@
-{% extends "helix/deep_base.html" %}
+{% extends "seed/helix/deep_base.html" %}
+{% load i18n %}
 {% block content %}
 <div class="section_header_container">
   <div class="section_header fixed_height_short has_no_padding">
@@ -70,11 +71,10 @@
         </tr>
       </thead>
       <tbody>
-        {% for field in property_fields %}
+        {% for k,v in property_fields.items %}
         <tr>
-          {% for value in property_fields.values %}
-          <th scope="row">{{ value }}</th>
-          {% endfor %}
+          <th scope="row">{{ k | title }}</th>
+          <th scope="row">{{ v }}</th>
         </tr>
         {% endfor %}
       </tbody>

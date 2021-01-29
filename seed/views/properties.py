@@ -1477,11 +1477,22 @@ def deep_list(request):
     # columns - the list of columns in the table
     # table_list - the list of properties as a dict mapping columns to content
     # STATIC_URL - the absolute URL to /static/
+
+    # TODO: Add filters
+    property_view = PropertyView.objects.select_related(
+        'property', 'cycle', 'state'
+    ).all()
     server_name = request.META['SERVER_NAME']
+    table_list = [p.state.to_dict() for p in property_view]
+    columns = []
+    if len(table_list) > 0:
+        columns = table_list[0].keys()
     context = {
-        'STATIC_URL': f'{request.scheme}://{server_name}{settings.STATIC_URL}'
+        'columns': columns,
+        'table_list': table_list,
+        'STATIC_URL': f'{request.scheme}://{server_name}:8090{settings.STATIC_URL}'
     }
-    return render(request, 'helix/deep_list.html', context=context)
+    return render(request, 'seed/helix/deep_list.html', context=context)
 
 def deep_detail(request, pk):
     """
@@ -1509,8 +1520,10 @@ def deep_detail(request, pk):
 
     
     name = property_view.state.property_name
+    if name == None or name == '':
+        name = property_view.state.address_line_1
     certifications = property_view.greenassessmentproperty_set.all()
-    measures = property_view.state.measures
+    measures = property_view.state.measures.all()
     property_fields = property_view.state.to_dict()
     server_name = request.META['SERVER_NAME']
     context = {
@@ -1519,8 +1532,8 @@ def deep_detail(request, pk):
         'certifications': certifications,
         'measures_columns': [],
         'measures': measures,
-        'property_columns': ['Master',],
+        'property_columns': ['', 'Master',],
         'property_fields': property_fields,
-        'STATIC_URL': f'{request.scheme}://{server_name}{settings.STATIC_URL}',
+        'STATIC_URL': f'{request.scheme}://{server_name}:8090{settings.STATIC_URL}',
     }
-    return render(request, 'helix/deep_detail.html', context=context)
+    return render(request, 'seed/helix/deep_detail.html', context=context)
