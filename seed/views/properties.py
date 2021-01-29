@@ -1492,7 +1492,7 @@ def deep_list(request):
     context = {
         'table_columns': columns,
         'table_list': table_list,
-        'STATIC_URL': f'{request.scheme}://{server_name}:8090{settings.STATIC_URL}'
+        'STATIC_URL': f'{request.scheme}://{server_name}{settings.STATIC_URL}'
     }
     return render(request, 'seed/helix/deep_list.html', context=context)
 
@@ -1536,6 +1536,6 @@ def deep_detail(request, pk):
         'measures': measures,
         'property_columns': ['', 'Master',],
         'property_fields': property_fields,
-        'STATIC_URL': f'{request.scheme}://{server_name}:8090{settings.STATIC_URL}',
+        'STATIC_URL': f'{request.scheme}://{server_name}{settings.STATIC_URL}',
     }
     return render(request, 'seed/helix/deep_detail.html', context=context)
