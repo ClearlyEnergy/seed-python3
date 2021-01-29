@@ -1484,11 +1484,13 @@ def deep_list(request):
     ).all()
     server_name = request.META['SERVER_NAME']
     table_list = [p.state.to_dict() for p in property_view]
+    for i in range(len(property_view)):
+        table_list[i]['pk'] = property_view[i].pk
     columns = []
     if len(table_list) > 0:
         columns = table_list[0].keys()
     context = {
-        'columns': columns,
+        'table_columns': columns,
         'table_list': table_list,
         'STATIC_URL': f'{request.scheme}://{server_name}:8090{settings.STATIC_URL}'
     }

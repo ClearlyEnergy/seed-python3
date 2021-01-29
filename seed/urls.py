@@ -15,7 +15,7 @@ from seed.views.main import (
 from seed.views.properties import deep_list, deep_detail
 
 urlpatterns = [
-    path('deeplink-list/', deep_list, name='deeplink-list'),
-    path('deeplink-detail/<int:pk>/', deep_detail, name='deeplink-details'),
+    path('deeplink-list/', deep_list, name='deeplink_list'),
+    path('deeplink-detail/<int:pk>/', deep_detail, name='deeplink_details'),
     url(r'^$', home, name='home'),
 ]

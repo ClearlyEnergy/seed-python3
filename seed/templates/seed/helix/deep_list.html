@@ -12,7 +12,7 @@
       <thead>
         <tr>
           {% for column in table_columns %}
-          <th scope="col">{{ column }}</th>
+          <th scope="col">{{ column | title }}</th>
           {% endfor %}
         </tr>
       </thead>
@@ -20,7 +20,13 @@
         {% for item in table_list %}
         <tr>
           {% for value in item.values %}
-          <th scope="row">{{ value }}</th>
+          <th scope="row">
+            {% if forloop.first %}
+            <a href={% url 'seed:deeplink_details' item.pk %}>{{ value }}</a>
+            {% else %}
+            {{ value }}
+            {% endif %}
+          </th>
           {% endfor %}
         </tr>
         {% endfor %}
