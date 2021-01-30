@@ -11,7 +11,8 @@ All rights reserved.  # NOQA
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponseNotFound
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, authenticate
 from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import action
@@ -1478,10 +1479,15 @@ def deep_list(request):
     # table_list - the list of properties as a dict mapping columns to content
     # STATIC_URL - the absolute URL to /static/
 
+    user = authenticate(request)
+    if user is None:
+        redirect(settings.LOGIN_REDIRECT_URL)
+    login(request, user)
+
     # TODO: Add filters
     property_view = PropertyView.objects.select_related(
         'property', 'cycle', 'state'
-    ).all()
+    ).filter(property__organization_id=request.user.default_organization.id)
     server_name = request.META['SERVER_NAME']
     table_list = [p.state.to_dict() for p in property_view]
     for i in range(len(property_view)):
@@ -1511,16 +1517,23 @@ def deep_detail(request, pk):
     # property_columns - the columns to show in the property fields table
     # property_fields - the fields for the property as a dict mapping property columns to values
     # STATIC_URL - the absolute URL to /static/
+
+    user = authenticate(request)
+    if user is None:
+        redirect(settings.LOGIN_REDIRECT_URL)
+    login(request, user)
+
     try:
         property_view = PropertyView.objects.select_related(
             'property', 'cycle', 'state'
         ).get(
+            property__organization_id=user.default_organization.id,
             id=pk
         )
     except PropertyView.DoesNotExist:
         return HttpResponseNotFound("Property not found")
 
-    
+
     name = property_view.state.property_name
     if name == None or name == '':
         name = property_view.state.address_line_1
