@@ -1468,6 +1468,16 @@ def diffupdate(old, new):
         changed_extra_data, _ = diffupdate(old['extra_data'], new['extra_data'])
     return changed_fields, changed_extra_data
 
+def _get_server_url(request):
+    protocol = request.scheme
+    if settings.FORCE_SSL_PROTOCOL:
+        protocol = 'https'
+    try:
+        server_name = settings.HELIX_SERVER_NAME
+    except AttributeError:
+        server_name = request.META['SERVER_NAME']
+    return f'{protocol}://{server_name}'
+
 def deep_list(request):
     """
     HELIX:
@@ -1488,7 +1498,7 @@ def deep_list(request):
     property_view = PropertyView.objects.select_related(
         'property', 'cycle', 'state'
     ).filter(property__organization_id=request.user.default_organization.id)
-    server_name = request.META['SERVER_NAME']
+    server_url = _get_server_url(request)
     table_list = [p.state.to_dict() for p in property_view]
     for i in range(len(property_view)):
         table_list[i]['pk'] = property_view[i].pk
@@ -1498,7 +1508,7 @@ def deep_list(request):
     context = {
         'table_columns': columns,
         'table_list': table_list,
-        'STATIC_URL': f'{request.scheme}://{server_name}{settings.STATIC_URL}'
+        'STATIC_URL': f'{server_url}{settings.STATIC_URL}'
     }
     return render(request, 'seed/helix/deep_list.html', context=context)
 
@@ -1540,7 +1550,7 @@ def deep_detail(request, pk):
     certifications = property_view.greenassessmentproperty_set.all()
     measures = property_view.state.measures.all()
     property_fields = property_view.state.to_dict()
-    server_name = request.META['SERVER_NAME']
+    server_url = _get_server_url(request)
     context = {
         'name': name,
         'certification_columns': [],
@@ -1549,6 +1559,6 @@ def deep_detail(request, pk):
         'measures': measures,
         'property_columns': ['', 'Master',],
         'property_fields': property_fields,
-        'STATIC_URL': f'{request.scheme}://{server_name}{settings.STATIC_URL}',
+        'STATIC_URL': f'{server_url}{settings.STATIC_URL}',
     }
     return render(request, 'seed/helix/deep_detail.html', context=context)
