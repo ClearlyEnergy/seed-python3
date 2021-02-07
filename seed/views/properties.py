@@ -1549,7 +1549,11 @@ def deep_detail(request, pk):
         name = property_view.state.address_line_1
     certifications = property_view.greenassessmentproperty_set.all()
     measures = property_view.state.measures.all()
-    property_fields = property_view.state.to_dict()
+    property_fields_camel = property_view.state.to_dict()
+    property_fields = {}
+    for k,v in property_fields_camel.items():
+        key = k.replace('_', ' ')
+        property_fields[key] = v
     server_url = _get_server_url(request)
     context = {
         'name': name,
@@ -1557,7 +1561,7 @@ def deep_detail(request, pk):
         'certifications': certifications,
         'measures_columns': [],
         'measures': measures,
-        'property_columns': ['', 'Master',],
+        'property_columns': ['Fields', 'Master',],
         'property_fields': property_fields,
         'STATIC_URL': f'{server_url}{settings.STATIC_URL}',
     }
