@@ -10,7 +10,10 @@ All rights reserved.  # NOQA
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseNotFound
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, authenticate
+from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
@@ -1464,3 +1467,102 @@ def diffupdate(old, new):
         changed_fields.remove('extra_data')
         changed_extra_data, _ = diffupdate(old['extra_data'], new['extra_data'])
     return changed_fields, changed_extra_data
+
+def _get_server_url(request):
+    protocol = request.scheme
+    if settings.FORCE_SSL_PROTOCOL:
+        protocol = 'https'
+    try:
+        server_name = settings.HELIX_SERVER_NAME
+    except AttributeError:
+        server_name = request.META['SERVER_NAME']
+    return f'{protocol}://{server_name}'
+
+def deep_list(request):
+    """
+    HELIX:
+    Generates a static view of a list of properties that can be used for
+    showing deep links into SEED on 3rd part websites
+    """
+    # Requires:
+    # columns - the list of columns in the table
+    # table_list - the list of properties as a dict mapping columns to content
+    # STATIC_URL - the absolute URL to /static/
+
+    user = authenticate(request)
+    if user is None:
+        redirect(settings.LOGIN_REDIRECT_URL)
+    login(request, user)
+
+    # TODO: Add filters
+    property_view = PropertyView.objects.select_related(
+        'property', 'cycle', 'state'
+    ).filter(property__organization_id=request.user.default_organization.id)
+    server_url = _get_server_url(request)
+    table_list = [p.state.to_dict() for p in property_view]
+    for i in range(len(property_view)):
+        table_list[i]['pk'] = property_view[i].pk
+    columns = []
+    if len(table_list) > 0:
+        columns = table_list[0].keys()
+    context = {
+        'table_columns': columns,
+        'table_list': table_list,
+        'STATIC_URL': f'{server_url}{settings.STATIC_URL}'
+    }
+    return render(request, 'seed/helix/deep_list.html', context=context)
+
+def deep_detail(request, pk):
+    """
+    HELIX:
+    Generates a static view of a property that can be used for showing deep
+    links into SEED on 3rd part websites
+    """
+    # Requires:
+    # name - the property name
+    # certification_columns - the columns in the certifications table
+    # certifications - the certifications as a dict mapping columns to content
+    # measure_columns - the columns in the measures table
+    # measures - the measures as a dict mapping columns to content
+    # property_columns - the columns to show in the property fields table
+    # property_fields - the fields for the property as a dict mapping property columns to values
+    # STATIC_URL - the absolute URL to /static/
+
+    user = authenticate(request)
+    if user is None:
+        redirect(settings.LOGIN_REDIRECT_URL)
+    login(request, user)
+
+    try:
+        property_view = PropertyView.objects.select_related(
+            'property', 'cycle', 'state'
+        ).get(
+            property__organization_id=user.default_organization.id,
+            id=pk
+        )
+    except PropertyView.DoesNotExist:
+        return HttpResponseNotFound("Property not found")
+
+
+    name = property_view.state.property_name
+    if name == None or name == '':
+        name = property_view.state.address_line_1
+    certifications = property_view.greenassessmentproperty_set.all()
+    measures = property_view.state.measures.all()
+    property_fields_camel = property_view.state.to_dict()
+    property_fields = {}
+    for k,v in property_fields_camel.items():
+        key = k.replace('_', ' ')
+        property_fields[key] = v
+    server_url = _get_server_url(request)
+    context = {
+        'name': name,
+        'certification_columns': [],
+        'certifications': certifications,
+        'measures_columns': [],
+        'measures': measures,
+        'property_columns': ['Fields', 'Master',],
+        'property_fields': property_fields,
+        'STATIC_URL': f'{server_url}{settings.STATIC_URL}',
+    }
+    return render(request, 'seed/helix/deep_detail.html', context=context)

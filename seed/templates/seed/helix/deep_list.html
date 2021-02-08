@@ -1,0 +1,37 @@
+{% extends "seed/helix/deep_base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="section_header_container">
+  <div class="section_header fixed_height_short has_no_padding">
+    <h2><span><i class="fa fa-building"></i>{% trans "Property list" %}</span></h2>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="table_list_container table_item_detail">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          {% for column in table_columns %}
+          <th scope="col">{{ column | title }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in table_list %}
+        <tr>
+          {% for value in item.values %}
+          <th scope="row">
+            {% if forloop.first %}
+            <a href={% url 'seed:deeplink_details' item.pk %}>{{ value }}</a>
+            {% else %}
+            {{ value }}
+            {% endif %}
+          </th>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock content %}
