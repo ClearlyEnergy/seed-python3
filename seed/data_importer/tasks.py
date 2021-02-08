@@ -673,7 +673,8 @@ def helix_leed_to_file(user, org):
     else:
         end_date = org.leed_end_date
 
-    googlemaps_key = settings.GOOGLEMAPS_KEY
+#    googlemaps_key = settings.GOOGLEMAPS_KEY
+    googlemaps_key = None #using mapquest to geocode
     leed_client = leed.LeedHelix(googlemaps_key)
     leed_ids = leed_client.query_leed_building_ids(org.leed_geo_id, start_date, end_date)
     if not leed_ids:
