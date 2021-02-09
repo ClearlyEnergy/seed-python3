@@ -438,13 +438,13 @@ def helix_hes_task(client_url, user_name, password, user_key, hes_ids, progress_
 
 
 @shared_task(ignore_result=True)
-def helix_leed_task(googlemaps_key, leed_ids, progress_key, dq_id):
+def helix_leed_task(mapquest_key, leed_ids, progress_key, dq_id):
     """
     Chord that is called to run through LEED records
 
     :return: dict, results from queue
     """
-    leed_client = leed.LeedHelix(googlemaps_key)
+    leed_client = leed.LeedHelix(mapquest_key)
     leed_all = []
     for leed_id in leed_ids:
         leed_data = leed_client.query_leed(leed_id)
@@ -544,7 +544,7 @@ def _helix_hes_create_tasks(client_url, user_name, password, user_key, hes_ids, 
     return tasks
 
 
-def _helix_leed_create_tasks(googlemaps_key, leed_ids, progress_key, dq_id):
+def _helix_leed_create_tasks(mapquest_key, leed_ids, progress_key, dq_id):
     """
     Set up retrieval of LEED scores as individual chunked tasks
 
@@ -555,8 +555,8 @@ def _helix_leed_create_tasks(googlemaps_key, leed_ids, progress_key, dq_id):
     if leed_ids:
         id_chunks = [[obj for obj in chunk] for chunk in batch(leed_ids, 15)]
         for ids in id_chunks:
-            tasks.append(helix_leed_task.s(googlemaps_key, ids, progress_key, dq_id))
-#             tasks.append(helix_leed_task(googlemaps_key, ids, progress_key, dq_id))
+            tasks.append(helix_leed_task.s(mapquest_key, ids, progress_key, dq_id))
+#             tasks.append(helix_leed_task(mapquest_key, ids, progress_key, dq_id))
 
     return tasks
 
@@ -673,16 +673,14 @@ def helix_leed_to_file(user, org):
     else:
         end_date = org.leed_end_date
 
-#    googlemaps_key = settings.GOOGLEMAPS_KEY
-    googlemaps_key = None #using mapquest to geocode
-    leed_client = leed.LeedHelix(googlemaps_key)
+    leed_client = leed.LeedHelix(org.mapquest_api_key)
     leed_ids = leed_client.query_leed_building_ids(org.leed_geo_id, start_date, end_date)
     if not leed_ids:
         org.leed_start_date = end_date
         org.save()
         return progress_data.finish_with_error('No LEED data retrieved')
     else:
-        tasks = _helix_leed_create_tasks(googlemaps_key, leed_ids, progress_data.key, dq_id)
+        tasks = _helix_leed_create_tasks(org.mapquest_api_key, leed_ids, progress_data.key, dq_id)
         progress_data.total = len(tasks)
         progress_data.save()
 
