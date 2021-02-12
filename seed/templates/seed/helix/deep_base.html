@@ -10,14 +10,27 @@
     <!--end -->
     <link href="{{STATIC_URL}}node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <script src="{{STATIC_URL}}node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-    <link href="{{STATIC_URL}}seed/scss/style.scss" rel="stylesheet" type="text/x-scss">
     <link href="{{STATIC_URL}}node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
     <!-- HELIX code to change color for organization name-->
     <link href="{{STATIC_URL}}seed/css/style_mod.css" rel="stylesheet" type="text/css">
+    <link href="{{STATIC_URL}}seed/css/deep-link.css" rel="stylesheet" type="text/css">
   </head>
   <body>
-    {% block content %}
-    {% endblock %}
+    <div class="display">
+      <div class="content">
+        <div class="header">
+          <div class="logo">
+            <div class="logo_text">
+              <span class="logo_text_seed">HELIX</span>
+              <span class="logo_text_platform"></span>
+              <span class="logo_text_platform_em">Powered by SEED Platform™</span>
+            </div>
+          </div>
+        </div>
+        {% block content %}
+        {% endblock %}
+      </div>
+    </div>
   </body>
 </html>
 
