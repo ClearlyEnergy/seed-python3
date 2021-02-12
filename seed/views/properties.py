@@ -1499,7 +1499,11 @@ def deep_list(request):
         'property', 'cycle', 'state'
     ).filter(property__organization_id=request.user.default_organization.id)
     server_url = _get_server_url(request)
-    table_list = [p.state.to_dict() for p in property_view]
+    table_list = [{'Address Line 1': p.state.address_line_1,
+                   'Address Line 2': p.state.address_line_2,
+                   'Custom ID 1': p.state.custom_id_1,
+                   'UBID': p.state.ubid}
+                  for p in property_view]
     for i in range(len(property_view)):
         table_list[i]['pk'] = property_view[i].pk
     columns = []
