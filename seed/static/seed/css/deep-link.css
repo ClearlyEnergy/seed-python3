@@ -33,3 +33,7 @@
   margin-top: -10px;
   float: left;
 }
+
+.ui-grid-cell-contents {
+  font-weight: normal;
+}

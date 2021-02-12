@@ -25,7 +25,7 @@
         {% for certification in certifications %}
         <tr>
           {% for value in certification.values %}
-          <th scope="row">{{ value }}</th>
+          <th scope="row" class="ui-grid-cell-contents">{{ value }}</th>
           {% endfor %}
         </tr>
         {% endfor %}
@@ -52,7 +52,7 @@
         {% for measure in measures %}
         <tr>
           {% for value in measure.values %}
-          <th scope="row">{{ value }}</th>
+          <th scope="row" class="ui-grid-cell-contents">{{ value }}</th>
           {% endfor %}
         </tr>
         {% endfor %}
@@ -73,8 +73,8 @@
       <tbody>
         {% for k,v in property_fields.items %}
         <tr>
-          <th scope="row">{{ k | title }}</th>
-          <th scope="row">{{ v }}</th>
+          <th scope="row" class="ui-grid-cell-contents">{{ k | title }}</th>
+          <th scope="row" class="ui-grid-cell-contents">{{ v }}</th>
         </tr>
         {% endfor %}
       </tbody>
