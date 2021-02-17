@@ -1503,19 +1503,27 @@ def deep_list(request):
 
     if request.GET.get('state') is not None:
         state = request.GET.get('state')
-        property_view = property_view.filter(state__state=state)
+        tmp_property_view = property_view.filter(state__state=state)
+        if tmp_property_view:
+            property_view = tmp_property_view
 
     if request.GET.get('zipcode') is not None:
         zipcode = request.GET.get('zipcode')
-        property_view = property_view.filter(state__postal_code=zipcode)
+        tmp_property_view = property_view.filter(state__postal_code=zipcode)
+        if tmp_property_view:
+            property_view = tmp_property_view
 
     if request.GET.get('street') is not None:
         street = request.GET.get('street')
-        property_view = property_view.filter(state__normalized_address__contains=street.lower())
+        tmp_property_view = property_view.filter(state__normalized_address__contains=street.lower())
+        if tmp_property_view:
+            property_view = tmp_property_view
         
     if request.GET.get('parcel_id') is not None:
         parcel_id = request.GET.get('parcel_id')
-        property_view = property_view.filter(state__custom_id_1__contains=parcel_id)
+        tmp_property_view = property_view.filter(state__custom_id_1__contains=parcel_id)
+        if tmp_property_view:
+            property_view = tmp_property_view
 
     server_url = _get_server_url(request)
     table_list = [{'Address Line 1': p.state.address_line_1,
