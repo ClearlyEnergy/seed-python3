@@ -23,6 +23,8 @@
           <th scope="row" class="ui-grid-cell-contents">
             {% if forloop.first %}
             <a href={% url 'seed:deeplink_details' item.pk %}>{{ value }}</a>
+			{% elif forloop.last %}
+			{{ "" }}
             {% else %}
             {{ value }}
             {% endif %}

@@ -8,6 +8,7 @@ All rights reserved.  # NOQA
 :author
 """
 
+import datetime
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponseNotFound
@@ -51,8 +52,9 @@ from seed.models import (
     VIEW_LIST,
     VIEW_LIST_PROPERTY
 )
-from helix.models import HELIXGreenAssessmentProperty
+from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
 from helix.models import HELIXPropertyMeasure as PropertyMeasure
+from helix.models import HelixMeasurement
 
 from seed.models import Property as PropertyModel
 from seed.serializers.pint import PintJSONEncoder
@@ -1494,21 +1496,44 @@ def deep_list(request):
         redirect(settings.LOGIN_REDIRECT_URL)
     login(request, user)
 
-    # TODO: Add filters
+    organizations = Organization.objects.filter(users=user)
     property_view = PropertyView.objects.select_related(
-        'property', 'cycle', 'state'
-    ).filter(property__organization_id=request.user.default_organization.id)
+        'property', 'state'
+    ).filter(property__organization__in=organizations)
+
+    if request.GET.get('state') is not None:
+        state = request.GET.get('state')
+        property_view = property_view.filter(state__state=state)
+
+    if request.GET.get('zipcode') is not None:
+        zipcode = request.GET.get('zipcode')
+        property_view = property_view.filter(state__postal_code=zipcode)
+
+    if request.GET.get('street') is not None:
+        street = request.GET.get('street')
+        property_view = property_view.filter(state__normalized_address__contains=street.lower())
+        
+    if request.GET.get('parcel_id') is not None:
+        parcel_id = request.GET.get('parcel_id')
+        property_view = property_view.filter(state__custom_id_1__contains=parcel_id)
+
     server_url = _get_server_url(request)
     table_list = [{'Address Line 1': p.state.address_line_1,
-                   'Address Line 2': p.state.address_line_2,
-                   'Custom ID 1': p.state.custom_id_1,
-                   'UBID': p.state.ubid}
+                   'Address Line 2': str(p.state.address_line_2 or ''),
+                   'City': str(p.state.city or ''),
+                   'State': p.state.state,
+                   'Postal Code': p.state.postal_code,
+                   'Tax/Parcel ID': str(p.state.custom_id_1 or ''),
+                   'DOE UBID': str(p.state.ubid or '')}
                   for p in property_view]
     for i in range(len(property_view)):
         table_list[i]['pk'] = property_view[i].pk
     columns = []
     if len(table_list) > 0:
-        columns = table_list[0].keys()
+        first_row = table_list[0]
+#        first_row.pop('pk',None)
+        columns = first_row.keys()
+
     context = {
         'table_columns': columns,
         'table_list': table_list,
@@ -1533,6 +1558,7 @@ def deep_detail(request, pk):
     # STATIC_URL - the absolute URL to /static/
 
     user = authenticate(request)
+    organizations = Organization.objects.filter(users=user)
     if user is None:
         redirect(settings.LOGIN_REDIRECT_URL)
     login(request, user)
@@ -1541,18 +1567,43 @@ def deep_detail(request, pk):
         property_view = PropertyView.objects.select_related(
             'property', 'cycle', 'state'
         ).get(
-            property__organization_id=user.default_organization.id,
             id=pk
         )
     except PropertyView.DoesNotExist:
         return HttpResponseNotFound("Property not found")
 
+    state = property_view.state
+    # Address
+    name = state.address_line_1
+    if state.address_line_2 is not None:
+        name += " %s" % (state.address_line_2)
+    name += ", %s, %s %s" % (state.city, state.state, state.postal_code)
 
-    name = property_view.state.property_name
-    if name == None or name == '':
-        name = property_view.state.address_line_1
-    certifications = property_view.greenassessmentproperty_set.all()
-    measures = property_view.state.measures.all()
+    # Certifications 
+    today = datetime.datetime.today()    
+    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
+    certs = HELIXGreenAssessmentProperty.objects.filter(
+        view=property_view
+    ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False).filter(assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
+
+    certifications =  [
+        GreenAssessmentPropertyReadOnlySerializer(cert).data
+        for cert in certs
+    ]
+    
+    certification_columns = ['Body', 'Type', 'Rating/Metric', 'Year', 'URL']
+
+    # Measures
+    meass = PropertyMeasure.objects.filter(
+        property_state=state
+    ).prefetch_related('measure', 'measurements')
+    measures = [
+        PropertyMeasureReadOnlySerializer(meas).data
+        for meas in meass
+    ]
+            
+    measures_columns = ['Type', 'Size (kw)', 'Year Install', 'Ownership', 'Source', 'Annual (kwh)', 'Annuel Status']
+
     property_fields_camel = property_view.state.to_dict()
     property_fields = {}
     for k,v in property_fields_camel.items():
@@ -1561,9 +1612,9 @@ def deep_detail(request, pk):
     server_url = _get_server_url(request)
     context = {
         'name': name,
-        'certification_columns': [],
+        'certification_columns': certification_columns,
         'certifications': certifications,
-        'measures_columns': [],
+        'measures_columns': measures_columns,
         'measures': measures,
         'property_columns': ['Fields', 'Master',],
         'property_fields': property_fields,
