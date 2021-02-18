@@ -53,7 +53,6 @@
       <tbody>
         {% for measure in measures %}
 			{% for mmt in measure.measurements %}
-			{{ mmt }}
 	        <tr>
 				<td>Photovoltaics</td>
 				<td>{% if mmt.0 == 'Capacity' %}{{ mmt.3 }}{% endif %}</td>
