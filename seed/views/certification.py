@@ -15,10 +15,11 @@ from rest_framework.response import Response
 from seed.filtersets import GAPropertyFilterSet, GreenAssessmentFilterSet
 from seed.models import (
     #    GreenAssessment,
-    GreenAssessmentProperty,
+#    GreenAssessmentProperty,
     GreenAssessmentURL
 )
 from helix.models import HELIXGreenAssessment as GreenAssessment
+from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
 
 from seed.serializers.certification import (
     GreenAssessmentSerializer,
