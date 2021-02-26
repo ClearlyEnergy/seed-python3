@@ -72,6 +72,7 @@ pdfrw==0.4
 reportlab==3.5.21
 boto3==1.9.96
 mozilla-django-oidc
+django-cors-headers
 
 # pnnl/buildingid-py
 -e git+https://github.com/SEED-platform/buildingid.git@f68219df82191563cc2aca818e0b0fa1b32dd52d#egg=buildingid
