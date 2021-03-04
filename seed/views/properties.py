@@ -1534,8 +1534,20 @@ def deep_list(request):
                    'Tax/Parcel ID': str(p.state.custom_id_1 or ''),
                    'DOE UBID': str(p.state.ubid or '')}
                   for p in property_view]
+    today = datetime.datetime.today()    
+    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
     for i in range(len(property_view)):
+        meass = PropertyMeasure.objects.filter(
+            property_state=property_view[i].state
+        ).prefetch_related('measure', 'measurements')
+        certs = HELIXGreenAssessmentProperty.objects.filter(
+            view=property_view[i]
+        ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False).filter(assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
+        table_list[i]['Certified?'] = len(certs) > 0
+        table_list[i]['Solar?'] = len(meass) > 0
         table_list[i]['pk'] = property_view[i].pk
+
+        
     columns = []
     if len(table_list) > 0:
         first_row = table_list[0]
