@@ -1500,6 +1500,7 @@ def deep_list(request):
     property_view = PropertyView.objects.select_related(
         'property', 'state'
     ).filter(property__organization__in=organizations)
+    states = property_view.values_list('state', flat=True)
 
     if request.GET.get('state') is not None:
         state = request.GET.get('state')
@@ -1536,15 +1537,17 @@ def deep_list(request):
                   for p in property_view]
     today = datetime.datetime.today()    
     reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
-    for i in range(len(property_view)):
-        meass = PropertyMeasure.objects.filter(
-            property_state=property_view[i].state
-        ).prefetch_related('measure', 'measurements')
-        certs = HELIXGreenAssessmentProperty.objects.filter(
-            view=property_view[i]
+    measures = PropertyMeasure.objects.filter(
+        property_state__in = states
+    ).prefetch_related('measure', 'measurements')
+    certifications = HELIXGreenAssessmentProperty.objects.filter(
+            view__in=property_view
         ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False).filter(assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
+    for i in range(len(property_view)):
+        certs = certifications.filter(view=property_view[i])
+        measure = measures.filter(property_state=property_view[i].state) 
         table_list[i]['Certified?'] = len(certs) > 0
-        table_list[i]['Solar?'] = len(meass) > 0
+        table_list[i]['Solar?'] = len(measure) > 0
         table_list[i]['pk'] = property_view[i].pk
 
         
