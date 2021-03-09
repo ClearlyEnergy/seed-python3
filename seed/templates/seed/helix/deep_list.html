@@ -8,9 +8,10 @@
 </div>
 <div class="section_header_container">
   <div class="table_list_container table_item_detail">
-    <table class="table table-striped">
-      <thead>
+    <table class="table">
+      <thead class="thead-light">
         <tr>
+          <th></th>
           {% for column in table_columns %}
           <th scope="col">{{ column }}</th>
           {% endfor %}
@@ -18,27 +19,90 @@
       </thead>
       <tbody>
         {% for item in table_list %}
+        {% with forloop.counter as outer_counter %}
         <tr>
-          {% for value in item.values %}
-          <th scope="row" class="ui-grid-cell-contents">
-            {% if forloop.first %}
-            <a href={% url 'seed:deeplink_details' item.pk %}>{{ value }}</a>
-			{% elif forloop.last %}
-			{{ "" }}
-            {% else %}
+          <td>
+            <i class="clicks fas fa-caret-right fa-lg teal" value="{{ forloop.counter }}" id="click-{{ forloop.counter }}"></i>
+            </td>
+            {% for key, value in item.items %}
+          <td scope="row" class="ui-grid-cell-contents">
 			{% if value == True %}&#10004;
 			{% elif value == False %}&times;
+			{% elif key == "pk" %}
+			{% elif key == "Measures" %}
+			{% elif key == "Certifications" %}
 			{% else %}{{ value }}{% endif %}
-            {% endif %}
-          </th>
+          </td>
           {% endfor %}
         </tr>
+        {% if item.is_certified == True %}
+        <thead class="thead-light">
+          <tr id="details-{{ forloop.counter}}-1" class="details">
+            <th><i class="fas fa-leaf"></i> {% trans "Green Building Verification" %}</th>
+          </tr>
+          <tr id="details-{{ forloop.counter}}-2" class="details">
+            {% for column in certification_columns %}
+            <th scope="col">{{ column }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        {% for certification in item.Certifications %}
+        <tr class="details details-{{outer_counter}}-3">
+			<td>{{ certification.assessment.award_body }}</td>
+			<td>{{ certification.assessment.name }}</td>
+			<td>{% if certification.score is not None %}{{ certification.score }}{% endif %}</td>
+			<td>{% if certification.date is not None %}{{ certification.date }}{% endif %}</td>
+			<td>{% for url in certification.urls %}<a href="{{ url.0 }}" target=_blank>Link</a> {% endfor %}</td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+        {% if item.is_solar == True %}
+        <thead class="thead-light">
+          <tr id="details-{{ forloop.counter}}-4" class="details">
+            <th><i class="fas fa-bolt"></i> {% trans "Power Production" %}</th>
+          </tr>
+          <tr id="details-{{ forloop.counter}}-5" class="details">
+            {% for column in measures_columns %}
+            <th scope="col">{{ column }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        {% for measure in item.Measures %}
+			{% for mmt in measure.measurements %}
+	        <tr class="details details-{{outer_counter}}-6">
+				<td>Photovoltaics</td>
+				<td>{% if mmt.0 == 'Capacity' %}{{ mmt.3 }}{% endif %}</td>
+				<td>{% if mmt.0 == 'Capacity' %}{{ mmt.6 }}{% endif %}</td>
+				<td>{% if measure.ownership is not None %}{{ measure.ownership }}{% endif %}</td>
+				<td>{% if mesure.source is not None %}{{ measure.source }}{% endif %}</td>
+				<td>{% if mmt.0 == 'Production' %}{{ mmt.3|floatformat }}{% endif %}</td>
+				<td>{% if mmt.0 == 'Production' %}{{ mmt.5 }}{% endif %}</td>
+	        </tr>
+			{% endfor %}
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+<script>
+  $(document).ready(
+      function(){
+		  $( ".clicks" ).click(function() {
+			  var ind = $(this).attr('value');
+			  $("#click-"+ind).toggleClass('fa-caret-right fa-caret-down')
+			  $("#details-"+ind+"-1").toggle();
+			  $("#details-"+ind+"-2").toggle();
+			  $(".details-"+ind+"-3").toggle();
+			  $("#details-"+ind+"-4").toggle();
+			  $("#details-"+ind+"-5").toggle();
+			  $(".details-"+ind+"-6").toggle();
+		  });
+  });
+</script>
 {% endblock content %}
 
 
-<td></td>
+

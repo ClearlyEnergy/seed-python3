@@ -37,3 +37,15 @@
 .ui-grid-cell-contents {
   font-weight: normal;
 }
+
+.teal {
+	color:#00a0af;
+}
+.details {
+	display: none;
+}
+
+.thead-light th {
+    background-color: lightgray;
+}
+

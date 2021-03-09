@@ -1546,20 +1546,31 @@ def deep_list(request):
     for i in range(len(property_view)):
         certs = certifications.filter(view=property_view[i])
         measure = measures.filter(property_state=property_view[i].state) 
-        table_list[i]['Certified?'] = len(certs) > 0
-        table_list[i]['Solar?'] = len(measure) > 0
+        table_list[i]['is_certified'] = len(certs) > 0
+        table_list[i]['is_solar'] = len(measure) > 0
+        if len(certs) > 0:
+            table_list[i]['Certifications'] = [
+                GreenAssessmentPropertyReadOnlySerializer(cert).data
+                for cert in certs
+            ]
+        if len(measures) > 0:
+            table_list[i]['Measures'] = [
+                PropertyMeasureReadOnlySerializer(meas).data
+                for meas in measure
+            ]
         table_list[i]['pk'] = property_view[i].pk
 
-        
-    columns = []
-    if len(table_list) > 0:
-        first_row = table_list[0]
+#    columns = []
+#    if len(table_list) > 0:
+#        first_row = table_list[0]
 #        first_row.pop('pk',None)
-        columns = first_row.keys()
+#        columns = first_row.keys()
 
     context = {
-        'table_columns': columns,
+        'table_columns': ['Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Tax/Parcel ID', 'DOE UBID', 'Certified?', 'Solar?'],
         'table_list': table_list,
+        'certification_columns': ['Body', 'Type', 'Rating/Metric', 'Year', 'URL'],
+        'measures_columns': ['Type', 'Size (kw)', 'Year Install', 'Ownership', 'Source', 'Annual (kwh)', 'Annuel Status'],
         'STATIC_URL': f'{server_url}{settings.STATIC_URL}'
     }
     return render(request, 'seed/helix/deep_list.html', context=context)
