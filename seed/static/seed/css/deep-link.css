@@ -49,3 +49,9 @@
     background-color: lightgray;
 }
 
+#disclaimer:checked~#property_list {
+  display: block;
+}
+#property_list {
+	display: none;
+}
