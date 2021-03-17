@@ -6,6 +6,13 @@
     <h2><span><i class="fas fa-building"></i>{% trans "Property list" %}</span></h2>
   </div>
 </div>
+{% if msg %}
+<div class="container-fluid">
+  <div class="col-sm-12 alert alert-warning" role="alert">
+    {{ msg }}
+  </div>
+</div>
+{% endif %}
 <div class="container-fluid">
   <div class="row">
     <div class="col-sm-12">
@@ -44,7 +51,7 @@
                 {% for key, value in item.items %}
                 <td scope="row" class="ui-grid-cell-contents">
                   {% if value == True %}&#10004;
-                  {% elif value == False %}&times;
+                  {% elif value == False %}
                   {% elif key == "pk" %}
                   {% elif key == "Measures" %}
                   {% elif key == "Certifications" %}

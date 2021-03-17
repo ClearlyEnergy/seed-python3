@@ -55,6 +55,7 @@ from seed.models import (
 from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
 from helix.models import HELIXPropertyMeasure as PropertyMeasure
 from helix.models import HelixMeasurement
+from helix.utils.address import normalize_address_str
 
 from seed.models import Property as PropertyModel
 from seed.serializers.pint import PintJSONEncoder
@@ -1495,82 +1496,101 @@ def deep_list(request):
     if user is None:
         redirect(settings.LOGIN_REDIRECT_URL)
     login(request, user)
+    server_url = _get_server_url(request)
 
     organizations = Organization.objects.filter(users=user)
-    property_view = PropertyView.objects.select_related(
-        'property', 'state'
-    ).filter(property__organization__in=organizations)
-    states = property_view.values_list('state', flat=True)
+    property_view = None
+    tmp_property_view = None
 
     if request.GET.get('state') is not None:
         state = request.GET.get('state')
-        tmp_property_view = property_view.filter(state__state=state)
+        tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__state=state)
         if tmp_property_view:
             property_view = tmp_property_view
 
     if request.GET.get('zipcode') is not None:
         zipcode = request.GET.get('zipcode')
-        tmp_property_view = property_view.filter(state__postal_code=zipcode)
+        if property_view is not None:
+            tmp_property_view = property_view.filter(state__postal_code=zipcode)
+        else:
+            tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__postal_code=zipcode)
+            
         if tmp_property_view:
             property_view = tmp_property_view
 
     if request.GET.get('street') is not None:
+        tmp_property_view = None
         street = request.GET.get('street')
-        tmp_property_view = property_view.filter(state__normalized_address__contains=street.lower())
+        normalized_address, extra_data = normalize_address_str(street, '', None, {})
+        if extra_data['StreetName']:
+            if property_view is not None:
+                tmp_property_view = property_view.filter(state__normalized_address__contains=normalized_address)
+            else:
+                tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__normalized_address__contains=normalized_address)
+        if not tmp_property_view:
+            if property_view is not None:
+                tmp_property_view = property_view.filter(state__normalized_address__contains=street.lower())
+            else:
+                tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations).filter(state__normalized_address__contains=street.lower())
+            
         if tmp_property_view:
             property_view = tmp_property_view
         
     if request.GET.get('parcel_id') is not None:
         parcel_id = request.GET.get('parcel_id')
-        tmp_property_view = property_view.filter(state__custom_id_1__contains=parcel_id)
+        if property_view is not None:
+            tmp_property_view = property_view.filter(state__custom_id_1__contains=parcel_id)
+        else:
+            tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__custom_id_1__contains=parcel_id)
         if tmp_property_view:
             property_view = tmp_property_view
+            
+    table_list = []
+    msg = ''
+    if property_view:
+        states = property_view.select_related('property','state').values_list('state', flat=True)
 
-    server_url = _get_server_url(request)
-    table_list = [{'Address Line 1': p.state.address_line_1,
-                   'Address Line 2': str(p.state.address_line_2 or ''),
-                   'City': str(p.state.city or ''),
-                   'State': p.state.state,
-                   'Postal Code': p.state.postal_code,
-                   'Tax/Parcel ID': str(p.state.custom_id_1 or ''),
-                   'DOE UBID': str(p.state.ubid or '')}
-                  for p in property_view]
-    today = datetime.datetime.today()    
-    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
-    measures = PropertyMeasure.objects.filter(
-        property_state__in = states
-    ).prefetch_related('measure', 'measurements')
-    certifications = HELIXGreenAssessmentProperty.objects.filter(
-            view__in=property_view
-        ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False).filter(assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
-    for i in range(len(property_view)):
-        certs = certifications.filter(view=property_view[i])
-        measure = measures.filter(property_state=property_view[i].state) 
-        table_list[i]['is_certified'] = len(certs) > 0
-        table_list[i]['is_solar'] = len(measure) > 0
-        if len(certs) > 0:
-            table_list[i]['Certifications'] = [
-                GreenAssessmentPropertyReadOnlySerializer(cert).data
-                for cert in certs
-            ]
-        if len(measures) > 0:
-            table_list[i]['Measures'] = [
-                PropertyMeasureReadOnlySerializer(meas).data
-                for meas in measure
-            ]
-        table_list[i]['pk'] = property_view[i].pk
-
-#    columns = []
-#    if len(table_list) > 0:
-#        first_row = table_list[0]
-#        first_row.pop('pk',None)
-#        columns = first_row.keys()
-
+        table_list = [{'Address Line 1': p.state.address_line_1,
+                       'Address Line 2': str(p.state.address_line_2 or ''),
+                       'City': str(p.state.city or ''),
+                       'State': p.state.state,
+                       'Postal Code': p.state.postal_code,
+                       'Tax/Parcel ID': str(p.state.custom_id_1 or ''),
+                       'DOE UBID': str(p.state.ubid or '')}
+                      for p in property_view]
+        today = datetime.datetime.today()    
+        reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations, is_reso_certification=True)
+        measures = PropertyMeasure.objects.filter(
+            property_state__in = states
+        ).prefetch_related('measure', 'measurements')
+        certifications = HELIXGreenAssessmentProperty.objects.filter(
+                view__in=property_view
+            ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False, assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
+        for i in range(len(property_view)):
+            certs = certifications.filter(view=property_view[i])
+            measure = measures.filter(property_state=property_view[i].state) 
+            table_list[i]['is_certified'] = len(certs) > 0
+            table_list[i]['is_solar'] = len(measure) > 0
+            if len(certs) > 0:
+                table_list[i]['Certifications'] = [
+                    GreenAssessmentPropertyReadOnlySerializer(cert).data
+                    for cert in certs
+                ]
+            if len(measures) > 0:
+                table_list[i]['Measures'] = [
+                    PropertyMeasureReadOnlySerializer(meas).data
+                    for meas in measure
+                ]
+            table_list[i]['pk'] = property_view[i].pk
+    else:
+        msg = 'No records retrieved'
+        
     context = {
         'table_columns': ['Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Tax/Parcel ID', 'DOE UBID', 'Certified?', 'Solar?'],
         'table_list': table_list,
         'certification_columns': ['Body', 'Type', 'Rating/Metric', 'Year', 'URL'],
         'measures_columns': ['Type', 'Size (kw)', 'Year Install', 'Ownership', 'Source', 'Annual (kwh)', 'Annuel Status'],
+        'msg': msg,
         'STATIC_URL': f'{server_url}{settings.STATIC_URL}'
     }
     return render(request, 'seed/helix/deep_list.html', context=context)
