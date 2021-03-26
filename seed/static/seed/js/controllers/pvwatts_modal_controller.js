@@ -16,19 +16,29 @@ angular.module('BE.seed.controller.pvwatts_modal', [])
       $scope.total_selected_count = $scope.property_state_ids.length + $scope.taxlot_state_ids.length;
       $scope.org_id = org_id;
 
+      mappings = [{
+         'from_field': 'Measurement Production Quantity',
+         'from_units': 'kWh',
+         'to_field': 'Measurement Production Quantity',
+         'to_field_display_name': 'Measurement Production Quantity',
+         'to_table_name': 'PropertyState',
+      }]
 
-      $scope.calculate_production = function () {
-        if ($scope.property_state_ids) {
-          $scope.pvwatts_state = 'calculate';
-          pvwatts_service.calculate_production($scope.property_state_ids, $scope.taxlot_state_ids, $scope.org_id).then(function (result) {
-			$scope.properties_calculated = result.calculated;
-			$scope.properties_exists = result.exists;
-			$scope.properties_not_calculated = result.not_calculated;
-			$scope.properties_errors = result.errors;
-            $scope.pvwatts_state = 'result';
-          });
-        }
-      };
+      columns_service.create_columns(mappings).then(
+       function (data) {
+         $scope.calculate_production = function () {
+          if ($scope.property_state_ids) {
+            $scope.pvwatts_state = 'calculate';
+            pvwatts_service.calculate_production($scope.property_state_ids, $scope.taxlot_state_ids, $scope.org_id).then(function (result) {
+              $scope.properties_calculated = result.calculated;
+              $scope.properties_exists = result.exists;
+              $scope.properties_not_calculated = result.not_calculated;
+              $scope.properties_errors = result.errors;
+              $scope.pvwatts_state = 'result';
+            });
+          }
+         };
+       };
 
       /**
        * cancel: dismisses the modal
