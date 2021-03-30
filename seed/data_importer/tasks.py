@@ -290,7 +290,7 @@ def _process_measurement_data(data_type, linked_id, measurement_data):
     if 'fuel' in measurement_data:
         measurement_data['fuel'] = HelixMeasurement.HES_FUEL_TYPES[measurement_data['fuel']]
     if 'unit' in measurement_data:
-        measurement_data['unit'] = HelixMeasurement.HES_UNITS[measurement_data['unit']]
+        measurement_data['unit'] = HelixMeasurement.HES_UNITS[measurement_data['unit'].lower()]
     if 'year' in measurement_data and measurement_data['year']:
         measurement_data['year'] = cleaners.date_cleaner(measurement_data['year']).year
     return measurement_data
@@ -310,7 +310,7 @@ def _setup_measures(measure_data, org, state):
     :param measures     source dict for data
     :param org          organization
     """
-    measure = Measure.objects.get(display_name=measure_data['name'], organization=org)
+    measure = Measure.objects.get(display_name__iexact=measure_data['name'], organization=org)
     measure_data['measure'] = measure
     measure_data['property_state'] = state
     measure_data.pop('name')
@@ -490,7 +490,6 @@ def helix_certification_task(user_id, ids, import_file_id, progress_key):
         assessments = {k[17:].lower().replace(' ', '_'): v for k, v in extra_data.items() if k.startswith('Green Assessment')}
         measures = {k[9:].lower().replace(' ', '_'): v for k, v in extra_data.items() if (k.startswith('Measures') and v is not None)}
         measurements = {k[12:].lower().replace(' ', '_'): v for k, v in extra_data.items() if k.startswith('Measurement')}
-
         # find matching view
         try:
             view = PropertyView.objects.get(state__normalized_address=normalized_address, state__postal_code=postal_code, state__organization=org)
