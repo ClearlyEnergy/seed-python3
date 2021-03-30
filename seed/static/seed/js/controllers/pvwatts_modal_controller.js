@@ -36,9 +36,9 @@ angular.module('BE.seed.controller.pvwatts_modal', [])
               $scope.properties_errors = result.errors;
               $scope.pvwatts_state = 'result';
             });
-          }
+          };
          };
-       };
+       });
 
       /**
        * cancel: dismisses the modal
