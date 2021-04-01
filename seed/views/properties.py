@@ -270,7 +270,6 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
 
         # Return property views limited to the 'inventory_ids' list.  Otherwise, if selected is empty, return all
         if 'inventory_ids' in request.data and request.data['inventory_ids']:
-            print(request.data['inventory_ids'])
             final_filter = Q(property_id__in=request.data['inventory_ids']) & final_filter
 
         property_views_list = PropertyView.objects.select_related('property', 'state', 'cycle') \
@@ -1501,7 +1500,7 @@ def deep_list(request):
     organizations = Organization.objects.filter(users=user)
     property_view = None
     tmp_property_view = None
-
+        
     if request.GET.get('state') is not None:
         state = request.GET.get('state')
         tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__state=state)
@@ -1524,14 +1523,14 @@ def deep_list(request):
         normalized_address, extra_data = normalize_address_str(street, '', None, {})
         if extra_data['StreetName']:
             if property_view is not None:
-                tmp_property_view = property_view.filter(state__normalized_address__contains=normalized_address)
+                tmp_property_view = property_view.filter(state__normalized_address__icontains=normalized_address)
             else:
-                tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__normalized_address__contains=normalized_address)
+                tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__normalized_address__icontains=normalized_address)
         if not tmp_property_view:
             if property_view is not None:
-                tmp_property_view = property_view.filter(state__normalized_address__contains=street.lower())
+                tmp_property_view = property_view.filter(state__extra_data__StreetName__icontains=extra_data['StreetName'])
             else:
-                tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations).filter(state__normalized_address__contains=street.lower())
+                tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations).filter(state__extra_data__StreetName__icontains=extra_data['StreetName'])
             
         if tmp_property_view:
             property_view = tmp_property_view
@@ -1544,11 +1543,25 @@ def deep_list(request):
             tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__custom_id_1__contains=parcel_id)
         if tmp_property_view:
             property_view = tmp_property_view
-            
+
+    if request.GET.get('latitude_1') is not None and request.GET.get('longitude_1'):
+        lat1 = request.GET.get('latitude_1')
+        lat2 = request.GET.get('latitude_2')
+        lon1 = request.GET.get('longitude_1')
+        lon2 = request.GET.get('longitude_2')
+        if property_view is not None:
+            tmp_property_view = property_view.filter(state__latitude__gte=lat1, state__latitude__lte=lat2, state__longitude__gte=lon1, state__longitude__lte=lon2)
+        else:
+            tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__latitude__gte=lat1, state__latitude__lte=lat2, state__longitude__gte=lon1, state__longitude__lte=lon2)
+        if tmp_property_view:
+            property_view = tmp_property_view
+
+        
     table_list = []
     msg = ''
     if property_view:
         states = property_view.select_related('property','state').values_list('state', flat=True)
+        geo_states = sum([p.state.state in ['CT','NY','RI'] for p in property_view]) #mandatory acknowledgement checkbox
 
         table_list = [{'Address Line 1': p.state.address_line_1,
                        'Address Line 2': str(p.state.address_line_2 or ''),
@@ -1586,6 +1599,7 @@ def deep_list(request):
         msg = 'No records retrieved'
         
     context = {
+        'disclaimer': geo_states,
         'table_columns': ['Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Tax/Parcel ID', 'DOE UBID', 'Certified?', 'Solar?'],
         'table_list': table_list,
         'certification_columns': ['Body', 'Type', 'Rating/Metric', 'Year', 'URL'],

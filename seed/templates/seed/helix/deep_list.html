@@ -14,6 +14,7 @@
 </div>
 {% endif %}
 <div class="container-fluid">
+  {% if disclaimer %}
   <div class="row">
     <div class="col-sm-12">
       <div class="form-horizontal">
@@ -28,6 +29,8 @@
       </div>
     </div>
   </div>
+  {% endif %}
+  <div id="disclaimer">{{disclaimer}}</div>
   <div class="row">
     <div class="col-md-12">
       <div class="section_header_container toggle" id="property_list">
@@ -118,14 +121,15 @@
 <script>
   $(document).ready(
       function(){
+          var show_data = ($("#disclaimer").text() == '0');
           $("#disclaimer").click(function() {
-            if (this.checked) {
+            if (this.checked || show_data) {
               $("#property_list").show();
             } else {
               $("#property_list").hide();
             }
           });
-          if ($("#disclaimer").checked) {
+          if ($("#disclaimer").checked || show_data) {
             $("#property_list").show();
           } else {
             $("#property_list").hide();
