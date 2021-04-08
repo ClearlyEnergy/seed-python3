@@ -79,6 +79,7 @@
                 <td>{{ certification.assessment.name }}</td>
                 <td>{% if certification.score is not None %}{{ certification.score }}{% endif %}</td>
                 <td>{% if certification.date is not None %}{{ certification.date }}{% endif %}</td>
+                <td>${{ certification.EnergyCost|floatformat }}</td>
                 <td>{% for url in certification.urls %}<a href="{{ url.0 }}" target=_blank>Link</a> {% endfor %}</td>
               </tr>
               {% endfor %}

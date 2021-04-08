@@ -1585,10 +1585,16 @@ def deep_list(request):
             table_list[i]['is_certified'] = len(certs) > 0
             table_list[i]['is_solar'] = len(measure) > 0
             if len(certs) > 0:
-                table_list[i]['Certifications'] = [
-                    GreenAssessmentPropertyReadOnlySerializer(cert).data
-                    for cert in certs
-                ]
+                table_list[i]['Certifications'] = []
+                for num, cert in enumerate(certs):
+                    gap = GreenAssessmentPropertyReadOnlySerializer(cert).data
+                    matching_measurements = HelixMeasurement.objects.filter(
+                        assessment_property__pk=cert.greenassessmentproperty_ptr_id
+                    )
+                    for match in matching_measurements:
+                        print(match.to_reso_dict())
+                        gap.update(match.to_reso_dict())
+                    table_list[i]['Certifications'].append(gap)
             if len(measures) > 0:
                 table_list[i]['Measures'] = [
                     PropertyMeasureReadOnlySerializer(meas).data
@@ -1597,12 +1603,13 @@ def deep_list(request):
             table_list[i]['pk'] = property_view[i].pk
     else:
         msg = 'No records retrieved'
+        geo_states = 0
         
     context = {
         'disclaimer': geo_states,
         'table_columns': ['Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Tax/Parcel ID', 'DOE UBID', 'Certified?', 'Solar?'],
         'table_list': table_list,
-        'certification_columns': ['Body', 'Type', 'Rating/Metric', 'Year', 'URL'],
+        'certification_columns': ['Body', 'Type', 'Rating/Metric', 'Year', 'Estimated Energy Cost', 'URL'],
         'measures_columns': ['Type', 'Size (kw)', 'Year Install', 'Ownership', 'Source', 'Annual (kwh)', 'Annuel Status'],
         'msg': msg,
         'STATIC_URL': f'{server_url}{settings.STATIC_URL}'
