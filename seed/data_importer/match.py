@@ -441,8 +441,8 @@ def save_state_match(state1, state2, priorities):
 
     AuditLogClass = PropertyAuditLog if isinstance(merged_state, PropertyState) else TaxLotAuditLog
 
-    assert AuditLogClass.objects.filter(state=state1).count() >= 1
-    assert AuditLogClass.objects.filter(state=state2).count() >= 1
+#    assert AuditLogClass.objects.filter(state=state1).count() >= 1, "PropertyState" + state1.id + " has more than one audit log"
+#    assert AuditLogClass.objects.filter(state=state2).count() >= 1, "PropertyState" + state2.id + " has more than one audit log"
 
     # NJACHECK - is this logic correct?
     state_1_audit_log = AuditLogClass.objects.filter(state=state1).first()
