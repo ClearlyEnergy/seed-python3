@@ -1576,9 +1576,14 @@ def deep_list(request):
         measures = PropertyMeasure.objects.filter(
             property_state__in = states
         ).prefetch_related('measure', 'measurements')
-        certifications = HELIXGreenAssessmentProperty.objects.filter(
-                view__in=property_view
-            ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False, assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
+        if geo_states > 0: #show opt-out values because they will be filtered by realtor
+            certifications = HELIXGreenAssessmentProperty.objects.filter(
+                    view__in=property_view
+                ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
+        else:
+            certifications = HELIXGreenAssessmentProperty.objects.filter(
+                    view__in=property_view
+                ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False, assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
         for i in range(len(property_view)):
             certs = certifications.filter(view=property_view[i])
             measure = measures.filter(property_state=property_view[i].state) 
