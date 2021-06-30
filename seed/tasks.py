@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 from __future__ import absolute_import
@@ -13,7 +13,7 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.core.mail import send_mail
-from django.core.urlresolvers import reverse_lazy
+from django.urls import reverse_lazy
 from django.template import loader
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -32,7 +32,7 @@ logger = get_task_logger(__name__)
 
 
 @shared_task
-def invite_to_seed(domain, email_address, token, user_pk, first_name):
+def invite_to_seed(protocol, domain, email_address, token, user_pk, first_name):
     """Send invitation email to newly created user.
 
     domain -- The domain name of the running seed instance
@@ -50,7 +50,7 @@ def invite_to_seed(domain, email_address, token, user_pk, first_name):
     context = {
         'email': email_address,
         'domain': domain,
-        'protocol': 'https',
+        'protocol': protocol,
         'first_name': first_name,
         'signup_url': signup_url
     }
@@ -70,7 +70,7 @@ def invite_to_seed(domain, email_address, token, user_pk, first_name):
 
 
 @shared_task
-def invite_to_organization(domain, new_user, requested_by, new_org):
+def invite_to_organization(protocol, domain, new_user, requested_by, new_org):
     """Send invitation to a newly created organization.
 
     domain -- The domain name of the running seed instance
@@ -85,7 +85,7 @@ def invite_to_organization(domain, new_user, requested_by, new_org):
         'new_user': new_user,
         'first_name': new_user.first_name,
         'domain': domain,
-        'protocol': 'https',
+        'protocol': protocol,
         'new_org': new_org,
         'requested_by': requested_by,
     }

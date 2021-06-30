@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author nicholas.long@nrel.gov
 """
 from __future__ import unicode_literals
@@ -52,7 +52,7 @@ class BuildingFile(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    property_state = models.ForeignKey('PropertyState', related_name='building_files', null=True)
+    property_state = models.ForeignKey('PropertyState', on_delete=models.CASCADE, related_name='building_files', null=True)
     file = models.FileField(upload_to="buildingsync_files", max_length=500, blank=True, null=True)
     file_type = models.IntegerField(choices=BUILDING_FILE_TYPES, default=UNKNOWN)
     filename = models.CharField(blank=True, max_length=255)
@@ -82,6 +82,74 @@ class BuildingFile(models.Model):
         else:
             return None
 
+    def process_property_state(self, organization_id):
+        """Parses and creates the property state from the file.
+        This is intended to be used with the data_importer tasks to allow
+        only the creation of the PropertyState at the mapping stage
+        :param: organization_id: integer, ID of organization
+        :return: list, [status, (PropertyState|None), messages]
+        """
+        Parser = self.BUILDING_FILE_PARSERS.get(self.file_type, None)
+        if not Parser:
+            acceptable_file_types = ', '.join(
+                map(dict(self.BUILDING_FILE_TYPES).get, list(self.BUILDING_FILE_PARSERS.keys()))
+            )
+            return False, None, "File format was not one of: {}".format(acceptable_file_types)
+
+        parser = Parser()
+        parser.import_file(self.file.path)
+        parser_args = []
+        parser_kwargs = {}
+        # TODO: use table_mappings for BuildingSync process method
+        data, messages = parser.process(*parser_args, **parser_kwargs)
+
+        if len(messages['errors']) > 0 or not data:
+            return False, None, messages
+
+        return True, self._create_property_state(organization_id, data), messages
+
+    def _create_property_state(self, organization_id, data):
+        """given data parsed from a file, it creates the property state
+        for this BuildingFile and returns it.
+
+        :param organization_id: integer, ID of organization
+        :param data: dict, a dictionary that was returned from a parser
+        :return: PropertyState
+        """
+        # sub-select the data that are needed to create the PropertyState object
+        db_columns = Column.retrieve_db_field_table_and_names_from_db_tables()
+        create_data = {"organization_id": organization_id}
+        extra_data = {}
+        for k, v in data.items():
+            # Skip the keys that are for measures and reports and process later
+            if k in ['measures', 'reports', 'scenarios']:
+                continue
+
+            # Check if the column exists, if not, then create one.
+            if ('PropertyState', k) in db_columns:
+                create_data[k] = v
+            else:
+                extra_data[k] = v
+
+        # create the property state
+        property_state = PropertyState.objects.create(**create_data, extra_data=extra_data)
+
+        PropertyAuditLog.objects.create(
+            organization_id=organization_id,
+            state_id=property_state.id,
+            name='Import Creation',
+            description='Creation from Import file.',
+            import_filename=self.file.path,
+            record_type=AUDIT_IMPORT
+        )
+        # set the property_state_id so that we can list the building files by properties
+        self.property_state_id = property_state.id
+        self.save()
+
+        Column.save_column_names(property_state)
+
+        return property_state
+
     def process(self, organization_id, cycle, property_view=None):
         """
         Process the building file that was uploaded and create the correct models for the object
@@ -103,49 +171,59 @@ class BuildingFile(models.Model):
         parser.import_file(self.file.path)
         parser_args = []
         parser_kwargs = {}
-        if self.file_type == self.BUILDINGSYNC:
-            parser_args.append(BuildingSync.BRICR_STRUCT)
+        # TODO: use table_mappings for BuildingSync process method
         data, messages = parser.process(*parser_args, **parser_kwargs)
 
         if len(messages['errors']) > 0 or not data:
             return False, None, None, messages
 
-        # sub-select the data that are needed to create the PropertyState object
-        db_columns = Column.retrieve_db_field_table_and_names_from_db_tables()
-        create_data = {"organization_id": organization_id}
-        extra_data = {}
-        for k, v in data.items():
-            # Skip the keys that are for measures and reports and process later
-            if k in ['measures', 'reports', 'scenarios']:
-                continue
+        # Create the property state if none already exists for this file
+        if self.property_state is None:
+            property_state = self._create_property_state(organization_id, data)
+        else:
+            property_state = self.property_state
 
-            # Check if the column exists, if not, then create one.
+        # merge or create the property state's view
+        if property_view:
+            # create a new blank state to merge the two together
+            merged_state = PropertyState.objects.create(organization_id=organization_id)
 
-            if ('PropertyState', k) in db_columns:
-                create_data[k] = v
-            else:
-                extra_data[k] = v
+            # assume the same cycle id as the former state.
+            # should merge_state also copy/move over the relationships?
+            priorities = Column.retrieve_priorities(organization_id)
+            merged_state = merge_state(
+                merged_state, property_view.state, property_state, priorities['PropertyState']
+            )
 
-        # always create the new object, then decide if we need to merge it.
-        # create a new property_state for the object and promote to a new property_view
-        property_state = PropertyState.objects.create(**create_data)
-        property_state.extra_data = extra_data
-        property_state.save()
+            # log the merge
+            # Not a fan of the parent1/parent2 logic here, seems error prone, what this
+            # is also in here: https://github.com/SEED-platform/seed/blob/63536e99cf5be3a9a86391c5cead6dd4ff74462b/seed/data_importer/tasks.py#L1549
+            PropertyAuditLog.objects.create(
+                organization_id=organization_id,
+                parent1=PropertyAuditLog.objects.filter(state=property_view.state).first(),
+                parent2=PropertyAuditLog.objects.filter(state=property_state).first(),
+                parent_state1=property_view.state,
+                parent_state2=property_state,
+                state=merged_state,
+                name='System Match',
+                description='Automatic Merge',
+                import_filename=None,
+                record_type=AUDIT_IMPORT
+            )
 
-        Column.save_column_names(property_state)
+            property_view.state = merged_state
+            property_view.save()
 
-        PropertyAuditLog.objects.create(
-            organization_id=organization_id,
-            state_id=property_state.id,
-            name='Import Creation',
-            description='Creation from Import file.',
-            import_filename=self.file.path,
-            record_type=AUDIT_IMPORT
-        )
+            merged_state.merge_state = MERGE_STATE_MERGED
+            merged_state.save()
 
-        # set the property_state_id so that we can list the building files by properties
-        self.property_state_id = property_state.id
-        self.save()
+            # set the property_state to the new one
+            property_state = merged_state
+        elif not property_view:
+            property_view = property_state.promote(cycle)
+        else:
+            # invalid arguments, must pass both or neither
+            return False, None, None, "Invalid arguments passed to BuildingFile.process()"
 
         # add in the measures
         for m in data.get('measures', []):
@@ -160,20 +238,16 @@ class BuildingFile(models.Model):
 
             # Add the measure to the join table.
             # Need to determine what constitutes the unique measure for a property
+            implementation_status = m['implementation_status'] if m.get('implementation_status') else 'Proposed'
+            application_scale = m['application_scale_of_application'] if m.get('application_scale_of_application') else PropertyMeasure.SCALE_ENTIRE_FACILITY
+            category_affected = m['system_category_affected'] if m.get('system_category_affected') else PropertyMeasure.CATEGORY_OTHER
             join, _ = PropertyMeasure.objects.get_or_create(
                 property_state_id=self.property_state_id,
                 measure_id=measure.pk,
                 property_measure_name=m.get('property_measure_name'),
-                implementation_status=PropertyMeasure.str_to_impl_status(
-                    m.get('implementation_status', 'Proposed')
-                ),
-                application_scale=PropertyMeasure.str_to_application_scale(
-                    m.get('application_scale_of_application',
-                          PropertyMeasure.SCALE_ENTIRE_FACILITY)
-                ),
-                category_affected=PropertyMeasure.str_to_category_affected(
-                    m.get('system_category_affected', PropertyMeasure.CATEGORY_OTHER)
-                ),
+                implementation_status=PropertyMeasure.str_to_impl_status(implementation_status),
+                application_scale=PropertyMeasure.str_to_application_scale(application_scale),
+                category_affected=PropertyMeasure.str_to_category_affected(category_affected),
                 recommended=m.get('recommended', 'false') == 'true',
             )
             join.description = m.get('description')
@@ -194,7 +268,7 @@ class BuildingFile(models.Model):
 
             # If the scenario does not have a name then log a warning and continue
             if not s.get('name'):
-                messages['warnings'].append('Scenario does not have a name. ID = %s' % s.get('id'))
+                messages['warnings'].append('Skipping scenario because it does not have a name. ID = %s' % s.get('id'))
                 continue
 
             scenario, _ = Scenario.objects.get_or_create(
@@ -257,6 +331,7 @@ class BuildingFile(models.Model):
                 meter, _ = Meter.objects.get_or_create(
                     scenario_id=scenario.id,
                     source_id=m.get('source_id'),
+                    property=property_view.property,
                 )
                 meter.source = m.get('source')
                 meter.type = m.get('type')
@@ -272,52 +347,12 @@ class BuildingFile(models.Model):
                         reading=mr.get('reading'),
                         source_unit=mr.get('source_unit'),
                         meter_id=meter.id,
+                        conversion_factor=1.00,  # assuming kBtu
                     )
                     for mr
                     in m.get('readings', [])
                 }
 
                 MeterReading.objects.bulk_create(readings)
-
-        if property_view:
-            # create a new blank state to merge the two together
-            merged_state = PropertyState.objects.create(organization_id=organization_id)
-
-            # assume the same cycle id as the former state.
-            # should merge_state also copy/move over the relationships?
-            priorities = Column.retrieve_priorities(organization_id)
-            merged_state = merge_state(
-                merged_state, property_view.state, property_state, priorities['PropertyState']
-            )
-
-            # log the merge
-            # Not a fan of the parent1/parent2 logic here, seems error prone, what this
-            # is also in here: https://github.com/SEED-platform/seed/blob/63536e99cf5be3a9a86391c5cead6dd4ff74462b/seed/data_importer/tasks.py#L1549
-            PropertyAuditLog.objects.create(
-                organization_id=organization_id,
-                parent1=PropertyAuditLog.objects.filter(state=property_view.state).first(),
-                parent2=PropertyAuditLog.objects.filter(state=property_state).first(),
-                parent_state1=property_view.state,
-                parent_state2=property_state,
-                state=merged_state,
-                name='System Match',
-                description='Automatic Merge',
-                import_filename=None,
-                record_type=AUDIT_IMPORT
-            )
-
-            property_view.state = merged_state
-            property_view.save()
-
-            merged_state.merge_state = MERGE_STATE_MERGED
-            merged_state.save()
-
-            # set the property_state to the new one
-            property_state = merged_state
-        elif not property_view:
-            property_view = property_state.promote(cycle)
-        else:
-            # invalid arguments, must pass both or neither
-            return False, None, None, "Invalid arguments passed to BuildingFile.process()"
 
         return True, property_state, property_view, messages

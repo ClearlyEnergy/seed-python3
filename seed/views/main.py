@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 
@@ -10,9 +10,11 @@ import logging
 import os
 import subprocess
 
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, permission_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
+from django.urls import reverse
 from past.builtins import basestring
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -58,7 +60,6 @@ def _get_default_org(user):
         return "", "", ""
 
 
-@login_required
 def home(request):
     """the main view for the app
         Sets in the context for the django template:
@@ -66,6 +67,12 @@ def home(request):
         * **app_urls**: a json object of all the URLs that is loaded in the JS global namespace
         * **username**: the request user's username (first and last name)
     """
+    if not request.user.is_authenticated:
+        user = authenticate(request)
+        if user is None:
+            return HttpResponseRedirect(reverse('landing:login'))
+
+        login(request, user)
 
     username = request.user.first_name + " " + request.user.last_name
     initial_org_id, initial_org_name, initial_org_user_role = _get_default_org(
@@ -84,7 +91,7 @@ def version(request):
     """
     manifest_path = os.path.dirname(
         os.path.realpath(__file__)) + '/../../package.json'
-    with open(manifest_path) as package_json:
+    with open(manifest_path, encoding='utf-8') as package_json:
         manifest = json.load(package_json)
 
     sha = subprocess.check_output(
@@ -96,7 +103,7 @@ def version(request):
     })
 
 
-def error404(request):
+def error404(request, exception):
     # Okay, this is a bit of a hack. Needed to move on.
     if '/api/' in request.path:
         return JsonResponse({

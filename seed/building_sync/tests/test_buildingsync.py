@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 
@@ -98,7 +98,7 @@ class TestBuildingFiles(TestCase):
         )
 
         status, property_state, property_view, messages = bf.process(self.org.id, self.org.cycles.first())
-        self.assertTrue(status)
+        self.assertTrue(status, f'Expected process() to succeed; messages: {messages}')
         self.assertEqual(property_state.address_line_1, '123 MAIN BLVD')
         self.assertEqual(messages, {'errors': [], 'warnings': []})
 

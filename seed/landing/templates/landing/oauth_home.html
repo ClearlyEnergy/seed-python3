@@ -1,0 +1,5 @@
+{% extends "landing/home.html" %}{% load i18n %}
+
+{% block login-pretext %}
+<a class="btn btn-primary" href="{% url "oidc_authentication_init" %}">{% trans "Log In Via Spark" %}</a>
+{% endblock %}

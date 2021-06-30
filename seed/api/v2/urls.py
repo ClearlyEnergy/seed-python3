@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 from django.conf.urls import url, include
@@ -24,13 +24,14 @@ from seed.views.certification import (
 from seed.views.columns import ColumnViewSet
 from seed.views.column_mappings import ColumnMappingViewSet
 from seed.views.column_list_settings import ColumnListingViewSet
+from seed.views.column_mapping_presets import ColumnMappingPresetViewSet
 from seed.views.cycles import CycleViewSet
 from seed.views.data_quality import DataQualityViews, DataQualityCheckViewSet
 from seed.views.datasets import DatasetViewSet
 from seed.views.geocode import GeocodeViews
 from seed.views.labels import LabelViewSet, UpdateInventoryLabelsAPIView
 from seed.views.main import version
-from seed.views.measures import MeasureViewSet
+from seed.views.measures import MeasureViewSet, PropertyMeasureViewSet
 from seed.views.meters import MeterViewSet
 from seed.views.organizations import OrganizationViewSet
 from seed.views.projects import ProjectViewSet
@@ -48,6 +49,7 @@ api_v2_router = routers.DefaultRouter()
 api_v2_router.register(r'building_file', BuildingFileViewSet, base_name='building_file')
 api_v2_router.register(r'columns', ColumnViewSet, base_name="columns")
 api_v2_router.register(r'column_mappings', ColumnMappingViewSet, base_name="column_mappings")
+api_v2_router.register(r'column_mapping_presets', ColumnMappingPresetViewSet, base_name="column_mapping_presets")
 api_v2_router.register(r'column_list_settings', ColumnListingViewSet, base_name="column_list_settings")
 api_v2_router.register(r'cycles', CycleViewSet, base_name="cycles")
 api_v2_router.register(r'data_quality_checks', DataQualityViews, base_name='data_quality_checks')
@@ -62,6 +64,7 @@ api_v2_router.register(r'green_assessment_properties', GreenAssessmentPropertyVi
 api_v2_router.register(r'green_assessments', GreenAssessmentViewSet, base_name="green_assessments")
 api_v2_router.register(r'labels', LabelViewSet, base_name="labels")
 api_v2_router.register(r'measures', MeasureViewSet, base_name='measures')
+api_v2_router.register(r'property_measures', PropertyMeasureViewSet, base_name='property_measures')
 api_v2_router.register(r'meters', MeterViewSet, base_name='meters')
 api_v2_router.register(r'organizations', OrganizationViewSet, base_name="organizations")
 api_v2_router.register(r'progress', ProgressViewSetV2, base_name="progress")
@@ -132,6 +135,11 @@ urlpatterns = [
         r'^test_view_with_arg/([0-9]{1})/$',
         test_view_with_arg,
         name='testviewarg'
+    ),
+    url(
+        r'^export_reports_data/$',
+        Report.as_view({'get': 'export_reports_data'}),
+        name='export_reports_data'
     ),
     url(
         r'^get_property_report_data/$',

@@ -6,10 +6,9 @@
 """
 import datetime
 import requests
-import simplejson
 # from django.core.exceptions import ValidationError
 from django.conf import settings
-from seed.models import Measure, PropertyMeasure
+from seed.models import Measure
 from helix.models import HelixMeasurement
 
 
@@ -20,7 +19,7 @@ def get_pvwatts_production(latitude, longitude, capacity, module_type=1, losses=
         'system_capacity': capacity,
         'losses': losses,
         'array_type': array_type,
-        'tilt': latitude,
+        'tilt': 20,
         'azimuth': azimuth,
         'module_type': module_type,
         'lat': latitude,
@@ -43,17 +42,9 @@ def get_ceapi_solarnpv(postal_code, state, lat, lng, capacity, year_installed, s
         params['capacity'] = capacity
         params['lat'] = lat
         params['lon'] = lng
-        
-    
-# WORKS    params = {'ceapikey': 'fea52a5d2ed56f840dac1db4820059e5', 
-#        'zipcode': '06450', 
-#        'state': 'CT', 
-#        'year_installed': 2016,
-#        'production': 15042}
 
-    response = requests.get('http://localhost:9292/solar_npv', params=params)
+    response = requests.get('https://ce-api-stage.herokuapp.com/solar_npv', params=params)
     if response.status_code == requests.codes.ok:
-        print(response.json()['solar_npv'][1])
         return {'success': True, 'npv': response.json()['solar_npv'][1]}
     return {'success': False, 'code': response.status_code, 'body': response.json()['errors']}
     
@@ -64,10 +55,9 @@ def get_ceapi_solar_repl_cost(postal_code, state, capacity):
         'state': state,
         'capaity': capacity}
 
-    response = requests.get('http://localhost:9292/solar_replacement_cost', params=params)
+    response = requests.get('https://ce-api-stage.herokuapp.com/solar_replacement_cost', params=params)
     if response.status_code == requests.codes.ok:
-        print(response.json())
-        return {'success': True, 'npv': response.json()['solar_cost']}
+        return {'success': True, 'solar_cost': response.json()['solar_cost']}
     return {'success': False, 'code': response.status_code, 'body': response.json()['errors']}
 
 def pvwatts_buildings(buildings, organization):
@@ -84,14 +74,6 @@ def pvwatts_buildings(buildings, organization):
         lng = None
         capacity = 0
         property_measures = building.propertymeasure_set.filter(measure_id=measure.id)
-        property_measure = None
-        if property_measures.exists():
-            property_measure = property_measures.get()
-            current_production = property_measure.measurements.filter(measurement_type='PROD')
-            if current_production.exists():
-                # Already exists
-                exists += 1
-                continue
 
         if building.latitude:
             lat = building.latitude
@@ -109,34 +91,36 @@ def pvwatts_buildings(buildings, organization):
             errors.append('Property ' + building.address_line_1 + ' has no longitude column defined')
 #            errors.append(ValidationError('Property has no longitude column defined',
 #                                          code='invalid'))
-        if property_measure:
-            capacity = property_measure.measurements.get(measurement_type='CAP').quantity
-        elif 'CAP Electric PV' in building.extra_data:
-            capacity = building.extra_data['CAP Electric PV']
-            capacity = simplejson.loads(capacity)['quantity']
+
+        if property_measures.exists():
+            for property_measure in property_measures:
+                current_production = property_measure.measurements.filter(measurement_type='PROD')
+                if current_production.exists() and current_production.first().quantity is not None:
+                    # Already exists
+                    exists += 1
+                    continue
+
+                capacity = property_measure.measurements.get(measurement_type='CAP').quantity
+                r = get_pvwatts_production(lat, lng, capacity)
+                if r['success']:
+                    updated += 1
+                    production = round(r['production'])
+                    measurement = HelixMeasurement(measure_property=property_measure,
+                                                   measurement_type='PROD',
+                                                   measurement_subtype='PV',
+                                                   fuel='ELEC',
+                                                   quantity=production,
+                                                   unit='KWH',
+                                                   status='ESTIMATE',
+                                                   year=datetime.date.today().year)
+                    measurement.save()
+                    building.extra_data['Measurement Production Quantity'] = production
+                    building.save()
         else:
             errors.append('Property ' + building.address_line_1 + ' has no solar capacity defined')
 #            errors.append(ValidationError('Property has no solar capacity defined',
 #                                          code='invalid'))
-        r = get_pvwatts_production(lat, lng, capacity)
-        if r['success']:
-            updated += 1
-            production = round(r['production'])
-            if property_measure is None:
-                property_measure = PropertyMeasure(measure=measure,
-                                                   property_measure_name='install_photovoltaic_system',
-                                                   property_state=building,
-                                                   implementation_status=PropertyMeasure.MEASURE_COMPLETED)
-                property_measure.save()
-            measurement = HelixMeasurement(measure_property=property_measure,
-                                           measurement_type='PROD',
-                                           measurement_subtype='PV',
-                                           fuel='ELEC',
-                                           quantity=production,
-                                           unit='KWH',
-                                           status='ESTIMATE',
-                                           year=datetime.date.today().year)
-            measurement.save()
+
     return updated, exists, len(buildings) - updated - exists, errors
 
 def solar_npv(buildings, organization):
@@ -148,6 +132,7 @@ def solar_npv(buildings, organization):
                                   category='renewable_energy_systems',
                                   organization_id=organization.id)
 
+    curr_year = datetime.date.today().year
     for building in buildings:
         lat = None
         lng = None
@@ -158,13 +143,19 @@ def solar_npv(buildings, organization):
         if property_measures.exists():
             for property_measure in property_measures:
                 current_production = property_measure.measurements.filter(measurement_type='PROD')
-                current_npv = property_measure.measurements.filter(measurement_type='NPV')
+                current_npv = property_measure.measurements.filter(measurement_type='NPV', year=curr_year)
                 postal_code = building.postal_code
                 state = building.state
                 
                 if not postal_code:
                     errors.append('Property at ' + building.address_line_1 + ' has no postal code')
+                    continue
                 
+                if not state:
+                    errors.append('Property at ' + building.address_line_1 + ' has no state')
+                    continue
+
+                ### ADD FILTER BY YEAR
                 if current_npv.exists() and current_npv.first().quantity is not None:
                     exists += 1
                     continue
@@ -187,6 +178,15 @@ def solar_npv(buildings, organization):
 
                 capacity = property_measure.measurements.get(measurement_type='CAP').quantity
                 year_installed = property_measure.measurements.get(measurement_type='CAP').year
+                
+                if not capacity and not current_production:
+                    errors.append('Property at ' + building.address_line_1 + ' has no solar capacity or production')
+                    continue
+                
+                if not year_installed:
+                    errors.append('Property at ' + building.address_line_1 + ' has installation year for the solar array')
+                    continue
+                    
                 r = get_ceapi_solarnpv(postal_code, state, lat, lng, capacity, year_installed, solar_production)
 
                 if r['success']:
@@ -200,12 +200,12 @@ def solar_npv(buildings, organization):
                                                    status='ESTIMATE',
                                                    year=datetime.date.today().year)
                     measurement.save()
-                    building.extra_data['Measurement Npv Quantity'] = npv
+                    building.extra_data['Measurement Net Present Value Quantity'] = npv
                     building.save()
         else:
             errors.append('Property ' + building.address_line_1 + ' has no solar capacity defined')
 
-    return updated, exists, len(buildings) - updated - exists, errors
+    return updated, exists, len(buildings) - updated - exists -len(errors), errors
 
 def solar_repl_cost(buildings, organization):
     updated = 0
@@ -225,36 +225,47 @@ def solar_repl_cost(buildings, organization):
 
         if property_measures.exists():
             for property_measure in property_measures:
-                current_production = property_measure.measurements.filter(measurement_type='PROD')
-                current_npv = property_measure.measurements.filter(measurement_type='NPV')
+                current_repl = property_measure.measurements.filter(measurement_type='REPL')
                 postal_code = building.postal_code
                 state = building.state
+                capacity = property_measure.measurements.get(measurement_type='CAP').quantity
                 
                 if not postal_code:
                     errors.append('Property at ' + building.address_line_1 + ' has no postal code')
+                    continue
 
-                if not state or state not in ['MA', 'CT']:
-                    errors.append('The following state: ' + state + ' is not yet covered')
+                if not state:
+                    errors.append('Property at ' + building.address_line_1 + ' has no state')
+                    continue
+                    
+                if state not in ['MA', 'CT']:
+                    errors.append('No data for this state')
+                    continue
 
-                if not errors:
-                    capacity = property_measure.measurements.get(measurement_type='CAP').quantity
-                    year_installed = property_measure.measurements.get(measurement_type='CAP').year
-                    r = get_ceapi_solar_repl_cost(postal_code, state, capacity)
+                if current_repl.exists() and current_repl.first().quantity is not None:
+                    exists += 1
+                    continue
 
-                    if r['success']:
-                        updated += 1
-                        npv = round(r['npv'])
-                        measurement = HelixMeasurement(measure_property=property_measure,
-                                                       measurement_type='COST',
-                                                       measurement_subtype='PV',
-                                                       quantity=npv,
-                                                       unit='DOLLR',
-                                                       status='ESTIMATE',
-                                                       year=datetime.date.today().year)
-                        measurement.save()
-                        building.extra_data['Measurement Npv Quantity'] = npv
-                        building.save()
+                if not capacity:
+                    errors.append('Property at ' + building.address_line_1 + ' has no solar capacity')
+                    continue
+
+                r = get_ceapi_solar_repl_cost(postal_code, state, capacity)
+
+                if r['success']:
+                    updated += 1
+                    repl_cost = round(r['solar_cost'])
+                    measurement = HelixMeasurement(measure_property=property_measure,
+                                                   measurement_type='REPL',
+                                                   measurement_subtype='PV',
+                                                   quantity=repl_cost,
+                                                   unit='DOLLR',
+                                                   status='ESTIMATE',
+                                                   year=datetime.date.today().year)
+                    measurement.save()
+                    building.extra_data['Measurement Replacement Cost Quantity'] = repl_cost
+                    building.save()
         else:
             errors.append('Property ' + building.address_line_1 + ' has no solar capacity defined')
 
-    return updated, exists, len(buildings) - updated - exists, errors
+    return updated, exists, len(buildings) - updated - exists - len(errors), errors

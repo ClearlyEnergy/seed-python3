@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.controller.inventory_list', [])
@@ -10,7 +10,7 @@ angular.module('BE.seed.controller.inventory_list', [])
     '$uibModal',
     '$sce',
     '$stateParams',
-	'$location',
+    '$location',
     'inventory_service',
     'label_service',
     'data_quality_service',
@@ -19,7 +19,7 @@ angular.module('BE.seed.controller.inventory_list', [])
     'cycles',
     'profiles',
     'current_profile',
-	'data_qualities',
+    'data_qualities',
     'labels',
     'all_columns',
     'urls',
@@ -63,7 +63,7 @@ angular.module('BE.seed.controller.inventory_list', [])
       $scope.data = [];
       var lastCycleId = inventory_service.get_last_cycle();
       $scope.cycle = {
-        selected_cycle: lastCycleId ? _.find(cycles.cycles, {id: lastCycleId}) : _.first(cycles.cycles),
+        selected_cycle:  _.find(cycles.cycles, {id: lastCycleId}) || _.first(cycles.cycles),
         cycles: cycles.cycles
       };
 
@@ -80,9 +80,9 @@ angular.module('BE.seed.controller.inventory_list', [])
       // List Settings Profile
       $scope.profiles = profiles;
       $scope.currentProfile = current_profile;
-	  
-	  // Data Quality Actions
-	  $scope.data_qualities = data_qualities;
+
+      // Data Quality Actions
+      $scope.data_qualities = data_qualities;
 
       if ($scope.currentProfile) {
         $scope.columns = [];
@@ -179,6 +179,9 @@ angular.module('BE.seed.controller.inventory_list', [])
             },
             inventory_type: function () {
               return $stateParams.inventory_type;
+            },
+            provided_inventory: function () {
+              return null;
             }
           }
         });
@@ -342,6 +345,9 @@ angular.module('BE.seed.controller.inventory_list', [])
               } else {
                 return false;
               }
+            },
+            org_id: function () {
+              return user_service.get_organization().id;
             }
           }
         });
@@ -451,7 +457,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         }), 'property_state_id');
 
         //loop through states
-        inventory_service.generate_green_addendum(property_states[0]).then(function(response) {	
+        inventory_service.generate_green_addendum(property_states[0]).then(function(response) { 
             window.open(response.url, '_blank');
         })
         .finally(function() {
@@ -468,7 +474,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         }), 'property_state_id');
 
         //loop through states
-        inventory_service.generate_vermont_profile(property_states[0]).then(function(response) {	
+        inventory_service.generate_vermont_profile(property_states[0]).then(function(response) {  
             window.open(response.url, '_blank');
         })
         .finally(function() {
@@ -485,7 +491,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         }), 'property_state_id');
 
         //loop through states
-        inventory_service.generate_massachusetts_scorecard(property_states[0]).then(function(response) {	
+        inventory_service.generate_massachusetts_scorecard(property_states[0]).then(function(response) {  
             window.open(response.url, '_blank');
         })
         .finally(function() {
@@ -510,6 +516,8 @@ angular.module('BE.seed.controller.inventory_list', [])
         }
         if (col.data_type === 'datetime') {
           options.cellFilter = 'date:\'yyyy-MM-dd\'';
+          options.filter = inventory_service.dateFilter();
+        } else if (col.data_type === 'date') {
           options.filter = inventory_service.dateFilter();
         } else {
           options.filter = inventory_service.combinedFilter();
@@ -654,7 +662,7 @@ angular.module('BE.seed.controller.inventory_list', [])
           fn = inventory_service.get_taxlots;
         }
 //        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id')).then(function (data) {
-        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id'), $scope.showSubOrgData, $location.search()).then(function (data) {
+        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id'), $scope.showSubOrgData).then(function (data) {
           $scope.progress = {
             current: data.pagination.end,
             total: data.pagination.total,
@@ -683,6 +691,21 @@ angular.module('BE.seed.controller.inventory_list', [])
         return fetch(page, chunk).then(function (data) {
           // console.timeEnd('fetch');
           processData(data);
+          // HELIX add URL search terms
+          if (Object.keys($location.search()).length > 0) {
+            searchObj = $location.search();
+            keys = Object.keys(searchObj);
+            $scope.gridApi.grid.columns.forEach(function(col, i) {
+              keys.forEach(function(key){
+                if (key.length > 0 && col.name.startsWith(key)) {
+                  $scope.gridApi.grid.columns[i].filters[0] = {
+                      term: searchObj[key]
+                  };
+                }
+              })
+            });
+          }
+
           $scope.gridApi.core.notifyDataChange(uiGridConstants.dataChange.EDIT);
           modalInstance.close();
         });
@@ -734,7 +757,7 @@ angular.module('BE.seed.controller.inventory_list', [])
       };
 
       $scope.open_pvwatts_modal = function () {
-		  var modalInstance = $uibModal.open({
+      var modalInstance = $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/pvwatts_modal.html',
           controller: 'pvwatts_modal_controller',
           resolve: {
@@ -759,10 +782,10 @@ angular.module('BE.seed.controller.inventory_list', [])
           }
         });
 
-	    modalInstance.result.then(function (/*result*/) {
-	      // dialog was closed with 'Close' button.
-	      refresh_objects();
-	    });
+      modalInstance.result.then(function (/*result*/) {
+        // dialog was closed with 'Close' button.
+        refresh_objects();
+      });
       };
 
       $scope.open_geocode_modal = function () {
@@ -918,7 +941,7 @@ angular.module('BE.seed.controller.inventory_list', [])
           }
         });
       };
-	  
+    
       $scope.open_helix_export_modal = function () {
         $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/export_inventory_modal.html',

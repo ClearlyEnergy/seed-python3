@@ -1,39 +1,68 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from rest_framework_swagger.views import get_swagger_view
+from django.contrib import admin
 
 from config.views import robots_txt
 from seed.api.base.urls import urlpatterns as api
+from seed.landing.views import password_reset_complete, password_reset_confirm, password_reset_done
 from seed.views.main import angular_js_tests
 
-from rest_framework.schemas import get_schema_view
-schema_view = get_schema_view(title='SEED API Schema')
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+schema_view = get_schema_view(
+   openapi.Info(
+      title="SEED API",
+      default_version='v3',
+      description="Test description",
+      # terms_of_service="https://www.google.com/policies/terms/",
+      # contact=openapi.Contact(email="contact@snippets.local"),
+      # license=openapi.License(name="BSD License"),
+   ),
+   public=False,
+   permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
     # HELIX
-    url(r'^helix/', include('helix.urls', namespace="helix", app_name="helix")),
+    url(r'^helix/', include(('helix.urls', 'helix'), namespace='helix')),
 
+    url(r'^accounts/password/reset/done/$', password_reset_done, name='password_reset_done'),
+    url(
+        r'^accounts/password/reset/complete/$',
+        password_reset_complete,
+        name='password_reset_complete',
+    ),
+    url(
+        (
+            r'^accounts/password/reset/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/'
+            '(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$'
+        ),
+        password_reset_confirm,
+        name='password_reset_confirm'
+    ),
+    url(r'^oidc/', include('mozilla_django_oidc.urls')),
     # Application
-    url(r'^', include('seed.landing.urls', namespace="landing", app_name="landing")),
-    url(r'^app/', include('seed.urls', namespace="seed", app_name="seed")),
+    url(r'^', include(('seed.landing.urls', "seed.landing"), namespace="landing")),
+    url(r'^app/', include(('seed.urls', "seed"), namespace="seed")),
 
     # root configuration items
-    url(r'^eula/', include('tos.urls', namespace='tos', app_name='tos')),
+    url(r'^eula/', include(('tos.urls', 'tos'), namespace='tos')),
     url(r'^i18n/', include('django.conf.urls.i18n')),
     url(r'^robots\.txt', robots_txt, name='robots_txt'),
 
     # API
-    url(r'^api/schema/$', schema_view),
-    url(r'^api/swagger/', get_swagger_view(title='SEED API'), name='swagger'),
-    url(r'^api/', include(api, namespace='api')),
+    url(r'^api/swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    url(r'^api/', include((api, "seed"), namespace='api')),
     url(r'^oauth/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 ]
 
@@ -41,16 +70,16 @@ handler404 = 'seed.views.main.error404'
 handler500 = 'seed.views.main.error500'
 
 if settings.DEBUG:
-    from django.contrib import admin
-
-    admin.autodiscover()
     urlpatterns += staticfiles_urlpatterns()
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += [
         # test URLs
         url(r'^angular_js_tests/$', angular_js_tests, name='angular_js_tests'),
-
-        # admin
-        url(r'^admin/', include(admin.site.urls)),
     ]
+
+admin.autodiscover()
+# admin
+urlpatterns += [
+    url(r'^admin/', admin.site.urls),
+]

@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California,
+:copyright (c) 2014 - 2020, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
@@ -84,10 +84,10 @@ def get_all_urls(urllist, prefix=''):
     for entry in urllist:
         if hasattr(entry, 'url_patterns'):
             for url in get_all_urls(entry.url_patterns,
-                                    prefix + entry.regex.pattern):
+                                    prefix + entry.pattern.regex.pattern):
                 yield url
         else:
-            yield (prefix + entry.regex.pattern, entry.callback)
+            yield (prefix + entry.pattern.regex.pattern, entry.callback)
 
 
 # pylint: disable=global-variable-not-assigned
@@ -161,7 +161,8 @@ def get_api_request_user(request):
     """
     Determines if this is an API request and returns the corresponding user if so.
     """
-    if request.is_ajax():
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if auth_header is None and request.is_ajax():
         return False
 
     return User.process_header_request(request)

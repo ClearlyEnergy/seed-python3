@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 from __future__ import unicode_literals
@@ -52,6 +52,9 @@ class PropertyMeasure(models.Model):
     SCALE_GROUND_MOUNTED = 7
     SCALE_ROOF_MOUNTED = 8
     SCALE_CANOPY = 9
+    SCALE_ENTIRE_BUILDING = 10
+    SCALE_COMMON_AREAS = 11
+    SCALE_TENANT_AREAS = 12
 
     APPLICATION_SCALE_TYPES = (
         (SCALE_INDIVIDUAL_SYSTEM, 'Individual system'),
@@ -63,6 +66,9 @@ class PropertyMeasure(models.Model):
         (SCALE_GROUND_MOUNTED, 'Ground Mounted'),
         (SCALE_ROOF_MOUNTED, 'Roof Mounted'),
         (SCALE_ROOF_MOUNTED, 'Solar Canopy'),
+        (SCALE_ENTIRE_BUILDING, 'Entire building'),
+        (SCALE_COMMON_AREAS, 'Common areas'),
+        (SCALE_TENANT_AREAS, 'Tenant areas'),
     )
 
     CATEGORY_AIR_DISTRIBUTION = 0

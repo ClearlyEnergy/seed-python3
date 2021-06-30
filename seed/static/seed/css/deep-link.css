@@ -1,0 +1,61 @@
+* {
+  outline: none !important;
+}
+
+.display .content .header {
+  position: relative;
+  width: 100%;
+  height: 54px;
+  border-bottom: 1px solid #ccc;
+}
+
+.display .content .header .logo {
+  display: block;
+}
+
+.header .logo .logo_text {
+  width: 300px;
+  padding: 11px 20px 10px 18px;
+  font-size: 24px;
+  font-family: "PT Sans Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: normal;
+  text-transform: uppercase;
+}
+
+.display .content .header .logo .logo_text .logo_text_seed {
+  font-family: "PT Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: bold;
+}
+
+.logo_text_platform_em {
+  font-size: 14px;
+  font-style: italic;
+  margin-top: -10px;
+  float: left;
+}
+
+.ui-grid-cell-contents {
+  font-weight: normal;
+}
+
+.teal {
+	color:#00a0af;
+}
+.details {
+	display: none;
+}
+
+.thead-light th {
+    background-color: lightgray;
+}
+
+#property_list {
+	display: none;
+}
+#disclaimer {
+	display: none;
+}
+
+.checkbox {
+  font-weight: bold;
+}

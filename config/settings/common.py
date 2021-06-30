@@ -1,5 +1,5 @@
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California,
+:copyright (c) 2014 - 2020, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
@@ -72,6 +72,7 @@ TEMPLATES = [
 ]
 MIDDLEWARE = (
     'django.middleware.gzip.GZipMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.BrokenLinkEmailsMiddleware',
@@ -81,6 +82,7 @@ MIDDLEWARE = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'mozilla_django_oidc.middleware.SessionRefresh',
 )
 
 ROOT_URLCONF = 'config.urls'
@@ -104,9 +106,12 @@ INSTALLED_APPS = (
     'oauth2_provider',
     'rest_framework',
     'rest_framework_swagger',
+    'drf_yasg',
     'oauth2_jwt_provider',
     'crispy_forms',  # needed to squash warnings around collectstatic with rest_framework
     'tos',
+    'mozilla_django_oidc',
+    'corsheaders',
 )
 
 SEED_CORE_APPS = (
@@ -216,7 +221,7 @@ register('seed_json', CeleryDatetimeSerializer.seed_dumps,
          CeleryDatetimeSerializer.seed_loads,
          content_type='application/json', content_encoding='utf-8')
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1
-CELERY_ACCEPT_CONTENT = ['seed_json']
+CELERY_ACCEPT_CONTENT = ['seed_json', 'pickle']
 CELERY_TASK_SERIALIZER = 'seed_json'
 CELERY_RESULT_SERIALIZER = 'seed_json'
 CELERY_RESULT_EXPIRES = 86400  # 24 hours
@@ -228,6 +233,7 @@ LOG_FILE = os.path.join(BASE_DIR, '../logs/py.log/')
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SERVER_EMAIL = 'info@seed-platform.org'
 PASSWORD_RESET_EMAIL = SERVER_EMAIL
+DEFAULT_FROM_EMAIL = SERVER_EMAIL
 
 # Added By Gavin on 1/27/2014
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
@@ -266,7 +272,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Allow super users to register applications for OAuth authentication
 OAUTH2_PROVIDER = {
+    'ALLOW_SUPERUSERS': True,
+    'DEVELOPER_GROUP': 'admin',
     'SCOPES': {
         'read': 'Read scope',
         'write': 'Write scope',
@@ -275,6 +284,8 @@ OAUTH2_PROVIDER = {
 }
 
 AUTHENTICATION_BACKENDS = [
+    'seed.authentication.SEEDKeyAuthentication',
+    'seed.authentication.SeedOpenIDAuthenticationBackend',
     'oauth2_provider.backends.OAuth2Backend',
     'django.contrib.auth.backends.ModelBackend',
 ]
@@ -282,6 +293,7 @@ AUTHENTICATION_BACKENDS = [
 # Django Rest Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'mozilla_django_oidc.contrib.drf.OIDCAuthentication',
         'oauth2_provider.ext.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
         'seed.authentication.SEEDAuthentication',
@@ -293,18 +305,32 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS':
         'seed.utils.pagination.ResultsListPagination',
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
     'PAGE_SIZE': 25,
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
     'DATETIME_INPUT_FORMATS': (
         '%Y:%m:%d', 'iso-8601', '%Y-%m-%d'
     ),
     'EXCEPTION_HANDLER': 'seed.exception_handler.custom_exception_handler',
-
 }
 
 SWAGGER_SETTINGS = {
-    'exclude_namespaces': ['app'],  # List URL namespaces to ignore
-    'APIS_SORTER': 'alpha',
+    'TAGS_SORTER': 'alpha',
+    'DEFAULT_FIELD_INSPECTORS': [
+        'drf_yasg.inspectors.CamelCaseJSONFilter',
+        'drf_yasg.inspectors.InlineSerializerInspector',  # this disables models and is the only non-default entry
+        'drf_yasg.inspectors.RelatedFieldInspector',
+        'drf_yasg.inspectors.ChoiceFieldInspector',
+        'drf_yasg.inspectors.FileFieldInspector',
+        'drf_yasg.inspectors.DictFieldInspector',
+        'drf_yasg.inspectors.JSONFieldInspector',
+        'drf_yasg.inspectors.HiddenFieldInspector',
+        'drf_yasg.inspectors.RecursiveFieldInspector',
+        'drf_yasg.inspectors.SerializerMethodFieldInspector',
+        'drf_yasg.inspectors.SimpleFieldInspector',
+        'drf_yasg.inspectors.StringDefaultFieldInspector',
+    ],
+    'DOC_EXPANSION': 'none',
     'LOGOUT_URL': '/accounts/logout',
 }
 
@@ -314,8 +340,24 @@ SWAGGER_SETTINGS = {
 # GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION=5 * 365
 GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION = None
 
-# Allow super users to register applications for OAuth authentication
-OAUTH2_PROVIDER = {
-    'ALLOW_SUPERUSERS': True,
-    'DEVELOPER_GROUP': 'admin',
-}
+OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://sparkplatform.com/openid/authorize'
+OIDC_OP_TOKEN_ENDPOINT = 'https://sparkplatform.com/openid/token'
+OIDC_OP_USER_ENDPOINT = 'https://sparkplatform.com/openid/userinfo'
+OIDC_OP_JWKS_ENDPOINT = 'https://sparkplatform.com/openid/jwks.json'
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_SEED_ORG = 'Spark'
+
+# Determines if SEED respects request.scheme or assumes that things are using
+# HTTPS. This is useful for instances behind a reverse proxy that resolves SSL.
+FORCE_SSL_PROTOCOL = False
+
+HELIX_SERVER_NAME = 'localhost:8090'
+
+CORS_ALLOWED_ORIGINS = [
+    'https://mls.gsmls.com',
+    'https://dev.gsmls.com',
+    'http://localhost:8090',
+    'https://localhost:8090',
+    'http://127.0.0.1:8090',
+    'https://127.0.0.1:8090',
+]

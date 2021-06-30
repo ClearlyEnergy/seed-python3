@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 
@@ -91,9 +91,10 @@ angular.module('ui.grid').config(['$provide', function ($provide) {
 
         // nested loop itself - foreachFilterCol, which in turn calls foreachRow
         var gridHasTree = _.has(grid.api, 'treeBase');
+        var gridIsYearOverYear = grid.api.table_category === 'year-over-year';
         var filterDataLength = filterData.length;
         for (var j = 0; j < filterDataLength; j++) {
-          if (gridHasTree) foreachFilterColIgnoringChildren(grid, filterData[j]);
+          if (gridHasTree && !gridIsYearOverYear) foreachFilterColIgnoringChildren(grid, filterData[j]);
           else foreachFilterCol(grid, filterData[j]);
         }
         // =============== END SEED CHANGE ===============

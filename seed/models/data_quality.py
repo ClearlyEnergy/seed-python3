@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 import json
@@ -45,6 +45,10 @@ class DataQualityTypeCastError(Exception):
 
 
 class UnitMismatchError(Exception):
+    pass
+
+
+class MissingLabelError(Exception):
     pass
 
 
@@ -110,9 +114,11 @@ class Rule(models.Model):
 
     SEVERITY_ERROR = 0
     SEVERITY_WARNING = 1
+    SEVERITY_VALID = 2
     SEVERITY = [
         (SEVERITY_ERROR, 'error'),
-        (SEVERITY_WARNING, 'warning')
+        (SEVERITY_WARNING, 'warning'),
+        (SEVERITY_VALID, 'valid'),
     ]
 
     DEFAULT_RULES = [
@@ -294,9 +300,9 @@ class Rule(models.Model):
     ]
     name = models.CharField(max_length=255, blank=True)
     description = models.CharField(max_length=1000, blank=True)
-    data_quality_check = models.ForeignKey('DataQualityCheck', related_name='rules',
-                                           on_delete=models.CASCADE, null=True)
-    status_label = models.ForeignKey(StatusLabel, null=True, on_delete=models.DO_NOTHING)
+    data_quality_check = models.ForeignKey('DataQualityCheck', on_delete=models.CASCADE,
+                                           related_name='rules', null=True)
+    status_label = models.ForeignKey(StatusLabel, on_delete=models.DO_NOTHING, null=True)
     table_name = models.CharField(max_length=200, default='PropertyState', blank=True)
     field = models.CharField(max_length=200)
     enabled = models.BooleanField(default=True)
@@ -505,7 +511,7 @@ class DataQualityCheck(models.Model):
         'TaxLotState': ['address_line_1', 'custom_id_1', 'jurisdiction_tax_lot_id'],
     }
 
-    organization = models.ForeignKey(Organization)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, default='Default Data Quality Check')
 
     @classmethod
@@ -533,6 +539,11 @@ class DataQualityCheck(models.Model):
 # HELIX                dqc.delete()
 
 # HELIX        dq, _ = DataQualityCheck.objects.get_or_create(organization_id=organization_id)
+
+        # HELIX
+        if not DataQualityCheck.objects.filter(organization_id=organization_id).exists():
+            DataQualityCheck.objects.create(organization_id=organization_id)
+
         dq = DataQualityCheck.objects.filter(organization_id=organization_id)
 
         for dd in dq:
@@ -714,25 +725,26 @@ class DataQualityCheck(models.Model):
                     # field that wasn't mapped
                     if rule.required:
                         self.add_result_missing_req(row.id, rule, display_name, value)
-                        label_applied = self.update_status_label(label, rule, linked_id)
+                        label_applied = self.update_status_label(label, rule, linked_id, row.id)
                 elif value is None or value == '':
                     # Empty fields
                     if rule.required:
                         self.add_result_missing_and_none(row.id, rule, display_name, value)
-                        label_applied = self.update_status_label(label, rule, linked_id)
+                        label_applied = self.update_status_label(label, rule, linked_id, row.id)
                     elif rule.not_null:
                         self.add_result_is_null(row.id, rule, display_name, value)
-                        label_applied = self.update_status_label(label, rule, linked_id)
+                        label_applied = self.update_status_label(label, rule, linked_id, row.id)
                 elif not rule.valid_text(value):
                     self.add_result_string_error(row.id, rule, display_name, value)
-                    label_applied = self.update_status_label(label, rule, linked_id)
+                    label_applied = self.update_status_label(label, rule, linked_id, row.id)
                 else:
                     # check the min and max values
                     try:
                         if not rule.minimum_valid(value):
-                            s_min, s_max, s_value = rule.format_strings(value)
-                            self.add_result_min_error(row.id, rule, display_name, s_value, s_min)
-                            label_applied = self.update_status_label(label, rule, linked_id)
+                            if rule.severity == Rule.SEVERITY_ERROR or rule.severity == Rule.SEVERITY_WARNING:
+                                s_min, s_max, s_value = rule.format_strings(value)
+                                self.add_result_min_error(row.id, rule, display_name, s_value, s_min)
+                                label_applied = self.update_status_label(label, rule, linked_id, row.id)
                     except ComparisonError:
                         s_min, s_max, s_value = rule.format_strings(value)
                         self.add_result_comparison_error(row.id, rule, display_name, s_value, s_min)
@@ -747,9 +759,10 @@ class DataQualityCheck(models.Model):
 
                     try:
                         if not rule.maximum_valid(value):
-                            s_min, s_max, s_value = rule.format_strings(value)
-                            self.add_result_max_error(row.id, rule, display_name, s_value, s_max)
-                            label_applied = self.update_status_label(label, rule, linked_id)
+                            if rule.severity == Rule.SEVERITY_ERROR or rule.severity == Rule.SEVERITY_WARNING:
+                                s_min, s_max, s_value = rule.format_strings(value)
+                                self.add_result_max_error(row.id, rule, display_name, s_value, s_max)
+                                label_applied = self.update_status_label(label, rule, linked_id, row.id)
                     except ComparisonError:
                         s_min, s_max, s_value = rule.format_strings(value)
                         self.add_result_comparison_error(row.id, rule, display_name, s_value, s_max)
@@ -760,6 +773,29 @@ class DataQualityCheck(models.Model):
                         continue
                     except UnitMismatchError:
                         self.add_result_dimension_error(row.id, rule, display_name, value)
+                        continue
+
+                    # Check for mandatory label for valid data:
+                    try:
+                        if rule.minimum_valid(value) and rule.maximum_valid(value):
+                            if rule.severity == Rule.SEVERITY_VALID:
+                                '''
+                                s_min, s_max, s_value = rule.format_strings(value)
+                                self.results[row.id]['data_quality_results'].append(
+                                    {
+                                        'field': rule.field,
+                                        'formatted_field': display_name,
+                                        'value': s_value,
+                                        'table_name': rule.table_name,
+                                        'message': display_name + ' is valid',
+                                        'detailed_message': display_name + ' [' + s_value + '] is valid data',
+                                        'severity': rule.get_severity_display(),
+                                    }
+                                )
+                                '''
+                                label_applied = self.update_status_label(label, rule, linked_id, row.id)
+                    except MissingLabelError:
+                        self.add_result_missing_label(row.id, rule, display_name, value)
                         continue
 
                 if not label_applied and rule.status_label_id in model_labels['label_ids']:
@@ -943,6 +979,18 @@ class DataQualityCheck(models.Model):
             'severity': rule.get_severity_display(),
         })
 
+    def add_result_missing_label(self, row_id, rule, display_name, value):
+        if rule.severity == Rule.SEVERITY_VALID:
+            self.results[row_id]['data_quality_results'].append({
+                'field': rule.field,
+                'formatted_field': rule.field,
+                'value': value,
+                'table_name': rule.table_name,
+                'message': rule.status_label + ' is missing',
+                'detailed_message': rule.status_label + ' is required and missing',
+                'severity': rule.get_severity_display(),
+            })
+
     def add_result_missing_and_none(self, row_id, rule, display_name, value):
         self.results[row_id]['data_quality_results'].append({
             'field': rule.field,
@@ -982,7 +1030,7 @@ class DataQualityCheck(models.Model):
             'severity': rule.get_severity_display(),
         })
 
-    def update_status_label(self, label_class, rule, linked_id):
+    def update_status_label(self, label_class, rule, linked_id, row_id):
         """
 
         :param label_class: statuslabel object, either propertyview label or taxlotview label
@@ -990,7 +1038,6 @@ class DataQualityCheck(models.Model):
         :param linked_id: id of propertystate or taxlotstate object
         :return: boolean, if labeled was applied
         """
-
         if rule.status_label_id is not None and linked_id is not None:
             label_org_id = rule.status_label.super_organization_id
 
@@ -1020,6 +1067,9 @@ class DataQualityCheck(models.Model):
                             taxlot_parent_org_id
                         )
                     )
+
+            self.results[row_id]['data_quality_results'][-1]['label'] = rule.status_label.name
+
             return True
 
     def remove_status_label(self, label_class, rule, linked_id):

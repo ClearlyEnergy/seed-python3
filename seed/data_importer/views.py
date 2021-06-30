@@ -1,11 +1,12 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 import csv
 import datetime
+from io import BytesIO
 import logging
 import os
 
@@ -18,10 +19,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, JsonResponse
 from rest_framework import serializers, status, viewsets
-from rest_framework.decorators import api_view, detail_route, list_route, parser_classes, \
+from rest_framework.decorators import api_view, action, parser_classes, \
     permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 
+from seed.building_sync.building_sync import BuildingSync
 from seed.data_importer.models import (
     ImportFile,
     ImportRecord
@@ -31,6 +33,7 @@ from seed.data_importer.tasks import do_checks
 from seed.data_importer.tasks import (
     map_data,
     geocode_buildings_task as task_geocode_buildings,
+    map_additional_models as task_map_additional_models,
     match_buildings as task_match_buildings,
     save_raw_data as task_save_raw,
     helix_leed_to_file,
@@ -42,6 +45,7 @@ from seed.decorators import ajax_request, ajax_request_class
 from seed.decorators import get_prog_key
 from seed.lib.mappings import mapper as simple_mapper
 from seed.lib.mcm import mapper
+from seed.lib.xml_mapping import mapper as xml_mapper
 from seed.lib.superperms.orgs.decorators import has_perm_class
 # from seed.lib.superperms.orgs.models import (
 #     Organization,
@@ -59,6 +63,7 @@ from seed.models import (
     obj_to_dict,
     PropertyState,
     TaxLotState,
+    DATA_STATE_IMPORT,
     DATA_STATE_MAPPING,
     DATA_STATE_MATCHING,
     MERGE_STATE_UNKNOWN,
@@ -197,7 +202,7 @@ class LocalUploaderViewSet(viewsets.ViewSet):
 
     @api_endpoint_class
     @ajax_request_class
-    @list_route(methods=['POST'])
+    @action(detail=False, methods=['POST'])
     def create_from_pm_import(self, request):
         """
         Create an import_record from a PM import request.
@@ -546,7 +551,7 @@ class ImportFileViewSet(viewsets.ViewSet):
 
     @api_endpoint_class
     @ajax_request_class
-    @detail_route(methods=['GET'])
+    @action(detail=True, methods=['GET'])
     def first_five_rows(self, request, pk=None):
         """
         Retrieves the first five rows of an ImportFile.
@@ -591,7 +596,7 @@ class ImportFileViewSet(viewsets.ViewSet):
 
     @api_endpoint_class
     @ajax_request_class
-    @detail_route(methods=['GET'])
+    @action(detail=True, methods=['GET'])
     def raw_column_names(self, request, pk=None):
         """
         Retrieves a list of all column names from an ImportFile.
@@ -619,7 +624,7 @@ class ImportFileViewSet(viewsets.ViewSet):
 
     @api_endpoint_class
     @ajax_request_class
-    @detail_route(methods=['POST'], url_path='filtered_mapping_results')
+    @action(detail=True, methods=['POST'], url_path='filtered_mapping_results')
     def filtered_mapping_results(self, request, pk=None):
         """
         Retrieves a paginated list of Properties and Tax Lots for an import file after mapping.
@@ -763,7 +768,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def perform_mapping(self, request, pk=None):
         """
         Starts a background task to convert imported raw data into
@@ -801,7 +806,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def add_certifications(self, request, pk=None):
         """
         Starts a background task to add green certifications to PropertyState
@@ -822,7 +827,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def leed_upload(self, request, pk=None):
         org = Organization.objects.get(pk=pk)
 
@@ -835,7 +840,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def hes_upload(self, request, pk=None):
         body = request.data
         org = Organization.objects.get(pk=pk)
@@ -848,7 +853,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def helix_results(self, request, pk=None):
         body = request.data
         org = Organization.objects.get(pk=pk)
@@ -865,7 +870,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def start_system_matching_and_geocoding(self, request, pk=None):
         """
         Starts a background task to attempt automatic matching between buildings
@@ -895,12 +900,25 @@ class ImportFileViewSet(viewsets.ViewSet):
             }, status=status.HTTP_403_FORBIDDEN)
             return result
 
+        try:
+            import_file = ImportFile.objects.get(pk=pk)
+        except ImportFile.DoesNotExist:
+            return {
+                'status': 'error',
+                'message': 'ImportFile {} does not exist'.format(pk)
+            }
+
+        # if the file is BuildingSync, don't do the merging, but instead finish
+        # creating it's associated models (scenarios, meters, etc)
+        if import_file.from_buildingsync:
+            return task_map_additional_models(pk)
+
         return task_match_buildings(pk)
 
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def start_data_quality_checks(self, request, pk=None):
         """
         Starts a background task to attempt automatic matching between buildings
@@ -934,7 +952,7 @@ class ImportFileViewSet(viewsets.ViewSet):
 
     @api_endpoint_class
     @ajax_request_class
-    @detail_route(methods=['GET'])
+    @action(detail=True, methods=['GET'])
     def data_quality_progress(self, request, pk=None):
         """
         Return the progress of the data quality check.
@@ -963,7 +981,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def save_raw_data(self, request, pk=None):
         """
         Starts a background task to import raw data from an ImportFile
@@ -1033,7 +1051,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @detail_route(methods=['PUT'])
+    @action(detail=True, methods=['PUT'])
     def mapping_done(self, request, pk=None):
         """
         Tell the backend that the mapping is complete.
@@ -1075,7 +1093,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('requires_member')
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def save_column_mappings(self, request, pk=None):
         """
         Saves the mappings between the raw headers of an ImportFile and the
@@ -1124,7 +1142,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('requires_member')
-    @detail_route(methods=['GET'])
+    @action(detail=True, methods=['GET'])
     def matching_and_geocoding_results(self, request, pk=None):
         """
         Retrieves the number of matched and unmatched properties & tax lots for
@@ -1253,31 +1271,28 @@ class ImportFileViewSet(viewsets.ViewSet):
         # merge in any of the matching results from the JSON field
         return {
             'status': 'success',
-            'import_file_records': import_file.matching_results_data.get('import_file_records',
-                                                                         None),
+            'import_file_records': import_file.matching_results_data.get('import_file_records', None),
             'properties': {
-                'matched': len(properties_matched),
-                'unmatched': len(properties_new),
-                'all_unmatched': import_file.matching_results_data.get('property_all_unmatched',
-                                                                       None),
-                'duplicates': import_file.matching_results_data.get('property_duplicates', None),
-                'duplicates_of_existing': import_file.matching_results_data.get(
-                    'property_duplicates_of_existing', None),
-                'unmatched_copy': import_file.matching_results_data.get('property_unmatched', None),
+                'initial_incoming': import_file.matching_results_data.get('property_initial_incoming', None),
+                'duplicates_against_existing': import_file.matching_results_data.get('property_duplicates_against_existing', None),
+                'duplicates_within_file': import_file.matching_results_data.get('property_duplicates_within_file', None),
+                'merges_against_existing': import_file.matching_results_data.get('property_merges_against_existing', None),
+                'merges_between_existing': import_file.matching_results_data.get('property_merges_between_existing', None),
+                'merges_within_file': import_file.matching_results_data.get('property_merges_within_file', None),
+                'new': import_file.matching_results_data.get('property_new', None),
                 'geocoded_high_confidence': property_geocode_results.get('high_confidence'),
                 'geocoded_low_confidence': property_geocode_results.get('low_confidence'),
                 'geocoded_manually': property_geocode_results.get('manual'),
                 'geocode_not_possible': property_geocode_results.get('missing_address_components'),
             },
             'tax_lots': {
-                'matched': len(tax_lots_matched),
-                'unmatched': len(tax_lots_new),
-                'all_unmatched': import_file.matching_results_data.get('tax_lot_all_unmatched',
-                                                                       None),
-                'duplicates': import_file.matching_results_data.get('tax_lot_duplicates', None),
-                'duplicates_of_existing': import_file.matching_results_data.get(
-                    'tax_lot_duplicates_of_existing', None),
-                'unmatched_copy': import_file.matching_results_data.get('tax_lot_unmatched', None),
+                'initial_incoming': import_file.matching_results_data.get('tax_lot_initial_incoming', None),
+                'duplicates_against_existing': import_file.matching_results_data.get('tax_lot_duplicates_against_existing', None),
+                'duplicates_within_file': import_file.matching_results_data.get('tax_lot_duplicates_within_file', None),
+                'merges_against_existing': import_file.matching_results_data.get('tax_lot_merges_against_existing', None),
+                'merges_between_existing': import_file.matching_results_data.get('tax_lot_merges_between_existing', None),
+                'merges_within_file': import_file.matching_results_data.get('tax_lot_merges_within_file', None),
+                'new': import_file.matching_results_data.get('tax_lot_new', None),
                 'geocoded_high_confidence': tax_lot_geocode_results.get('high_confidence'),
                 'geocoded_low_confidence': tax_lot_geocode_results.get('low_confidence'),
                 'geocoded_manually': tax_lot_geocode_results.get('manual'),
@@ -1289,7 +1304,7 @@ class ImportFileViewSet(viewsets.ViewSet):
     @ajax_request_class
     @has_perm_class('requires_member')
     @permission_classes((SEEDOrgPermissions,))
-    @detail_route(methods=['GET'])
+    @action(detail=True, methods=['GET'])
     def mapping_suggestions(self, request, pk):
         """
         Returns suggested mappings from an uploaded file's headers to known
@@ -1360,6 +1375,22 @@ class ImportFileViewSet(viewsets.ViewSet):
                 default_mappings=pm_mappings,
                 thresh=80
             )
+        elif import_file.from_buildingsync:
+            raw_property_state = PropertyState.objects.filter(import_file=import_file,
+                                                              data_state__in=[DATA_STATE_IMPORT, DATA_STATE_MAPPING])
+            # there should always be at least one property state associated with
+            # the import file at this point
+            if raw_property_state.count() == 0:
+                raise Exception('Expected to find 1 or more property states but found none')
+            raw_property_state = raw_property_state[0]
+
+            bs = BuildingSync()
+            # encode to bytes b/c lxml doesn't like Unicode string with encoding declarations
+            bs.import_file(BytesIO(raw_property_state.extra_data['_xml'].encode()))
+            base_mapping = bs.get_base_mapping()
+            # TODO: fetch custom mapping for org and pass it to the build function
+            custom_mapping = None
+            suggested_mappings = xml_mapper.build_column_mapping(base_mapping, custom_mapping)
         else:
             # All other input types
             suggested_mappings = mapper.build_column_mapping(
@@ -1379,8 +1410,11 @@ class ImportFileViewSet(viewsets.ViewSet):
         # Fix the table name, eventually move this to the build_column_mapping
         for m in suggested_mappings:
             table, _destination_field, _confidence = suggested_mappings[m]
-            if not table:
+            # Do not return the campus, created, updated fields... that is force them to be in the property state
+            if not table or table == 'Property':
                 suggested_mappings[m][0] = 'PropertyState'
+            elif table == 'TaxLot':
+                suggested_mappings[m][0] = 'TaxLotState'
 
         result['suggested_column_mappings'] = suggested_mappings
         result['property_columns'] = property_columns

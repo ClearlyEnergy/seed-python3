@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 import logging
@@ -10,11 +10,11 @@ from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import SetPasswordForm
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.utils import ErrorList
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from tos.models import has_user_agreed_latest_tos, TermsOfService, NoActiveTermsOfService
 
 from .forms import LoginForm
@@ -23,10 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 def landing_page(request):
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         return HttpResponseRedirect(reverse('seed:home'))
     login_form = LoginForm()
-    return render(request, 'landing/home.html', locals())
+    return render(request, 'landing/oauth_home.html', locals())
 
 
 def login_view(request):
@@ -74,44 +74,50 @@ def login_view(request):
     else:
         form = LoginForm()
 
-    return render(request, 'landing/login.html', locals())
+    return render(request, 'landing/oauth_login.html', locals())
 
 
 def password_set(request, uidb64=None, token=None):
-    return auth.views.password_reset_confirm(
+    return auth.views.PasswordResetConfirmView.as_view(template_name='landing/password_set.html')(
         request,
         uidb64=uidb64,
         token=token,
-        template_name='landing/password_set.html',
         post_reset_redirect=reverse('landing:password_set_complete')
     )
 
 
 def password_reset(request):
-    return auth.views.password_reset(
-        request, template_name='landing/password_reset.html',
-        subject_template_name='landing/password_reset_subject.txt',
-        email_template_name='landing/password_reset_email.html',
-        post_reset_redirect=reverse('landing:password_reset_done'),
-        from_email=settings.PASSWORD_RESET_EMAIL,
-    )
-
+    """
+    Replaces auth.views.PasswordResetView in HELIX due to from_email not being populated
+    in the final email, causing email backends to crash. See Task #1160 for details.
+    """
+    if request.method == 'POST':
+        form = auth.forms.PasswordResetForm(data=request.POST)
+        if form.is_valid():
+            form.save(subject_template_name='landing/password_reset_subject.txt',
+                      email_template_name='landing/password_reset_email.html',
+                      from_email=settings.PASSWORD_RESET_EMAIL)
+        return redirect('landing:password_reset_done')
+    else:
+        form = auth.forms.PasswordResetForm()
+        context = {
+            'form': form,
+        }
+        return render(request, 'landing/password_reset.html', context)
 
 def password_reset_done(request):
-    return auth.views.password_reset_done(
-        request,
+    return auth.views.PasswordResetDoneView.as_view(
         template_name='landing/password_reset_done.html'
-    )
+    )(request)
 
 
 def password_reset_confirm(request, uidb64=None, token=None):
-    return auth.views.password_reset_confirm(
+    return auth.views.PasswordResetConfirmView.as_view(template_name='landing/password_reset_confirm.html')(
         request,
         uidb64=uidb64,
         token=token,
-        template_name='landing/password_reset_confirm.html',
         set_password_form=SetPasswordForm,
-        post_reset_redirect=reverse('landing:password_reset_complete')
+        success_url=reverse('landing:password_reset_complete')
     )
 
 
@@ -120,11 +126,10 @@ def password_reset_complete(request):
 
 
 def signup(request, uidb64=None, token=None):
-    return auth.views.password_reset_confirm(
+    return auth.views.PasswordResetConfirmView.as_view(template_name='landing/signup.html')(
         request,
         uidb64=uidb64,
         token=token,
-        template_name='landing/signup.html',
         set_password_form=SetPasswordForm,
         post_reset_redirect=reverse('landing:landing_page') + "?setup_complete"
     )

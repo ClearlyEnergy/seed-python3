@@ -1,0 +1,71 @@
+{% extends "seed/helix/deep_base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="section_header_container">
+  <div class="section_header fixed_height_short has_no_padding">
+    <h2><span><i class="fas fa-building"></i>{% trans "Property" %}: {{ name }}</span></h2>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="section_header fixed_height_short has_no_padding">
+    <h2><span><i class="fas fa-leaf"></i> {% trans "Green Building Verification" %}</span></h2>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="table_list_container table_item_detail">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          {% for column in certification_columns %}
+          <th scope="col">{{ column }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for certification in certifications %}
+        <tr>
+			<td>{{ certification.assessment.award_body }}</td>
+			<td>{{ certification.assessment.name }}</td>
+			<td>{% if certification.score is not None %}{{ certification.score }}{% endif %}</td>
+			<td>{% if certification.date is not None %}{{ certification.date }}{% endif %}</td>
+			<td>{% for url in certification.urls %}<a href="{{ url.0 }}" target=_blank>Link</a> {% endfor %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="section_header fixed_height_short has_no_padding">
+    <h2><span><i class="fas fa-bolt"></i> {% trans "Power Production" %}</span></h2>
+  </div>
+</div>
+<div class="section_header_container">
+  <div class="table_list_container table_item_detail">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          {% for column in measures_columns %}
+          <th scope="col">{{ column }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for measure in measures %}
+			{% for mmt in measure.measurements %}
+	        <tr>
+				<td>Photovoltaics</td>
+				<td>{% if mmt.0 == 'Capacity' %}{{ mmt.3 }}{% endif %}</td>
+				<td>{% if mmt.0 == 'Capacity' %}{{ mmt.6 }}{% endif %}</td>
+				<td>{% if measure.ownership is not None %}{{ measure.ownership }}{% endif %}</td>
+				<td>{% if mesure.source is not None %}{{ measure.source }}{% endif %}</td>
+				<td>{% if mmt.0 == 'Production' %}{{ mmt.3|floatformat }}{% endif %}</td>
+				<td>{% if mmt.0 == 'Production' %}{{ mmt.5 }}{% endif %}</td>
+	        </tr>
+			{% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock content %}

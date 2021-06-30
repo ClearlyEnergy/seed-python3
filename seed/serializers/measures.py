@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author nicholas.long@nrel.gov
 """
 from collections import OrderedDict
@@ -9,6 +9,7 @@ from rest_framework import serializers
 
 from seed.models import (
     Measure,
+    PropertyState,
     #    PropertyMeasure,
 )
 from helix.models import HELIXPropertyMeasure as PropertyMeasure
@@ -23,6 +24,8 @@ class MeasureSerializer(serializers.ModelSerializer):
 
 class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.ReadOnlyField(source='measure.id')
+    measure = serializers.PrimaryKeyRelatedField(queryset=Measure.objects.all())
+    property_state = serializers.PrimaryKeyRelatedField(queryset=PropertyState.objects.all())
     measure_id = serializers.SerializerMethodField('measure_id_name')
     name = serializers.ReadOnlyField(source='measure.name')
     display_name = serializers.ReadOnlyField(source='measure.display_name')
@@ -37,6 +40,9 @@ class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
 
         fields = (
             'id',
+            'measure',
+            'property_state',
+            'property_measure_name',
             'measure_id',
             'category',
             'name',
@@ -64,6 +70,11 @@ class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
     def measure_id_name(self, obj):
         return "{}.{}".format(obj.measure.category, obj.measure.name)
 
+    def create(self, validated_data):
+        validated_data.pop('organization_id', None)
+        property_measure = PropertyMeasure.objects.create(**validated_data)
+        return property_measure
+
 
 class PropertyMeasureReadOnlySerializer(serializers.BaseSerializer):
     """Simple read only Serializer describing Measures attached to
@@ -86,7 +97,7 @@ class PropertyMeasureReadOnlySerializer(serializers.BaseSerializer):
             ('name', obj.measure.name)
         ))
         return OrderedDict((
-            ('id', obj.measure.id),
+            ('id', obj.id),
             ('name', obj.measure.name),
             ('display_name', obj.measure.display_name),
             ('category', obj.measure.category),

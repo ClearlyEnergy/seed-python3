@@ -25,8 +25,7 @@ angular.module('BE.seed.controller.pvwatts_modal', [])
       ]
 
       $scope.calculate_production = function () {
-		 console.log($scope.new_factor.type)
-         if ($scope.new_factor.type == 'production') {
+		  if ($scope.new_factor.type == 'production') {
             mappings = [{
                'from_field': 'Measurement Production Quantity',
                'from_units': 'kWh',
@@ -49,10 +48,17 @@ angular.module('BE.seed.controller.pvwatts_modal', [])
             };
          };
          if ($scope.new_factor.type == 'npv') {
+             mappings = [{
+                'from_field': 'Measurement Net Present Value Quantity',
+                'from_units': 'kWh',
+                'to_field': 'Measurement Net Present Value Quantity',
+                'to_field_display_name': 'Measurement NPV Quantity',
+                'to_table_name': 'PropertyState',
+             }]
             if ($scope.property_state_ids) {
                $scope.pvwatts_state = 'calculate';
-//               columns_service.create_columns(mappings).then(
-//                  function (data) {
+               columns_service.create_columns(mappings).then(
+                  function (data) {
                      pvwatts_service.calculate_solar_npv($scope.property_state_ids, $scope.taxlot_state_ids, $scope.org_id).then(function (result) {
                      $scope.properties_calculated = result.calculated;
                      $scope.properties_exists = result.exists;
@@ -60,14 +66,21 @@ angular.module('BE.seed.controller.pvwatts_modal', [])
                      $scope.properties_errors = result.errors;
                      $scope.pvwatts_state = 'result';
                   });
-//               });
+               });
             };
          };
          if ($scope.new_factor.type == 'repl_cost') {
+             mappings = [{
+                'from_field': 'Measurement Replacement Cost Quantity',
+                'from_units': 'kWh',
+                'to_field': 'Measurement Replacement Cost Quantity',
+                'to_field_display_name': 'Measurement Replacement Cost Quantity',
+                'to_table_name': 'PropertyState',
+             }]
             if ($scope.property_state_ids) {
                $scope.pvwatts_state = 'calculate';
-//               columns_service.create_columns(mappings).then(
-//                  function (data) {
+               columns_service.create_columns(mappings).then(
+                  function (data) {
                      pvwatts_service.calculate_solar_repl_cost($scope.property_state_ids, $scope.taxlot_state_ids, $scope.org_id).then(function (result) {
                      $scope.properties_calculated = result.calculated;
                      $scope.properties_exists = result.exists;
@@ -75,7 +88,7 @@ angular.module('BE.seed.controller.pvwatts_modal', [])
                      $scope.properties_errors = result.errors;
                      $scope.pvwatts_state = 'result';
                   });
-//               });
+               });
             };
          };
       };

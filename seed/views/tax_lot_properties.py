@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California,
+:copyright (c) 2014 - 2020, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
@@ -16,7 +16,7 @@ import xlsxwriter
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
 from quantityfield import ureg
-from rest_framework.decorators import list_route
+from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
 from rest_framework.viewsets import GenericViewSet
 
@@ -62,7 +62,7 @@ class TaxLotPropertyViewSet(GenericViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('requires_member')
-    @list_route(methods=['POST'])
+    @action(detail=False, methods=['POST'])
     def export(self, request):
         """
         Download a csv of the TaxLot and Properties
@@ -145,7 +145,8 @@ class TaxLotPropertyViewSet(GenericViewSet):
             prefetch_related = ['labels']
             if ids:
                 id_filter = Q(property__id__in=ids)
-            # always export the labels
+            # always export the labels and notes
+            column_name_mappings['property_notes'] = 'Property Notes'
             column_name_mappings['property_labels'] = 'Property Labels'
 
         elif hasattr(view_klass, 'taxlot'):
@@ -153,7 +154,8 @@ class TaxLotPropertyViewSet(GenericViewSet):
             prefetch_related = ['labels']
             if ids:
                 id_filter = Q(taxlot__id__in=ids)
-            # always export the labels
+            # always export the labels and notes
+            column_name_mappings['taxlot_notes'] = 'Tax Lot Notes'
             column_name_mappings['taxlot_labels'] = 'Tax Lot Labels'
 
         model_views = view_klass.objects.select_related(*select_related).prefetch_related(
@@ -162,18 +164,24 @@ class TaxLotPropertyViewSet(GenericViewSet):
         # get the data in a dict which includes the related data
         data = TaxLotProperty.get_related(model_views, column_ids, columns_from_database)
 
-        # add labels
+        # add labels and notes
         for i, record in enumerate(model_views):
             label_string = []
-            if hasattr(record, 'property'):
-                for label in list(record.labels.all().order_by('name')):
-                    label_string.append(label.name)
-                data[i]['property_labels'] = ','.join(label_string)
+            note_string = []
+            for label in list(record.labels.all().order_by('name')):
+                label_string.append(label.name)
+            for note in list(record.notes.all().order_by('created')):
+                note_string.append(
+                    note.created.astimezone().strftime("%Y-%m-%d %I:%M:%S %p") + "\n" +
+                    note.text
+                )
 
+            if hasattr(record, 'property'):
+                data[i]['property_labels'] = ','.join(label_string)
+                data[i]['property_notes'] = '\n----------\n'.join(note_string)
             elif hasattr(record, 'taxlot'):
-                for label in list(record.labels.all().order_by('name')):
-                    label_string.append(label.name)
                 data[i]['taxlot_labels'] = ','.join(label_string)
+                data[i]['taxlot_notes'] = '\n----------\n'.join(note_string)
 
         # force the data into the same order as the IDs
         if ids:

@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 import logging
@@ -10,9 +10,10 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from django.http import JsonResponse
 from rest_framework import viewsets, status, serializers
-from rest_framework.decorators import list_route, detail_route
+from rest_framework.decorators import action
 
 from seed.decorators import ajax_request_class
 from seed.landing.models import SEEDUser as User
@@ -224,17 +225,23 @@ class UserViewSet(viewsets.ViewSet):
             ).update(role_level=_get_role_from_js(role))
 
         if created:
+            user.set_unusable_password()
             user.email = email
             user.first_name = first_name
             user.last_name = last_name
         user.save()
+
+        if settings.FORCE_SSL_PROTOCOL:
+            protocol = 'https'
+        else:
+            protocol = request.scheme
 
         try:
             domain = request.get_host()
         except Exception:
             domain = 'seed-platform.org'
         invite_to_seed(
-            domain, user.email, default_token_generator.make_token(user), user.pk, first_name
+            protocol, domain, user.email, default_token_generator.make_token(user), user.pk, first_name
         )
 
         return JsonResponse({
@@ -262,7 +269,7 @@ class UserViewSet(viewsets.ViewSet):
 
     @ajax_request_class
     @api_endpoint_class
-    @list_route(methods=['GET'])
+    @action(detail=False, methods=['GET'])
     def current_user_id(self, request):
         """
         Returns the id (primary key) for the current user to allow it
@@ -279,7 +286,7 @@ class UserViewSet(viewsets.ViewSet):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('requires_owner')
-    @detail_route(methods=['PUT'])
+    @action(detail=True, methods=['PUT'])
     def update_role(self, request, pk=None):
         """
         Updates a user's role within an organization.
@@ -395,7 +402,7 @@ class UserViewSet(viewsets.ViewSet):
         })
 
     @ajax_request_class
-    @detail_route(methods=['GET'])
+    @action(detail=True, methods=['GET'])
     def generate_api_key(self, request, pk=None):
         """
         Generates a new API key
@@ -496,7 +503,7 @@ class UserViewSet(viewsets.ViewSet):
         })
 
     @ajax_request_class
-    @detail_route(methods=['PUT'])
+    @action(detail=True, methods=['PUT'])
     def set_password(self, request, pk=None):
         """
         sets/updates a user's password, follows the min requirement of
@@ -559,7 +566,7 @@ class UserViewSet(viewsets.ViewSet):
         }
 
     @ajax_request_class
-    @detail_route(methods=['POST'])
+    @action(detail=True, methods=['POST'])
     def is_authorized(self, request, pk=None):
         """
         Checks the auth for a given action, if user is the owner of the parent
@@ -676,7 +683,7 @@ class UserViewSet(viewsets.ViewSet):
         }
 
     @ajax_request_class
-    @detail_route(methods=['GET'])
+    @action(detail=True, methods=['GET'])
     def shared_buildings(self, request, pk=None):
         """
         Get the request user's ``show_shared_buildings`` attr
@@ -714,7 +721,7 @@ class UserViewSet(viewsets.ViewSet):
         })
 
     @ajax_request_class
-    @detail_route(methods=['PUT'])
+    @action(detail=True, methods=['PUT'])
     def default_organization(self, request, pk=None):
         """
         Sets the user's default organization

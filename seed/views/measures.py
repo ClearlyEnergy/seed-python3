@@ -1,25 +1,30 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2019, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 # import json
 
 from django.http import JsonResponse
 from rest_framework import status
-from rest_framework import viewsets
-from rest_framework.decorators import list_route
+from rest_framework.decorators import action
 from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.renderers import JSONRenderer
 
 from seed.models import (
     Measure,
 )
-from seed.serializers.measures import MeasureSerializer
+from helix.models import HELIXPropertyMeasure as PropertyMeasure
+from seed.serializers.measures import MeasureSerializer, PropertyMeasureSerializer
+from seed.utils.viewsets import (
+    SEEDOrgModelViewSet,
+    SEEDOrgCreateUpdateModelViewSet
+)
 
 
-class MeasureViewSet(viewsets.ReadOnlyModelViewSet):
+# HELIX class MeasureViewSet(viewsets.ReadOnlyModelViewSet):
+class MeasureViewSet(SEEDOrgModelViewSet):
     """
     API View for measures. This only includes retrieve and list since the measures are immutable.
 
@@ -27,12 +32,14 @@ class MeasureViewSet(viewsets.ReadOnlyModelViewSet):
     by BuildingSync enumeration.json file.
     """
     serializer_class = MeasureSerializer
+    model = Measure
+    orgfilter = 'organization_id'
     parser_classes = (JSONParser, FormParser,)
     renderer_classes = (JSONRenderer,)
-    queryset = Measure.objects.all()
+    filter_fields = ('category',)
     pagination_class = None
 
-    @list_route(methods=['POST'])
+    @action(detail=False, methods=['POST'])
     def reset(self, request):
         """
         Reset all the measures back to the defaults (as provided by BuildingSync)
@@ -66,3 +73,34 @@ class MeasureViewSet(viewsets.ReadOnlyModelViewSet):
 
         data['status'] = 'success'
         return JsonResponse(data)
+
+    @action(detail=False, methods=['GET'])
+    def categories(self, request):
+        """
+        Retrieves the categories of measures for an org.
+        ---
+        parameters:
+            - name: organization_id
+              description: The organization_id
+              required: true
+              paramType: query
+        type:
+            status:
+                description: success or error
+                type: string
+                required: true
+            categories:
+                description: Categories of measures
+                type: array of string
+                required: true
+        """
+        org_id = int(request.query_params.get('organization_id', None))
+
+        categories = list(Measure.objects.filter(organization_id=org_id).order_by('category').values_list('category', 'category_display_name').distinct())
+        return JsonResponse({'status': 'success', 'categories': categories})
+
+
+class PropertyMeasureViewSet(SEEDOrgCreateUpdateModelViewSet):
+    serializer_class = PropertyMeasureSerializer
+    model = PropertyMeasure
+    orgfilter = 'measure__organization_id'

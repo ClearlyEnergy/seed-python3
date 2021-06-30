@@ -44,9 +44,9 @@ services:
       - SECRET_KEY=ARQV8qGuJKH8sGnBf6ZeEdJQRKLTUhsvEcp8qG9X9sCPXvGLhdxqnNXpZcy6HEyf
       - DJANGO_SETTINGS_MODULE=config.settings.docker
       - NO_CREATE_USER=true
-    depends_on:
-      - db-redis
-      - db-postgres
+#    depends_on:
+#      - db-redis
+#      - db-postgres
     volumes:
       - seed_media:/seed/media
     ports:
@@ -70,8 +70,8 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.docker
       - NUMBER_OF_WORKERS
     depends_on:
-      - db-redis
-      - db-postgres
+#      - db-redis
+#      - db-postgres
       - web
     volumes:
       - seed_media:/seed/media
@@ -81,7 +81,7 @@ services:
         max-file: '5'
   #oep-city-1:
     # This is a placeholder. If needed, follow the instructions to enable: https://cloud.docker.com/u/seedplatform/repository/docker/seedplatform/oep
-  #  image: seedplatform/oep:1.3
+  #  image: seedplatform/oep:1.4
   #  depends_on:
   #    - web
   #  environment:
