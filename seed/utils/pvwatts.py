@@ -53,7 +53,7 @@ def get_ceapi_solar_repl_cost(postal_code, state, capacity):
         'ceapikey': settings.CE_API_KEY, 
         'zipcode': postal_code, 
         'state': state,
-        'capaity': capacity}
+        'capacity': capacity}
 
     response = requests.get('https://ce-api-stage.herokuapp.com/solar_replacement_cost', params=params)
     if response.status_code == requests.codes.ok:
