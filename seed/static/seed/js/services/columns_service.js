@@ -40,6 +40,27 @@ angular.module('BE.seed.service.columns', []).factory('columns_service', [
       });
     };
 
+    columns_service.create_columns = function (columns) {
+      return columns_service.create_columns_for_org(user_service.get_organization().id, columns);
+    };
+
+    columns_service.create_columns_for_org = function (org_id, columns) {
+      return $http.post('/api/v2/columns/', columns, {
+          params: {
+			  organization_id: org_id
+          }
+      }).then(function (response) {
+        return response;
+      }).catch(function (error_response) {
+        return {
+          data: {
+            success: false,
+            message: 'Unsuccessful: ' + error_response.data.message
+          }
+        };
+      });
+    };
+
     return columns_service;
 
   }]);

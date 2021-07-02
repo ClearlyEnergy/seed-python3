@@ -8,6 +8,7 @@ from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.contrib import admin
 
 from config.views import robots_txt
 from seed.api.base.urls import urlpatterns as api
@@ -69,16 +70,16 @@ handler404 = 'seed.views.main.error404'
 handler500 = 'seed.views.main.error500'
 
 if settings.DEBUG:
-    from django.contrib import admin
-
-    admin.autodiscover()
     urlpatterns += staticfiles_urlpatterns()
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += [
         # test URLs
         url(r'^angular_js_tests/$', angular_js_tests, name='angular_js_tests'),
-
-        # admin
-        url(r'^admin/', admin.site.urls),
     ]
+
+admin.autodiscover()
+# admin
+urlpatterns += [
+    url(r'^admin/', admin.site.urls),
+]

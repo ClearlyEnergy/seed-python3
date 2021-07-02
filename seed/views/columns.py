@@ -152,6 +152,19 @@ class ColumnViewSet(OrgValidateMixin, SEEDOrgCreateUpdateModelViewSet):
         })
 
     @ajax_request_class
+    @has_perm_class('requires_parent_org_owner')
+    def create(self, request):
+        mappings = request.data
+        organization_id = request.query_params.get('organization_id', None)
+        organization = Organization.objects.get(pk=organization_id)
+        result = Column.create_mappings(mappings, organization, request.user)
+        
+        if result:
+            return JsonResponse({'status': 'success'})
+        else:
+            return JsonResponse({'status': 'error'})
+
+    @ajax_request_class
     @has_perm_class('can_modify_data')
     @action(detail=False, methods=['POST'])
     def delete_all(self, request):
