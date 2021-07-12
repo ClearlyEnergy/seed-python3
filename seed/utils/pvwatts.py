@@ -157,8 +157,7 @@ def solar_npv(buildings, organization):
 
                 ### ADD FILTER BY YEAR
                 if current_npv.exists() and current_npv.first().quantity is not None:
-                    exists += 1
-                    continue
+                    current_npv.delete()
 
                 if current_production.exists() and current_production.first().quantity is not None:
                     solar_production = current_production.first().quantity
@@ -176,9 +175,14 @@ def solar_npv(buildings, organization):
                     else:
                         errors.append('Property ' + building.address_line_1 + ' has no longitude column defined, please geocode')
 
-                capacity = property_measure.measurements.get(measurement_type='CAP').quantity
-                year_installed = property_measure.measurements.get(measurement_type='CAP').year
-                
+                capacity = property_measure.measurements.filter(measurement_type='CAP')
+                if not capacity:
+                    errors.append('Property at ' + building.address_line_1 + ' has no solar capacity')
+                    continue
+                else:
+                    year_installed = capacity.first().year
+                    capacity = capacity.first().quantity
+
                 if not capacity and not current_production:
                     errors.append('Property at ' + building.address_line_1 + ' has no solar capacity or production')
                     continue
@@ -228,7 +232,7 @@ def solar_repl_cost(buildings, organization):
                 current_repl = property_measure.measurements.filter(measurement_type='REPL')
                 postal_code = building.postal_code
                 state = building.state
-                capacity = property_measure.measurements.get(measurement_type='CAP').quantity
+                capacity = property_measure.measurements.filter(measurement_type='CAP')
                 
                 if not postal_code:
                     errors.append('Property at ' + building.address_line_1 + ' has no postal code')
@@ -243,12 +247,13 @@ def solar_repl_cost(buildings, organization):
                     continue
 
                 if current_repl.exists() and current_repl.first().quantity is not None:
-                    exists += 1
-                    continue
+                    current_repl.delete()
 
                 if not capacity:
                     errors.append('Property at ' + building.address_line_1 + ' has no solar capacity')
                     continue
+                else: 
+                    capacity = capacity.first().quantity
 
                 r = get_ceapi_solar_repl_cost(postal_code, state, capacity)
 
