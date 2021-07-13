@@ -43,7 +43,7 @@ def get_ceapi_solarnpv(postal_code, state, lat, lng, capacity, year_installed, s
         params['lat'] = lat
         params['lon'] = lng
 
-    response = requests.get('https://ce-api-stage.herokuapp.com/solar_npv', params=params)
+    response = requests.get('https://api.clearlyenergy.com/solar_npv', params=params)
     if response.status_code == requests.codes.ok:
         return {'success': True, 'npv': response.json()['solar_npv'][1]}
     return {'success': False, 'code': response.status_code, 'body': response.json()['errors']}
@@ -55,7 +55,7 @@ def get_ceapi_solar_repl_cost(postal_code, state, capacity):
         'state': state,
         'capacity': capacity}
 
-    response = requests.get('https://ce-api-stage.herokuapp.com/solar_replacement_cost', params=params)
+    response = requests.get('https://api.clearlyenergy.com/solar_replacement_cost', params=params)
     if response.status_code == requests.codes.ok:
         return {'success': True, 'solar_cost': response.json()['solar_cost']}
     return {'success': False, 'code': response.status_code, 'body': response.json()['errors']}
