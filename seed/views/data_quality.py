@@ -27,7 +27,7 @@ from seed.models.data_quality import (
 from seed.serializers.data_quality import (
     DataQualityCheckSerializer,
 )
-from seed.utils.api import api_endpoint_class, OrgMixin
+from seed.utils.api import api_endpoint_class, OrgMixin, OrgValidateMixin
 from seed.utils.cache import get_cache_raw
 from seed.utils.viewsets import SEEDOrgCreateUpdateModelViewSet
 
@@ -427,10 +427,6 @@ class DataQualityViews(viewsets.ViewSet, OrgMixin):
                 }
             )
 
-<<<<<<< HEAD
-# HELIX        dq = DataQualityCheck.retrieve(organization.id)
-        dq = DataQualityCheck.objects.get(pk=body.get('data_quality_id'))
-=======
         if valid_rules is False:
             return JsonResponse({
                 'status': 'error',
@@ -440,8 +436,8 @@ class DataQualityViews(viewsets.ViewSet, OrgMixin):
         # This pattern of deleting and recreating Rules is slated to be deprecated
         bad_rule_creation = False
         error_messages = set()
-        dq = DataQualityCheck.retrieve(organization.id)
->>>>>>> upstream-develop
+# HELIX        dq = DataQualityCheck.retrieve(organization.id)
+        dq = DataQualityCheck.objects.get(pk=body.get('data_quality_id'))
         dq.remove_all_rules()
         for rule in updated_rules:
             with transaction.atomic():

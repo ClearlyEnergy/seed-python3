@@ -56,7 +56,9 @@ lark==0.11.3
 geojson==2.5.0
 
 # Helix
-django-tos
+# Once a new release > 0.9.0 is released, django-tos will support Django 3 and
+# this can be replaced with django-tos>0.9.0
+-e git+https://github.com/revsys/django-tos.git#egg=django-tos
 -e git+https://github.com/ClearlyEnergy/HELIX.git#egg=helix
 -e git+https://github.com/ClearlyEnergy/helix-hes.git#egg=hes
 zeep==2.3.0
@@ -64,8 +66,7 @@ zeep==2.3.0
 googlemaps==2.5.1
 -e git+https://github.com/ClearlyEnergy/helix-label.git#egg=label
 pdfrw==0.4
-reportlab==3.5.21
-boto3==1.9.96
+reportlab==3.5.68
 mozilla-django-oidc
 django-cors-headers
 

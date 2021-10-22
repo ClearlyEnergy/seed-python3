@@ -29,8 +29,8 @@ from seed.models import (
     TaxLotProperty,
     TaxLotView,
     Cycle,
-    ColumnListProfile,
-
+    ColumnListProfile
+)
 from seed.models.meters import (
     Meter,
     MeterReading

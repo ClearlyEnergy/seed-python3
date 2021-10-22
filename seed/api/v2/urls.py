@@ -46,9 +46,9 @@ from seed.views.users import UserViewSet
 from helix.views import helix_csv_export, helix_green_addendum, helix_massachusetts_scorecard, helix_dups_export
 
 api_v2_router = routers.DefaultRouter()
-api_v2_router.register(r'data_quality', DataQualityCheckViewSet, base_name='data_quality')
-api_v2_router.register(r'property_measures', PropertyMeasureViewSet, base_name='property_measures')
-api_v2_router.register(r'pvwatts', PvwattsViews, base_name="pvwatts")
+api_v2_router.register(r'data_quality', DataQualityCheckViewSet, basename='data_quality')
+api_v2_router.register(r'property_measures', PropertyMeasureViewSet, basename='property_measures')
+api_v2_router.register(r'pvwatts', PvwattsViews, basename="pvwatts")
 api_v2_router.register(r'building_file', BuildingFileViewSet, basename='building_file')
 api_v2_router.register(r'columns', ColumnViewSet, basename="columns")
 api_v2_router.register(r'column_mappings', ColumnMappingViewSet, basename="column_mappings")
