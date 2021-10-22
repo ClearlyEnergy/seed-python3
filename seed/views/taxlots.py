@@ -1,12 +1,14 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California,
+:copyright (c) 2014 - 2021, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
 :author
 """
+
+import json
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q
@@ -14,7 +16,7 @@ from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
-from rest_framework.viewsets import GenericViewSet
+from rest_framework.viewsets import ViewSet
 
 from seed.utils.match import match_merge_link
 from seed.decorators import ajax_request_class
@@ -29,8 +31,8 @@ from seed.models import (
     MERGE_STATE_MERGED,
     MERGE_STATE_DELETE,
     Column,
-    ColumnListSetting,
-    ColumnListSettingColumn,
+    ColumnListProfile,
+    ColumnListProfileColumn,
     Cycle,
     Note,
     PropertyView,
@@ -69,7 +71,7 @@ DISPLAY_RAW_EXTRADATA = True
 DISPLAY_RAW_EXTRADATA_TIME = True
 
 
-class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
+class TaxLotViewSet(ViewSet, ProfileIdMixin):
     renderer_classes = (JSONRenderer,)
     serializer_class = TaxLotSerializer
 
@@ -151,16 +153,16 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
             ).values_list('id', flat=True))
         else:
             try:
-                profile = ColumnListSetting.objects.get(
+                profile = ColumnListProfile.objects.get(
                     organization=org,
                     id=profile_id,
-                    settings_location=VIEW_LIST,
+                    profile_location=VIEW_LIST,
                     inventory_type=VIEW_LIST_TAXLOT
                 )
-                show_columns = list(ColumnListSettingColumn.objects.filter(
-                    column_list_setting_id=profile.id
+                show_columns = list(ColumnListProfileColumn.objects.filter(
+                    column_list_profile_id=profile.id
                 ).values_list('column_id', flat=True))
-            except ColumnListSetting.DoesNotExist:
+            except ColumnListProfile.DoesNotExist:
                 show_columns = None
 
         related_results = TaxLotProperty.get_related(taxlot_views, show_columns,
@@ -655,7 +657,7 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
         organization_id = int(request.query_params.get('organization_id'))
         organization = Organization.objects.get(pk=organization_id)
 
-        only_used = request.query_params.get('only_used', False)
+        only_used = json.loads(request.query_params.get('only_used', 'false'))
         columns = Column.retrieve_all(organization_id, 'taxlot', only_used)
         unitted_columns = [add_pint_unit_suffix(organization, x) for x in columns]
 
@@ -822,7 +824,7 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
                 if val == '':
                     new_taxlot_state_data[key] = None
 
-            changed_fields = get_changed_fields(taxlot_state_data, new_taxlot_state_data)
+            changed_fields, previous_data = get_changed_fields(taxlot_state_data, new_taxlot_state_data)
             if not changed_fields:
                 result.update(
                     {'status': 'success', 'message': 'Records are identical'}
@@ -882,8 +884,13 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
                 taxlot_state_data = TaxLotStateSerializer(taxlot_view.state).data
 
                 if 'extra_data' in new_taxlot_state_data:
-                    taxlot_state_data['extra_data'].update(new_taxlot_state_data.pop('extra_data'))
-                taxlot_state_data.update(new_taxlot_state_data)
+                    taxlot_state_data['extra_data'].update(
+                        new_taxlot_state_data['extra_data']
+                    )
+
+                taxlot_state_data.update(
+                    {k: v for k, v in new_taxlot_state_data.items() if k != 'extra_data'}
+                )
 
                 log = TaxLotAuditLog.objects.select_related().filter(
                     state=taxlot_view.state
@@ -910,6 +917,8 @@ class TaxLotViewSet(GenericViewSet, ProfileIdMixin):
 
                         # save the property view so that the datetime gets updated on the property.
                         taxlot_view.save()
+
+                        Note.create_from_edit(request.user.id, taxlot_view, new_taxlot_state_data, previous_data)
 
                         merge_count, link_count, view_id = match_merge_link(taxlot_view.id, 'TaxLotState')
 

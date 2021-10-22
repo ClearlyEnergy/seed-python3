@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.controller.rename_column_modal', [])
@@ -12,6 +12,7 @@ angular.module('BE.seed.controller.rename_column_modal', [])
     'column_name',
     'columns_service',
     'spinner_utility',
+    'org_id',
     function (
       $scope,
       $state,
@@ -20,7 +21,8 @@ angular.module('BE.seed.controller.rename_column_modal', [])
       column_id,
       column_name,
       columns_service,
-      spinner_utility
+      spinner_utility,
+      org_id
     ) {
       $scope.step = {
         number: 1
@@ -48,7 +50,7 @@ angular.module('BE.seed.controller.rename_column_modal', [])
 
       $scope.accept_rename = function () {
         spinner_utility.show();
-        columns_service.rename_column($scope.column.id, $scope.column.name, $scope.settings.overwrite_preference)
+        columns_service.rename_column_for_org(org_id, $scope.column.id, $scope.column.name, $scope.settings.overwrite_preference)
           .then(function (response) {
             $scope.results = {
               success: response.data.success,

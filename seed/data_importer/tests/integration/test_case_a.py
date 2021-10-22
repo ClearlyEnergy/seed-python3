@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 import logging
@@ -94,7 +94,7 @@ class TestCaseA(DataMappingBaseTestCase):
         # verify that the lot_number has the tax_lot information. For this case it is one-to-one
         self.assertEqual(ps.lot_number, ts.jurisdiction_tax_lot_id)
 
-        tasks.match_buildings(self.import_file.id)
+        tasks.geocode_and_match_buildings_task(self.import_file.id)
 
         self.assertEqual(TaxLot.objects.count(), 10)
 

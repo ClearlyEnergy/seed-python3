@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 import re
@@ -21,7 +21,7 @@ from django.contrib.auth.models import (
     UserManager,
     # SiteProfileNotAvailable
 )
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.db import models
 from django.utils.http import urlquote
@@ -122,6 +122,10 @@ class SEEDUser(AbstractBaseUser, PermissionsMixin):
 
     def get_absolute_url(self):
         return "/users/%s/" % urlquote(self.username)
+
+    def deactivate_user(self):
+        self.is_active = False
+        self.save()
 
     def get_full_name(self):
         """

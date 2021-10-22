@@ -10,7 +10,7 @@ In order to support Redis passwords, the configuration of the Redis/Celery setti
 You will need to add the following to your local_untracked.py configuration file. If you are using
 Docker then you will not need to do this.
 
-.. code-block:: console
+.. code-block:: python
 
     CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
@@ -18,7 +18,7 @@ If you are using a password, then in your local_untracked.py configuration, add 
 the CACHES configuration option. Your final configuration should look like the following in your
 local_untracked.py file
 
-.. code-block:: console
+.. code-block:: python
 
     CACHES = {
         'default': {
@@ -47,18 +47,53 @@ local_untracked.py file
         ),
     )
 
+Version 2.11.0
+--------------
+- There are no special migrations needed for this version. Simply run `./manage.py migrate`.
+
+Version 2.10.0
+--------------
+- There are no special migrations needed for this version. Simply run `./manage.py migrate`.
+
+Version 2.7.3 to 2.9.0
+----------------------
+- The migrations should work without additional support. Simply run `./manage.py migrate`.
+
+Version 2.7.2
+-------------
+- The migrations should work without additional support. Simply run `./manage.py migrate`. There are no manual migrations needed.
+- Note the **Important Note** in Version 2.7.1 migration below which may require the need to run a "fake" migration
+
 Version 2.7.1
 -------------
 
 - There are no special migrations needed for this version. Simply run `./manage.py migrate`.
 
+**Important Note:**
+
+If upgrading from `< 2.7.0` to `>= 2.7.1` you may encounter a failed migration with ``0118_match_merge_link_all_orgs``.  This is expected if the database is several versions behind, and it effectively reorders migration 118 to run after all other migrations have completed to prepare your database to recognize properties and taxlots across multiple cycles.  Run the following code manually to fully migrate:
+
+#. ``./manage.py migrate --fake seed 0118_match_merge_link_all_orgs``
+
+#. ``./manage.py migrate``
+
+#. ``./manage.py shell``
+
+    .. code-block:: python
+
+        from seed.lib.superperms.orgs.models import Organization
+        from seed.utils.match import whole_org_match_merge_link
+
+        for org in Organization.objects.all():
+            whole_org_match_merge_link(org.id, 'PropertyState')
+            whole_org_match_merge_link(org.id, 'TaxLotState')
+
 Version 2.7.0
 -------------
 
 - This migration will run a match/merge/pair/link method upon migration. Make sure to run the migration manually and not inside of the docker container using the ./deploy.sh script.
-- Make sure to backup the database before peforming the migration.
+- Make sure to backup the database before performing the migration.
 - Run `./manage.py migrate`.
-
 
 Version 2.6.1
 -------------
@@ -70,7 +105,7 @@ Version 2.6.0
 -------------
 
 Version 2.6.0 includes support for meters and time series data storage. In order to use this release
-you must first install [timescaledb](https://docs.timescale.com/v1.2/getting-started).
+you must first install `TimescaleDB`_.
 
 Docker-based Deployment
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -103,7 +138,7 @@ Max OSX
 Version 2.5.2
 -------------
 
-- There are no manual migratios that are needed. The `./manage.py migrate` command may take awhile
+- There are no manual migrations that are needed. The `./manage.py migrate` command may take awhile
 to run since the migration requires the recalculation of all the normalized addresses to parse
 bldg correct and to cast the result as a string and not a bytestring.
 
@@ -145,7 +180,7 @@ Development
 
 - **Update** your DATABASES engine to be `django.contrib.gis.db.backends.postgis`
 
-.. code-block:: json
+.. code-block:: python
 
     DATABASES = {
         'default': {
@@ -158,8 +193,10 @@ Development
         }
     }
 
-- Run `./manage.py migrate`
+- Run ``./manage.py migrate``
 
 .. _`MapQuest Developer`: https://developer.mapquest.com/plan_purchase/steps/business_edition/business_edition_free/register
 
 .. _`MapQuest Key`: https://developer.mapquest.com/user/me/apps
+
+.. _`TimescaleDB`: https://docs.timescale.com/v1.2/getting-started

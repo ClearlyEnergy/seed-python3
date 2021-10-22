@@ -4,8 +4,8 @@
 
         </div>
         <div class="page_title">
-            <h1 ng-if="::inventory_type === 'taxlots'" translate>Tax Lots List Settings</h1>
-            <h1 ng-if="::inventory_type === 'properties'" translate>Properties List Settings</h1>
+            <h1 ng-if="::inventory_type === 'taxlots'" translate>Tax Lots</h1>
+            <h1 ng-if="::inventory_type === 'properties'" translate>Properties</h1>
         </div>
         <div class="right page_action_container page_action_btn"></div>
     </div>
@@ -22,16 +22,16 @@
         </div>
         <div class="section_action_container right_wide settings_profile">
             <div>
-                <span>List Settings Profile: </span>
+                <span>Column List Profile: </span>
                 <select class="form-control input-sm" ng-model="currentProfile" ng-options="option.name for option in profiles track by option.id"></select>
 
-                <button class="btn btn-success" type="button" ng-click="saveProfile()" ng-disabled="!currentProfile || !isModified()" tooltip-placement="bottom" uib-tooltip="Save">
+                <button class="btn btn-success" type="button" ng-click="saveProfile()" ng-disabled="!currentProfile || !isModified() || currentProfile.id === null" tooltip-placement="bottom" uib-tooltip="Save">
                     <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
                 </button>
-                <button class="btn btn-primary" type="button" ng-click="renameProfile()" ng-disabled="!currentProfile" tooltip-placement="bottom" uib-tooltip="Rename">
+                <button class="btn btn-primary" type="button" ng-click="renameProfile()" ng-disabled="!currentProfile || currentProfile.id === null" tooltip-placement="bottom" uib-tooltip="Rename">
                     <span class="glyphicon glyphicon-erase" aria-hidden="true"></span>
                 </button>
-                <button class="btn btn-danger" type="button" ng-click="removeProfile()" ng-disabled="!currentProfile" tooltip-placement="bottom" uib-tooltip="Delete">
+                <button class="btn btn-danger" type="button" ng-click="removeProfile()" ng-disabled="!currentProfile || currentProfile.id === null" tooltip-placement="bottom" uib-tooltip="Delete">
                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                 </button>
                 <button class="btn btn-info" type="button" ng-click="newProfile()" tooltip-placement="bottom" uib-tooltip="New">
@@ -54,12 +54,13 @@
             </label>
         </div>
         <h3 translate="NUMBER_COLUMNS_AVAILABLE"
-            translate-values="{ count: (data.length | number) }"></h3>
+            translate-values="{ count: (gridOptions.data.length | number) }"></h3>
+        <p class="text-danger">NOTE: ordering of all derived column (<i class="fa fa-link"></i>) rows is currently ignored; they will all appear at the end of the list when viewed.</p>
         <p ng-if="inventory_type === 'taxlots'" translate>LIST_GUIDANCE_TAXLOTS</p>
         <p ng-if="inventory_type === 'properties'" translate>LIST_GUIDANCE_PROPERTIES</p>
     </div>
     <div class="section_content">
-        <div id="grid-container">
+        <div id="grid-container" ng-class="{'readonly-grid': currentProfile.id === null}">
             <div ui-grid="gridOptions" ui-grid-selection ui-grid-draggable-rows></div>
         </div>
     </div>

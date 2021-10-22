@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California,
+:copyright (c) 2014 - 2021, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
@@ -20,8 +20,8 @@ from rest_framework import status
 from seed.lib.superperms.orgs.models import Organization
 from seed.models import (
     Column,
-    ColumnListSetting,
-    ColumnListSettingColumn,
+    ColumnListProfile,
+    ColumnListProfileColumn,
     PropertyView,
     TaxLotProperty,
     TaxLotView,
@@ -33,31 +33,42 @@ from seed.serializers.pint import apply_display_unit_preferences
 
 def get_changed_fields(old, new):
     """Return changed fields as json string"""
-    changed_fields, changed_extra_data = diffupdate(old, new)
+    changed_fields, changed_extra_data, previous_data = diffupdate(old, new)
+
     if 'id' in changed_fields:
         changed_fields.remove('id')
+        del previous_data['id']
+
     if 'pk' in changed_fields:
         changed_fields.remove('pk')
+        del previous_data['pk']
+
     if not (changed_fields or changed_extra_data):
-        return None
+        return None, None
     else:
         return json.dumps({
             'regular_fields': changed_fields,
             'extra_data_fields': changed_extra_data
-        })
+        }), previous_data
 
 
 def diffupdate(old, new):
     """Returns lists of fields changed"""
     changed_fields = []
     changed_extra_data = []
+    previous_data = {}
+
     for k, v in new.items():
         if old.get(k, None) != v or k not in old:
             changed_fields.append(k)
+            previous_data[k] = old.get(k, None)
+
     if 'extra_data' in changed_fields:
         changed_fields.remove('extra_data')
-        changed_extra_data, _ = diffupdate(old['extra_data'], new['extra_data'])
-    return changed_fields, changed_extra_data
+        changed_extra_data, _, previous_extra_data = diffupdate(old['extra_data'], new['extra_data'])
+        previous_data['extra_data'] = previous_extra_data
+
+    return changed_fields, changed_extra_data, previous_data
 
 
 def update_result_with_master(result, master):
@@ -154,16 +165,16 @@ def properties_across_cycles(org_id, profile_id, cycle_ids=[]):
         ).values_list('id', flat=True))
     else:
         try:
-            profile = ColumnListSetting.objects.get(
+            profile = ColumnListProfile.objects.get(
                 organization_id=org_id,
                 id=profile_id,
-                settings_location=VIEW_LIST,
+                profile_location=VIEW_LIST,
                 inventory_type=VIEW_LIST_PROPERTY
             )
-            show_columns = list(ColumnListSettingColumn.objects.filter(
-                column_list_setting_id=profile.id
+            show_columns = list(ColumnListProfileColumn.objects.filter(
+                column_list_profile_id=profile.id
             ).values_list('column_id', flat=True))
-        except ColumnListSetting.DoesNotExist:
+        except ColumnListProfile.DoesNotExist:
             show_columns = None
 
     results = {}

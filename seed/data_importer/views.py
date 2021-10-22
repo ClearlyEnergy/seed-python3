@@ -1,12 +1,11 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 import csv
 import datetime
-from io import BytesIO
 import logging
 import os
 
@@ -23,7 +22,6 @@ from rest_framework.decorators import api_view, action, parser_classes, \
     permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from seed.building_sync.building_sync import BuildingSync
 from seed.data_importer.models import (
     ImportFile,
     ImportRecord
@@ -36,6 +34,7 @@ from seed.data_importer.tasks import (
     map_additional_models as task_map_additional_models,
     match_buildings as task_match_buildings,
     save_raw_data as task_save_raw,
+    validate_use_cases as task_validate_use_cases,
     helix_leed_to_file,
     helix_hes_to_file,
     helix_certification_create,
@@ -63,7 +62,6 @@ from seed.models import (
     obj_to_dict,
     PropertyState,
     TaxLotState,
-    DATA_STATE_IMPORT,
     DATA_STATE_MAPPING,
     DATA_STATE_MATCHING,
     MERGE_STATE_UNKNOWN,
@@ -404,7 +402,7 @@ def get_upload_details(request):
 
     """
     ret = {
-        'upload_path': '/api/v2/upload/'
+        'upload_path': '/api/v3/upload/'
     }
     return JsonResponse(ret)
 
@@ -982,6 +980,43 @@ class ImportFileViewSet(viewsets.ViewSet):
     @ajax_request_class
     @has_perm_class('can_modify_data')
     @action(detail=True, methods=['POST'])
+    def validate_use_cases(self, request, pk=None):
+        """
+        Starts a background task to call BuildingSync's use case validation
+        tool.
+        ---
+        type:
+            status:
+                required: true
+                type: string
+                description: either success or error
+            message:
+                required: false
+                type: string
+                description: error message, if any
+            progress_key:
+                type: integer
+                description: ID of background job, for retrieving job progress
+        parameter_strategy: replace
+        parameters:
+            - name: pk
+              description: Import file ID
+              required: true
+              paramType: path
+        """
+        import_file_id = pk
+        if not import_file_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'must include pk of import_file to validate'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return task_validate_use_cases(import_file_id)
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('can_modify_data')
+    @action(detail=True, methods=['POST'])
     def save_raw_data(self, request, pk=None):
         """
         Starts a background task to import raw data from an ImportFile
@@ -1376,21 +1411,15 @@ class ImportFileViewSet(viewsets.ViewSet):
                 thresh=80
             )
         elif import_file.from_buildingsync:
-            raw_property_state = PropertyState.objects.filter(import_file=import_file,
-                                                              data_state__in=[DATA_STATE_IMPORT, DATA_STATE_MAPPING])
-            # there should always be at least one property state associated with
-            # the import file at this point
-            if raw_property_state.count() == 0:
-                raise Exception('Expected to find 1 or more property states but found none')
-            raw_property_state = raw_property_state[0]
-
-            bs = BuildingSync()
-            # encode to bytes b/c lxml doesn't like Unicode string with encoding declarations
-            bs.import_file(BytesIO(raw_property_state.extra_data['_xml'].encode()))
-            base_mapping = bs.get_base_mapping()
-            # TODO: fetch custom mapping for org and pass it to the build function
-            custom_mapping = None
-            suggested_mappings = xml_mapper.build_column_mapping(base_mapping, custom_mapping)
+            bsync_mappings = xml_mapper.build_column_mapping()
+            suggested_mappings = mapper.build_column_mapping(
+                import_file.first_row_columns,
+                Column.retrieve_all_by_tuple(organization_id),
+                previous_mapping=get_column_mapping,
+                map_args=[organization],
+                default_mappings=bsync_mappings,
+                thresh=80
+            )
         else:
             # All other input types
             suggested_mappings = mapper.build_column_mapping(

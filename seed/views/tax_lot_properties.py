@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California,
+:copyright (c) 2014 - 2021, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
@@ -15,7 +15,7 @@ from collections import OrderedDict
 import xlsxwriter
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
-from quantityfield import ureg
+from quantityfield.units import ureg
 from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
 from rest_framework.viewsets import GenericViewSet
@@ -28,9 +28,9 @@ from seed.models import (
     PropertyView,
     TaxLotProperty,
     TaxLotView,
-    ColumnListSetting,
     Cycle,
-)
+    ColumnListProfile,
+
 from seed.models.meters import (
     Meter,
     MeterReading
@@ -120,7 +120,7 @@ class TaxLotPropertyViewSet(GenericViewSet):
 
         # Set the first column to be the ID
         column_name_mappings = OrderedDict([('id', 'ID')])
-        column_ids, add_column_name_mappings, columns_from_database = ColumnListSetting.return_columns(
+        column_ids, add_column_name_mappings, columns_from_database = ColumnListProfile.return_columns(
             org_id,
             profile_id,
             view_klass_str)

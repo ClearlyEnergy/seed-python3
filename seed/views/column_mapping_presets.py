@@ -1,7 +1,6 @@
 # !/usr/bin/env python
 # encoding: utf-8
 
-from django.core.exceptions import FieldDoesNotExist
 from django.http import JsonResponse
 
 from rest_framework.decorators import action
@@ -9,14 +8,14 @@ from seed.lib.mcm import mapper
 from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.models import (
     Column,
-    ColumnMappingPreset,
+    ColumnMappingProfile,
     Organization,
 )
-from seed.serializers.column_mapping_presets import ColumnMappingPresetSerializer
+from seed.serializers.column_mapping_profiles import ColumnMappingProfileSerializer
 from seed.utils.api import api_endpoint_class
 
 from rest_framework.viewsets import ViewSet
-from rest_framework.status import HTTP_400_BAD_REQUEST
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_200_OK
 
 
 class ColumnMappingPresetViewSet(ViewSet):
@@ -32,9 +31,13 @@ class ColumnMappingPresetViewSet(ViewSet):
              paramType: query
         """
         try:
-            org_id = request.query_params.get('organization_id', None)
-            presets = ColumnMappingPreset.objects.filter(organizations__pk=org_id)
-            data = [ColumnMappingPresetSerializer(p).data for p in presets]
+            profile_types = request.GET.getlist('profile_type')
+            profile_types = [ColumnMappingProfile.get_profile_type(pt) for pt in profile_types]
+            filter_params = {'organizations__pk': request.query_params.get('organization_id', None)}
+            if profile_types:
+                filter_params['profile_type__in'] = profile_types
+            presets = ColumnMappingProfile.objects.filter(**filter_params)
+            data = [ColumnMappingProfileSerializer(p).data for p in presets]
 
             return JsonResponse({
                 'status': 'success',
@@ -67,24 +70,51 @@ class ColumnMappingPresetViewSet(ViewSet):
               paramType: body
         """
         try:
-            updated = ColumnMappingPreset.objects.filter(pk=pk).update(**request.data)
-        except FieldDoesNotExist as e:
+            preset = ColumnMappingProfile.objects.get(pk=pk)
+        except ColumnMappingProfile.DoesNotExist:
             return JsonResponse({
                 'status': 'error',
-                'message': str(e),
+                'data': 'No preset with given id'
             }, status=HTTP_400_BAD_REQUEST)
 
-        if updated:
-            preset = ColumnMappingPreset.objects.get(pk=pk)
-            status = 'success'
-            data = ColumnMappingPresetSerializer(preset).data
-        else:
-            status = 'error'
-            data = "Column Mapping Preset not updated."
+        if preset.profile_type == ColumnMappingProfile.BUILDINGSYNC_DEFAULT:
+            return JsonResponse({
+                'status': 'error',
+                'data': 'Default BuildingSync presets are not editable'
+            }, status=HTTP_400_BAD_REQUEST)
 
+        updated_name, updated_mappings = request.data.get('name'), request.data.get('mappings')
+
+        # update the name
+        if updated_name is not None:
+            preset.name = updated_name
+
+        # update the mappings according to the preset type
+        if updated_mappings is not None:
+            if preset.profile_type == ColumnMappingProfile.BUILDINGSYNC_CUSTOM:
+                # only allow these updates to the mappings
+                # - changing the to_field or from_units
+                # - removing mappings
+                original_mappings_dict = {m['from_field']: m.copy() for m in preset.mappings}
+                final_mappings = []
+                for updated_mapping in updated_mappings:
+                    from_field = updated_mapping['from_field']
+                    original_mapping = original_mappings_dict.get(from_field)
+                    if original_mapping is not None:
+                        original_mapping['to_field'] = updated_mapping['to_field']
+                        original_mapping['from_units'] = updated_mapping['from_units']
+                        final_mappings.append(original_mapping)
+                        del original_mappings_dict[from_field]
+
+                preset.mappings = final_mappings
+            elif updated_mappings:
+                # indiscriminantly update the mappings
+                preset.mappings = updated_mappings
+
+        preset.save()
         return JsonResponse({
-            'status': status,
-            'data': data,
+            'status': 'success',
+            'data': ColumnMappingProfileSerializer(preset).data,
         })
 
     @api_endpoint_class
@@ -109,13 +139,26 @@ class ColumnMappingPresetViewSet(ViewSet):
         """
         org_id = request.query_params.get('organization_id', None)
         try:
-            org = Organization.objects.get(pk=org_id)
-            preset = org.columnmappingpreset_set.create(**request.data)
+            # verify the org exists then validate and create the preset
+            Organization.objects.get(pk=org_id)
+
+            preset_data = request.data
+            preset_data['organizations'] = [org_id]
+            ser_preset = ColumnMappingProfileSerializer(data=preset_data)
+            if ser_preset.is_valid():
+                preset = ser_preset.save()
+                response_status = 'success'
+                response_data = ColumnMappingProfileSerializer(preset).data
+                response_code = HTTP_200_OK
+            else:
+                response_status = 'error'
+                response_data = ser_preset.errors
+                response_code = HTTP_400_BAD_REQUEST
 
             return JsonResponse({
-                'status': 'success',
-                'data': ColumnMappingPresetSerializer(preset).data,
-            })
+                'status': response_status,
+                'data': response_data,
+            }, status=response_code)
         except Exception as e:
             return JsonResponse({
                 'status': 'error',
@@ -134,17 +177,24 @@ class ColumnMappingPresetViewSet(ViewSet):
               paramType: path
         """
         try:
-            ColumnMappingPreset.objects.get(pk=pk).delete()
-
-            return JsonResponse({
-                'status': 'success',
-                'data': "Successfully deleted",
-            })
+            preset = ColumnMappingProfile.objects.get(pk=pk)
         except Exception as e:
             return JsonResponse({
                 'status': 'error',
                 'data': str(e),
             }, status=HTTP_400_BAD_REQUEST)
+
+        if preset.profile_type == ColumnMappingProfile.BUILDINGSYNC_DEFAULT:
+            return JsonResponse({
+                'status': 'error',
+                'data': 'Not allowed to edit default BuildingSync presets'
+            }, status=HTTP_400_BAD_REQUEST)
+        else:
+            preset.delete()
+            return JsonResponse({
+                'status': 'success',
+                'data': "Successfully deleted",
+            })
 
     @api_endpoint_class
     @has_perm_class('requires_member')

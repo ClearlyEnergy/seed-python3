@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 from __future__ import unicode_literals
@@ -319,7 +319,7 @@ class TaxLotProperty(models.Model):
                     lookups['related_view_id']: getattr(join, lookups['related_view_id'])
                 })
 
-            join_dict['notes_count'] = join_note_counts.get(join.id, 0)
+            join_dict['notes_count'] = join_note_counts.get(getattr(join, lookups['related_view_id']), 0)
             join_dict['merged_indicator'] = getattr(join, lookups['related_view']).state_id in join_merged_state_ids
 
             # remove the measures from this view for now
@@ -379,12 +379,10 @@ class TaxLotProperty(models.Model):
             # bring in GIS data
             obj_dict[lookups['bounding_box']] = bounding_box_wkt(obj.state)
             obj_dict[lookups['long_lat']] = long_lat_wkt(obj.state)
+            obj_dict[lookups['centroid']] = centroid_wkt(obj.state)
 
             # store the property / taxlot data to the object dictionary as well. This is hacky.
             if lookups['obj_class'] == 'PropertyView':
-                # bring in property-specific GIS data
-                obj_dict[lookups['centroid']] = centroid_wkt(obj.state)
-
                 if 'campus' in filtered_fields:
                     obj_dict[obj_column_name_mapping['campus']] = obj.property.campus
                 # Do not make these timestamps naive. They persist correctly.

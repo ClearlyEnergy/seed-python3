@@ -1,5 +1,5 @@
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California,
+:copyright (c) 2014 - 2021, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
@@ -14,7 +14,7 @@ from kombu.serialization import register
 
 from seed.serializers.celery import CeleryDatetimeSerializer
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -109,6 +109,7 @@ INSTALLED_APPS = (
     'drf_yasg',
     'oauth2_jwt_provider',
     'crispy_forms',  # needed to squash warnings around collectstatic with rest_framework
+    'post_office',
     'tos',
     'mozilla_django_oidc',
     'corsheaders',
@@ -120,6 +121,7 @@ SEED_CORE_APPS = (
     'seed.data_importer',
     'seed',
     'seed.lib.superperms.orgs',
+    'seed.docs'
 )
 
 HELIX_APPS = (
@@ -128,6 +130,14 @@ HELIX_APPS = (
     'leed',
     'label',
 )
+
+# Added by Ashray Wadhwa (08/19/2020)
+POST_OFFICE = {
+    'BACKENDS': {
+        'default': 'smtp.EmailBackend',
+        'post_office_backend': 'django.core.mail.backends.console.EmailBackend',
+    }
+}
 
 # Apps with tables created by migrations, but which 3rd-party apps depend on.
 # Internal apps can resolve this via South's depends_on.
@@ -140,17 +150,19 @@ SEED_URL_APPS = (
     'seed',
 )
 
-MEDIA_URL = '/media/'
+MEDIA_URL = '/api/v3/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'collected_static')
 COMPRESS_AUTOPREFIXER_BINARY = 'node_modules/.bin/postcss'
-COMPRESS_CSS_FILTERS = [
-    'compressor.filters.css_default.CssAbsoluteFilter',
-    'django_compressor_autoprefixer.AutoprefixerFilter',
-    'compressor.filters.cssmin.CSSMinFilter'
-]
+COMPRESS_FILTERS = {
+    'css': [
+        'compressor.filters.css_default.CssAbsoluteFilter',
+        'django_compressor_autoprefixer.AutoprefixerFilter',
+        'compressor.filters.cssmin.CSSMinFilter',
+    ]
+}
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'vendors')
 ]
@@ -271,6 +283,7 @@ AUTH_PASSWORD_VALIDATORS = [
         }
     },
 ]
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Allow super users to register applications for OAuth authentication
 OAUTH2_PROVIDER = {
@@ -294,17 +307,21 @@ AUTHENTICATION_BACKENDS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'mozilla_django_oidc.contrib.drf.OIDCAuthentication',
-        'oauth2_provider.ext.rest_framework.OAuth2Authentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
         'seed.authentication.SEEDAuthentication',
     ),
-    'DEFAULT_FILTER_BACKENDS':
-        ('django_filters.rest_framework.DjangoFilterBackend',),
+    'DEFAULT_FILTER_BACKENDS': (
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_PAGINATION_CLASS':
         'seed.utils.pagination.ResultsListPagination',
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
     'PAGE_SIZE': 25,
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
@@ -334,11 +351,29 @@ SWAGGER_SETTINGS = {
     'LOGOUT_URL': '/accounts/logout',
 }
 
+BSYNCR_SERVER_HOST = os.environ.get('BSYNCR_SERVER_HOST')
+BSYNCR_SERVER_PORT = os.environ.get('BSYNCR_SERVER_PORT', '80')
+
+# LBNL's BETTER tool host location
+BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better.lbl.gov') 
+
+# Google reCAPTCHA env variable for self-registration. SITE_KEY defaults
+# to the key registered for SEED. Override it needing to test.
+# https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do
+GOOGLE_RECAPTCHA_SITE_KEY = os.environ.get('GOOGLE_RECAPTCHA_SITE_KEY', '6LexR2MaAAAAAMkCFmLaucT0KwSfx0PjiX-cf6rV')
+GOOGLE_RECAPTCHA_SECRET_KEY = os.environ.get('GOOGLE_RECAPTCHA_SECRET_KEY')
+
 # Certification
 # set this for a default validity_duration
 # should be a integer representing a number of days
 # GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION=5 * 365
 GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION = None
+
+# Config to include v2 APIs
+INCLUDE_SEED_V2_APIS = os.environ.get('INCLUDE_SEED_V2_APIS', 'true').lower() == 'true'
+
+# Config self registration
+INCLUDE_ACCT_REG = os.environ.get('INCLUDE_ACCT_REG', 'true').lower() == 'true'
 
 OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://sparkplatform.com/openid/authorize'
 OIDC_OP_TOKEN_ENDPOINT = 'https://sparkplatform.com/openid/token'

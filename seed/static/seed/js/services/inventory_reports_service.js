@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.service.inventory_reports',
@@ -44,14 +44,14 @@ angular.module('BE.seed.service.inventory_reports',
     function get_report_data (xVar, yVar, start, end) {
 
       // Error checks
-      if (_.isNil(xVar) || _.isNil(yVar) || _.isNil(start) || _.isNil(end)) {
+      if (_.some([xVar, yVar, start, end], _.isNil)) {
         $log.error('#inventory_reports_service.get_report_data(): null parameter');
         throw new Error('Invalid Parameter');
       }
 
-      return $http.get(window.BE.urls.get_inventory_report_data, {
+      const organization_id = user_service.get_organization().id;
+      return $http.get('/api/v3/organizations/' + organization_id + '/report/', {
         params: {
-          organization_id: user_service.get_organization().id,
           x_var: xVar,
           y_var: yVar,
           start: start,
@@ -97,14 +97,14 @@ angular.module('BE.seed.service.inventory_reports',
     function get_aggregated_report_data (xVar, yVar, start, end) {
 
       // Error checks
-      if (_.isNil(xVar) || _.isNil(yVar) || _.isNil(start) || _.isNil(end)) {
+      if (_.some([xVar, yVar, start, end], _.isNil)) {
         $log.error('#inventory_reports_service.get_aggregated_report_data(): null parameter');
         throw new Error('Invalid Parameter');
       }
 
-      return $http.get(window.BE.urls.get_aggregated_inventory_report_data, {
+      const organization_id = user_service.get_organization().id;
+      return $http.get('/api/v3/organizations/' + organization_id + '/report_aggregated/', {
         params: {
-          organization_id: user_service.get_organization().id,
           x_var: xVar,
           y_var: yVar,
           start: start,
@@ -123,25 +123,25 @@ angular.module('BE.seed.service.inventory_reports',
       var xLabel = axes_data.xLabel;
       var yVar = axes_data.yVar;
       var yLabel = axes_data.yLabel;
-            // Error checks
-      if (_.isNil(xVar) || _.isNil(xLabel) || _.isNil(yVar) || _.isNil(yLabel) || _.isNil(start) || _.isNil(end)) {
+      // Error checks
+      if (_.some([xVar, xLabel, yVar, yLabel, start, end], _.isNil)) {
         $log.error('#inventory_reports_service.get_aggregated_report_data(): null parameter');
         throw new Error('Invalid Parameter');
       }
 
-      return $http.get('/api/v2/export_reports_data/', {
+      const organization_id = user_service.get_organization().id;
+      return $http.get('/api/v3/organizations/' + organization_id + '/report_export/', {
         params: {
-          organization_id: user_service.get_organization().id,
           x_var: xVar,
           x_label: xLabel,
           y_var: yVar,
           y_label: yLabel,
           start: start,
-          end: end,
+          end: end
         },
         responseType: 'arraybuffer'
       }).then(function (response) {
-        return response
+        return response;
       });
     }
 
@@ -158,7 +158,7 @@ angular.module('BE.seed.service.inventory_reports',
       //get_summary_data : get_summary_data,
       get_report_data: get_report_data,
       get_aggregated_report_data: get_aggregated_report_data,
-      export_reports_data: export_reports_data,
+      export_reports_data: export_reports_data
 
     };
 

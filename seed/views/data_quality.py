@@ -1,13 +1,14 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 
 import csv
 
 from celery.utils.log import get_task_logger
+from django.db import transaction
 from django.http import JsonResponse, HttpResponse
 from rest_framework import viewsets, serializers, status
 from rest_framework.decorators import action
@@ -26,11 +27,37 @@ from seed.models.data_quality import (
 from seed.serializers.data_quality import (
     DataQualityCheckSerializer,
 )
-from seed.utils.api import api_endpoint_class, OrgValidateMixin
+from seed.utils.api import api_endpoint_class, OrgMixin
 from seed.utils.cache import get_cache_raw
 from seed.utils.viewsets import SEEDOrgCreateUpdateModelViewSet
 
 logger = get_task_logger(__name__)
+
+
+class RulesSubSerializer(serializers.Serializer):
+    field = serializers.CharField(max_length=100)
+    severity = serializers.CharField(max_length=100)
+
+
+class RulesSubSerializerB(serializers.Serializer):
+    field = serializers.CharField(max_length=100)
+    enabled = serializers.BooleanField()
+    condition = serializers.CharField(max_length=100)
+    data_type = serializers.CharField(max_length=100)
+    min = serializers.FloatField()
+    max = serializers.FloatField()
+    severity = serializers.CharField(max_length=100)
+    units = serializers.CharField(max_length=100)
+
+
+class RulesIntermediateSerializer(serializers.Serializer):
+    missing_matching_field = RulesSubSerializer(many=True)
+    missing_values = RulesSubSerializer(many=True)
+    in_range_checking = RulesSubSerializerB(many=True)
+
+
+class RulesSerializer(serializers.Serializer):
+    data_quality_rules = RulesIntermediateSerializer()
 
 
 def _get_js_rule_type(data_type):
@@ -71,7 +98,7 @@ def _get_severity_from_js(severity):
     return d.get(severity)
 
 
-class DataQualityViews(viewsets.ViewSet):
+class DataQualityViews(viewsets.ViewSet, OrgMixin):
     """
     Handles Data Quality API operations within Inventory backend.
     (1) Post, wait, get…
@@ -138,7 +165,7 @@ class DataQualityViews(viewsets.ViewSet):
               required: true
               paramType: path
         """
-        data_quality_results = get_cache_raw(DataQualityCheck.cache_key(pk))
+        data_quality_results = get_cache_raw(DataQualityCheck.cache_key(pk, self.get_organization(request)))
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="Data Quality Check Results.csv"'
 
@@ -150,7 +177,7 @@ class DataQualityViews(viewsets.ViewSet):
 
         writer.writerow(
             ['Table', 'Address Line 1', 'PM Property ID', 'Tax Lot ID', 'Custom ID', 'Field',
-             'Applied Label', 'Error Message', 'Severity'])
+             'Applied Label', 'Condition', 'Error Message', 'Severity'])
 
         for row in data_quality_results:
             for result in row['data_quality_results']:
@@ -162,6 +189,7 @@ class DataQualityViews(viewsets.ViewSet):
                     row['custom_id_1'],
                     result['formatted_field'],
                     result.get('label', None),
+                    result['condition'],
                     # the detailed_message field can have units which has superscripts/subscripts, so unidecode it!
                     unidecode(result['detailed_message']),
                     result['severity']
@@ -343,12 +371,22 @@ class DataQualityViews(viewsets.ViewSet):
 
         posted_rules = body['data_quality_rules']
         updated_rules = []
+        valid_rules = True
+        validation_messages = set()
         for rule in posted_rules['properties']:
+            if _get_severity_from_js(rule['severity']) == Rule.SEVERITY_VALID and rule['label'] is None:
+                valid_rules = False
+                validation_messages.add('Label must be assigned when using Valid Data Severity.')
+            if rule['condition'] == Rule.RULE_INCLUDE or rule['condition'] == Rule.RULE_EXCLUDE:
+                if rule['text_match'] is None or rule['text_match'] == '':
+                    valid_rules = False
+                    validation_messages.add('Rule must not include or exclude an empty string.')
             updated_rules.append(
                 {
                     'field': rule['field'],
                     'table_name': 'PropertyState',
                     'enabled': rule['enabled'],
+                    'condition': rule['condition'],
                     'data_type': _get_rule_type_from_js(rule['data_type']),
                     'rule_type': rule['rule_type'],
                     'required': rule['required'],
@@ -363,11 +401,19 @@ class DataQualityViews(viewsets.ViewSet):
             )
 
         for rule in posted_rules['taxlots']:
+            if _get_severity_from_js(rule['severity']) == Rule.SEVERITY_VALID and rule['label'] is None:
+                valid_rules = False
+                validation_messages.add('Label must be assigned when using Valid Data Severity.')
+            if rule['condition'] == Rule.RULE_INCLUDE or rule['condition'] == Rule.RULE_EXCLUDE:
+                if rule['text_match'] is None or rule['text_match'] == '':
+                    valid_rules = False
+                    validation_messages.add('Rule must not include or exclude an empty string.')
             updated_rules.append(
                 {
                     'field': rule['field'],
                     'table_name': 'TaxLotState',
                     'enabled': rule['enabled'],
+                    'condition': rule['condition'],
                     'data_type': _get_rule_type_from_js(rule['data_type']),
                     'rule_type': rule['rule_type'],
                     'required': rule['required'],
@@ -381,25 +427,38 @@ class DataQualityViews(viewsets.ViewSet):
                 }
             )
 
+<<<<<<< HEAD
 # HELIX        dq = DataQualityCheck.retrieve(organization.id)
         dq = DataQualityCheck.objects.get(pk=body.get('data_quality_id'))
+=======
+        if valid_rules is False:
+            return JsonResponse({
+                'status': 'error',
+                'message': '\n'.join(validation_messages),
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # This pattern of deleting and recreating Rules is slated to be deprecated
+        bad_rule_creation = False
+        error_messages = set()
+        dq = DataQualityCheck.retrieve(organization.id)
+>>>>>>> upstream-develop
         dq.remove_all_rules()
         for rule in updated_rules:
-            if rule['severity'] == Rule.SEVERITY_VALID and rule['status_label_id'] is None:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Label must be assigned when using Valid Data Severity.'
-                }, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                try:
+                    dq.add_rule(rule)
+                except Exception as e:
+                    error_messages.add('Rule could not be recreated: ' + str(e))
+                    bad_rule_creation = True
+                    continue
 
-            try:
-                dq.add_rule(rule)
-            except TypeError as e:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': e,
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-        return self.data_quality_rules(request)
+        if bad_rule_creation:
+            return JsonResponse({
+                'status': 'error',
+                'message': '\n'.join(error_messages),
+            }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return self.data_quality_rules(request)
 
     @api_endpoint_class
     @ajax_request_class
@@ -414,7 +473,7 @@ class DataQualityViews(viewsets.ViewSet):
         Organization.objects.get(pk=request.query_params['organization_id'])
 
         data_quality_id = request.query_params['data_quality_id']
-        data_quality_results = get_cache_raw(DataQualityCheck.cache_key(data_quality_id))
+        data_quality_results = get_cache_raw(DataQualityCheck.cache_key(data_quality_id, self.get_organization(request)))
         return JsonResponse({
             'data': data_quality_results
         })

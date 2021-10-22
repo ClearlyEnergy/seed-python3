@@ -1,5 +1,6 @@
 .DS_Store
 .cache
+.env
 .idea
 .project
 .pydevproject
@@ -13,6 +14,7 @@ coverage.protractor.json
 *.swp
 *.swo
 *.swn
+seed_issues.csv
 package-lock.json
 web_root/css/compressed.*.css
 web_root/js/compressed.*.js
@@ -75,13 +77,14 @@ docs/scripts/.python-version
 docs/scripts/seed_issues.csv
 
 lokalise.cfg
+lokalise.yml
 
 # Docker-based files
 docker-compose.*.yml
 !docker-compose.yml
 !docker-compose.local.yml
-!docker-compose.deploy.yml
 !docker-compose.build.yml
+!docker-compose.dev.yml
 
 # generated files
 /auto*.csv
