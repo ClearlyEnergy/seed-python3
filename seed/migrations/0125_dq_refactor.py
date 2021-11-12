@@ -84,7 +84,7 @@ def forwards(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('seed', '0124_auto_20200323_1509'),
+        ('seed', '0125_merge_20200508_1029'),
     ]
 
     operations = [
