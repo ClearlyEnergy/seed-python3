@@ -48,6 +48,12 @@ angular.module('BE.seed.service.columns', []).factory('columns_service', [
       return columns_service.delete_column_for_org(user_service.get_organization().id, column_id);
     };
 
+    columns_service.delete_column_for_org = function (org_id, column_id) {
+      return $http.delete('/api/v3/columns/' + column_id + '/', {
+        params: {organization_id: org_id}
+      });
+    };
+
     columns_service.create_columns = function (columns) {
       return columns_service.create_columns_for_org(user_service.get_organization().id, columns);
     };

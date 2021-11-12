@@ -768,7 +768,7 @@ def check_data_chunk(model, data_quality_id, ids, dq_id):
         qs = TaxLotState.objects.filter(id__in=ids)
     else:
         qs = None
-# HELIX    organization = qs.first().organization
+    organization = qs.first().organization
 # HELIX    super_organization = organization.get_parent()
     d = DataQualityCheck.objects.get(pk=data_quality_id)
     d.check_data(model, qs.iterator())

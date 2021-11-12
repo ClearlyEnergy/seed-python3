@@ -13,7 +13,18 @@ angular.module('BE.seed.controller.export_inventory_modal', []).controller('expo
   'export_category',
   'profile_id',
   'filter_header_string',
-  function ($http, $scope, $uibModalInstance, user_service, cycle_id, ids, columns, inventory_type, profile_id, filter_header_string) {
+  function (
+    $http, 
+    $scope, 
+    $uibModalInstance, 
+    user_service, 
+    ids, 
+    columns, 
+    inventory_type, 
+    profile_id, 
+    spinner_utility,
+    filter_header_string,
+  ) {
     $scope.export_name = '';
     $scope.include_notes = true;
     $scope.include_label_header = false;

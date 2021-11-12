@@ -37,18 +37,12 @@ from seed.views.organizations import OrganizationViewSet
 from seed.views.projects import ProjectViewSet
 from seed.views.properties import (PropertyViewSet, PropertyStateViewSet,
                                    PropertyViewViewSet, GBRPropertyViewSet)
-from seed.views.pvwatts import PvwattsViews
 from seed.views.reports import Report
 from seed.views.taxlots import TaxLotViewSet
 from seed.views.ubid import UbidViews
 from seed.views.users import UserViewSet
 
-from helix.views import helix_csv_export, helix_green_addendum, helix_massachusetts_scorecard, helix_dups_export
-
 api_v2_router = routers.DefaultRouter()
-api_v2_router.register(r'data_quality', DataQualityCheckViewSet, basename='data_quality')
-api_v2_router.register(r'property_measures', PropertyMeasureViewSet, basename='property_measures')
-api_v2_router.register(r'pvwatts', PvwattsViews, basename="pvwatts")
 api_v2_router.register(r'building_file', BuildingFileViewSet, basename='building_file')
 api_v2_router.register(r'columns', ColumnViewSet, basename="columns")
 api_v2_router.register(r'column_mappings', ColumnMappingViewSet, basename="column_mappings")
@@ -84,11 +78,6 @@ urlpatterns = [
     url(r'^', include(api_v2_router.urls)),
     # ajax routes
     url(r'^version/$', version, name='version'),
-    # helix routes
-    url(r'helix_csv_export/$', helix_csv_export, name='helix_csv_export'),
-    url(r'helix_dups_export/$', helix_dups_export, name='helix_dups_export'),
-    url(r'green_addendum/(?P<pk>\w+)/$', helix_green_addendum, name='green_addendum'),
-    url(r'massachusetts_scorecard/(?P<pk>\w+)/', helix_massachusetts_scorecard, name='massachusetts_scorecard'),
     # data uploader related things
     url(r'get_upload_details/$', get_upload_details, name='get_upload_details'),
     url(r'^schema/$', get_api_schema, name='schema'),

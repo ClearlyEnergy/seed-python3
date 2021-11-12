@@ -45,7 +45,14 @@ from seed.views.v3.ubid import UbidViewSet
 from seed.views.v3.uploads import UploadViewSet
 from seed.views.v3.users import UserViewSet
 
+from seed.views.v3.pvwatts import PvwattsViews
+from helix.views import helix_csv_export, helix_green_addendum, helix_massachusetts_scorecard, helix_dups_export
+
 api_v3_router = routers.DefaultRouter()
+
+# HELIX
+api_v3_router.register(r'pvwatts', PvwattsViews, basename="pvwatts")
+
 api_v3_router.register(r'analyses', AnalysisViewSet, basename='analyses')
 api_v3_router.register(r'building_files', BuildingFileViewSet, basename="building_files")
 api_v3_router.register(r'column_list_profiles', ColumnListProfileViewSet, basename="column_list_profiles")
@@ -121,4 +128,9 @@ urlpatterns = [
     url(r'^', include(properties_router.urls)),
     url(r'^', include(taxlots_router.urls)),
     url(r'media/(?P<filepath>.*)$', MediaViewSet.as_view()),
+    # helix routes
+    url(r'helix_csv_export/$', helix_csv_export, name='helix_csv_export'),
+    url(r'helix_dups_export/$', helix_dups_export, name='helix_dups_export'),
+    url(r'green_addendum/(?P<pk>\w+)/$', helix_green_addendum, name='green_addendum'),
+    url(r'massachusetts_scorecard/(?P<pk>\w+)/', helix_massachusetts_scorecard, name='massachusetts_scorecard'),
 ]

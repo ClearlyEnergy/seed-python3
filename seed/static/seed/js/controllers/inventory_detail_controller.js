@@ -22,12 +22,8 @@ angular.module('BE.seed.controller.inventory_detail', [])
     'inventory_service',
     'matching_service',
     'pairing_service',
-<<<<<<< HEAD
-    'user_service',
     'certification_service',
-=======
     'derived_columns_service',
->>>>>>> upstream-develop
     'inventory_payload',
     'analyses_payload',
     'users_payload',
@@ -255,64 +251,9 @@ angular.module('BE.seed.controller.inventory_detail', [])
         ], name);
       };
 
-      $scope.inventory = {
-        view_id: $stateParams.view_id,
-        related: $scope.inventory_type === 'properties' ? inventory_payload.taxlots : inventory_payload.properties
-      };
-      $scope.cycle = inventory_payload.cycle;
-      $scope.labels = _.filter(labels_payload, function (label) {
-        return !_.isEmpty(label.is_applied);
-      });
-
-      /** See service for structure of returned payload */
-      $scope.historical_items = inventory_payload.history;
-      $scope.item_state = inventory_payload.state;
-
       /** HELIX add-on to grab certifications and measures **/
       $scope.certifications = inventory_payload.certifications;
       $scope.measures = inventory_payload.measures;
-
-      // item_parent is the property or the tax lot instead of the PropertyState / TaxLotState
-      if ($scope.inventory_type === 'properties') {
-        $scope.item_parent = inventory_payload.property;
-      } else {
-        $scope.item_parent = inventory_payload.taxlot;
-      }
-
-      // Detail Settings Profile
-      $scope.profiles = profiles;
-      $scope.currentProfile = current_profile;
-
-      // Flag columns whose values have changed between imports and edits.
-      var historical_states = _.map($scope.historical_items, 'state');
-
-      var historical_changes_check = function (column) {
-        var uniq_column_values;
-        var states = historical_states.concat($scope.item_state);
-
-        if (column.is_extra_data) {
-          uniq_column_values = _.uniqBy(states, function (state) {
-            // Normalize missing column_name keys returning undefined to return null.
-            return state.extra_data[column.column_name] || null;
-          });
-        } else {
-          uniq_column_values = _.uniqBy(states, column.column_name);
-        }
-
-        column.changed = uniq_column_values.length > 1;
-        return column;
-      };
-
-      if ($scope.currentProfile) {
-        $scope.columns = [];
-        _.forEach($scope.currentProfile.columns, function (col) {
-          var foundCol = _.find(columns, {id: col.id});
-          if (foundCol) $scope.columns.push(historical_changes_check(foundCol));
-        });
-      } else {
-        // No profiles exist
-        $scope.columns = _.reject(columns, 'is_extra_data');
-      }
 
       // The server provides of *all* extra_data keys (across current state and all historical state)
       // Let's remember this.

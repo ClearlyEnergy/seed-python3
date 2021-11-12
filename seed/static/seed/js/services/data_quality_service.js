@@ -94,7 +94,7 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
 	 * @param {int} org_id the id of the organization
 	 */
     data_quality_factory.get_data_qualities = function (org_id) {
-      return $http.get('/api/v2/data_quality/?organization_id=' + org_id).then(function (response) {
+      return $http.get('/api/v3/data_quality_checks/?organization_id=' + org_id).then(function (response) {
         var data_qualities = _.filter(response.data.data, {
         }).sort(function (a, b) {
           return naturalSort(a.name, b.name);
@@ -117,7 +117,7 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
 	 * @param {int} org_id the id of the organization
 	 */
 	data_quality_factory.update_data_quality = function (id, data){
-		return $http.put('/api/v2/data_quality/' + id + '/', data).then(function (response) {
+		return $http.put('/api/v3/data_quality_checks/' + id + '/', data).then(function (response) {
 			return response.data.data;
 		})		
 	}
@@ -147,7 +147,7 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
 	 * @param {int} org_id the id of the organization
 	 */
     data_quality_factory.new_data_quality = function (data) {
-      return $http.post('/api/v2/data_quality/', {
+      return $http.post('/api/v3/data_quality_checks/', {
 		organization: data['organization'],
 	    name: data['name'] 
       }).then(function (response) {
@@ -161,15 +161,13 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
 	 * @param {int} org_id the id of the organization
 	 */
     data_quality_factory.remove_data_quality = function (id, org_id) {
-      return $http.delete('/api/v2/data_quality/' + id + '/', {
+      return $http.delete('/api/v3/data_quality_checks/' + id + '/', {
         params: {
 		  organization_id: org_id
         }      	
       });
     };
 	
-//curl -X DELETE "http://localhost:8000/api/v2/data_quality/10/" -H "accept: application/json" -H "X-CSRFToken: WGkA9DoMZ9kxFwXe1NdAKSFMyugMvwl3Jqmtl9zTXSDEQqpm0p1DxVnLIa3o8Sdp"
-
     data_quality_factory.start_data_quality_checks_for_import_file = function (org_id, import_file_id) {
       return $http.post('/api/v3/import_files/' + import_file_id + '/start_data_quality_checks/?organization_id=' + org_id).then(function (response) {
         return response.data;
@@ -192,7 +190,7 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
     };
 
     data_quality_factory.start_data_quality_checks_by_id = function (data_quality_id, property_state_ids, taxlot_state_ids) {
-      return $http.post('/api/v2/data_quality_checks/?data_quality_id=' + data_quality_id, {
+      return $http.post('/api/v3/data_quality_checks/?data_quality_id=' + data_quality_id, {
         property_state_ids: property_state_ids,
         taxlot_state_ids: taxlot_state_ids
       }).then(function (response) {
