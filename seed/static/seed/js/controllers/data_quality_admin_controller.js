@@ -168,6 +168,7 @@ angular.module('BE.seed.controller.data_quality_admin', [])
           taxlots: {}
         };
         var inventory_type;
+        console.log(rules_payload);
         _.forEach(rules_payload, function (rule) {
           if (rule.table_name === 'PropertyState') {
             inventory_type = 'properties';

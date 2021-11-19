@@ -90,27 +90,6 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
     };
 	
 	/**
-	 * retrieves data quality actions
-	 * @param {int} org_id the id of the organization
-	 */
-    data_quality_factory.get_data_qualities = function (org_id) {
-      return $http.get('/api/v3/data_quality_checks/?organization_id=' + org_id).then(function (response) {
-        var data_qualities = _.filter(response.data.data, {
-        }).sort(function (a, b) {
-          return naturalSort(a.name, b.name);
-        });
-
-        _.forEach(data_qualities, function (dq) {
-          // Remove exact duplicates - this shouldn't be necessary, but it has occurred and will avoid errors and cleanup the database at the same time
-          dq.columns = _.uniqWith(dq.columns, _.isEqual);
-
-          dq.columns = _.sortBy(dq.columns, ['order', 'column_name']);
-        });
-        return data_qualities;
-      });
-    };
-	
-	/**
 	 * update name of data quality action
 	 * @param {int} id of data quality action
 	 * @param {char} new name of the new action
