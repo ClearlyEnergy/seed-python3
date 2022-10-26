@@ -50,3 +50,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}, ${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }}
           labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: Trigger Image update
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Replace image tag
+          repo: ClearlyEnergy/helix-aws-config
+          token: ${{ secrets.ANSIBLE_ACCESS_TOKEN }}
+          ref: master
+          inputs: '{ "image": "${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }}", "role": "helix", "host": "helix_staging" }'
