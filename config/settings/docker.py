@@ -32,6 +32,18 @@ DEBUG = False
 COMPRESS_ENABLED = False
 # COMPRESS_STORAGE = 'compressor.storage.GzipCompressorFileStorage'
 # COMPRESS_OFFLINE = True
+HES_USER_KEY = os.environ.get("HES_USER_KEY")
+HES_CLIENT_URL = os.environ.get('HES_CLIENT_URL')
+CE_API_KEY= os.environ.get('CE_API_KEY')
+
+AWS_BUCKET_NAME = os.environ.get('S3_BUCKET')
+GOOGLEMAPS_KEY = os.environ.get('GOOGLEMAPS_KEY')
+PVWATTS_API_KEY = os.environ.get('PVWATTS_API_KEY')
+OIDC_RP_CLIENT_ID = os.environ.get('OIDC_RP_CLIENT_ID')
+OIDC_RP_CLIENT_SECRET = os.environ.get('OIDC_RP_CLIENT_SECRET')
+HELIX_SSL = os.environ.get("HELIX_SSL")
+if HELIX_SSL is not None:
+    FORCE_SSL_PROTOCOL = True
 
 # Make sure to disable secure cooking and csrf when usign Cloudflare
 SESSION_COOKIE_SECURE = False
@@ -43,6 +55,7 @@ ALLOWED_HOSTS = ['*']
 # another backend (e.g. SMTP), then please update this model to support both and
 # create a pull request.
 EMAIL_BACKEND = (DJANGO_EMAIL_BACKEND if 'DJANGO_EMAIL_BACKEND' in os.environ else "django_ses.SESBackend")
+PASSWORD_RESET_EMAIL = SERVER_EMAIL
 DEFAULT_FROM_EMAIL = SERVER_EMAIL
 POST_OFFICE = {
     'BACKENDS': {
