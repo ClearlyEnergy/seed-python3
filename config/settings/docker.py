@@ -55,7 +55,6 @@ ALLOWED_HOSTS = ['*']
 # another backend (e.g. SMTP), then please update this model to support both and
 # create a pull request.
 EMAIL_BACKEND = (DJANGO_EMAIL_BACKEND if 'DJANGO_EMAIL_BACKEND' in os.environ else "django_ses.SESBackend")
-PASSWORD_RESET_EMAIL = SERVER_EMAIL
 DEFAULT_FROM_EMAIL = SERVER_EMAIL
 POST_OFFICE = {
     'BACKENDS': {
