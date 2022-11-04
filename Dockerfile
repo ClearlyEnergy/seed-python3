@@ -22,6 +22,7 @@ RUN apk add --no-cache python3-dev \
         geos \
         gdal \
         gcc \
+        git \
         musl-dev \
         cargo && \
     ln -sf /usr/bin/python3 /usr/bin/python && \
