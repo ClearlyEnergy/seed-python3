@@ -8,7 +8,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
 
-    steps: 
+    steps:
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -48,9 +48,11 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}, ${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }}
+          tags: ${{ steps.meta.outputs.tags }}, ${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }}, latest
           labels: ${{ steps.meta.outputs.labels }}
-      
+          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/helix:latest
+          cache-to: type=inline
+
       - name: Trigger Image update
         uses: benc-uk/workflow-dispatch@v1
         with:
