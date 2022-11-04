@@ -21,7 +21,10 @@ class SEEDAuthentication(authentication.BaseAuthentication):
     """
 
     def authenticate(self, request):
-        return User.process_header_request(request), None  # return None per base class
+        header = User.process_header_request(request)
+        if header is None:
+            return User.process_query_request(request), None
+        return header, None  # return None per base class
 
 class SEEDKeyAuthentication:
     """
