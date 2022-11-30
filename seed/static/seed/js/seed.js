@@ -1448,7 +1448,11 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
           }],
           organization_payload: ['user_service', 'organization_service', function (user_service, organization_service) {
             return organization_service.get_organization(user_service.get_organization().id);
-          }]
+          }],
+          data_qualities_payload: ['data_quality_service', 'user_service', function (data_quality_service, user_service) {
+            var organization_id = user_service.get_organization().id;
+            return data_quality_service.data_quality_rules(organization_id);
+          }],
         }
       })
       .state({

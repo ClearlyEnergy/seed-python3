@@ -23,7 +23,7 @@ angular.module('BE.seed.controller.inventory_list', [])
     'cycles',
     'profiles',
     'current_profile',
-    'data_qualities',
+    'data_qualities_payload',
     'labels',
     'all_columns',
     'derived_columns_payload',
@@ -55,7 +55,7 @@ angular.module('BE.seed.controller.inventory_list', [])
       cycles,
       profiles,
       current_profile,
-      data_qualities,
+      data_qualities_payload,
       labels,
       all_columns,
       derived_columns_payload,
@@ -97,7 +97,7 @@ angular.module('BE.seed.controller.inventory_list', [])
       $scope.currentProfile = current_profile;
 
       // Data Quality Actions
-      $scope.data_qualities = data_qualities;
+      $scope.data_qualities = data_qualities_payload;
 
       if ($scope.currentProfile) {
         $scope.columns = [];
@@ -590,7 +590,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         }), 'property_state_id');
 
         //loop through states
-        inventory_service.generate_green_addendum(property_states[0]).then(function(response) { 
+        inventory_service.generate_green_addendum(property_states[0]).then(function(response) {
             window.open(response.url, '_blank');
         })
         .finally(function() {
@@ -607,7 +607,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         }), 'property_state_id');
 
         //loop through states
-        inventory_service.generate_vermont_profile(property_states[0]).then(function(response) {  
+        inventory_service.generate_vermont_profile(property_states[0]).then(function(response) {
             window.open(response.url, '_blank');
         })
         .finally(function() {
@@ -624,7 +624,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         }), 'property_state_id');
 
         //loop through states
-        inventory_service.generate_massachusetts_scorecard(property_states[0]).then(function(response) {  
+        inventory_service.generate_massachusetts_scorecard(property_states[0]).then(function(response) {
             window.open(response.url, '_blank');
         })
         .finally(function() {
@@ -1153,7 +1153,7 @@ angular.module('BE.seed.controller.inventory_list', [])
           }
         });
       };
-    
+
       $scope.open_helix_export_modal = function () {
         $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/export_inventory_modal.html',
