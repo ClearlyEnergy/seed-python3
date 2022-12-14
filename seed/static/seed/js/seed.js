@@ -45,6 +45,7 @@ angular.module('BE.seed.controllers', [
   'BE.seed.controller.analysis_run',
   'BE.seed.controller.api',
   'BE.seed.controller.delete_certification_modal',
+  'BE.seed.controller.certification',
   'BE.seed.controller.create_certification_modal',
   'BE.seed.controller.create_measure_modal',
   'BE.seed.controller.column_mapping_profile_modal',
