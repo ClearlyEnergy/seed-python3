@@ -2,39 +2,27 @@
 # DESCRIPTION:      Image with seed platform and dependencies running in development mode
 # TO_BUILD_AND_RUN: docker-compose build && docker-compose up
 
-FROM alpine:3.14
+FROM python:3.9-slim
 
-RUN apk add --no-cache python3-dev \
-        postgresql-dev \
-        coreutils \
-        alpine-sdk \
-        pcre \
-        pcre-dev \
-        libxslt-dev \
-        linux-headers \
-        libffi-dev \
-        jpeg-dev \
-        bash \
-        bash-completion \
-        npm \
+RUN apt-get update -qq && apt-get upgrade -y -qq
+RUN apt-get install -y -qq \
+        libpq-dev \
+        libgdal-dev \
+        python3-dev \
+        python3-psycopg2 \
         nginx \
-        openssl-dev \
-        geos \
-        gdal \
-        gcc \
         git \
-        musl-dev \
-        cargo && \
+        npm && \
     ln -sf /usr/bin/python3 /usr/bin/python && \
-    python -m ensurepip && \
-    rm -r /usr/lib/python*/ensurepip && \
-    ln -sf /usr/bin/pip3 /usr/bin/pip && \
-    pip install --upgrade pip setuptools && \
-    pip install supervisor==4.2.2 && \
+    pip3 install --upgrade pip setuptools && \
+    pip3 install supervisor==4.2.2 && \
+    pip3 install uwsgi && \
+    ln -sf /usr/local/bin/uwsgi /usr/bin/uwsgi && \
     mkdir -p /var/log/supervisord/ && \
     rm -r /root/.cache && \
-    addgroup -g 1000 uwsgi && \
-    adduser -G uwsgi -H -u 1000 -S uwsgi && \
+    addgroup --gid 1000 uwsgi && \
+    adduser --system --ingroup uwsgi --uid 1000 uwsgi && \
+    mkdir -p /home/uwsgi/.ssh && \
     mkdir -p /run/nginx
 
 ## Note on some of the commands above:
@@ -49,7 +37,7 @@ WORKDIR /seed
 COPY ./requirements.txt /seed/requirements.txt
 COPY ./requirements/*.txt /seed/requirements/
 RUN pip uninstall -y enum34
-RUN pip install -r requirements/aws.txt
+RUN --mount=type=secret,id=ssh-key,target=/home/uwsgi/.ssh/id_rsa pip3 install --prefer-binary -r requirements/aws.txt
 
 ### Install JavaScript requirements - do this first because they take awhile
 ### and the dependencies will probably change slower than python packages.
@@ -64,11 +52,12 @@ RUN npm install --unsafe-perm
 WORKDIR /seed
 COPY . /seed/
 COPY ./docker/wait-for-it.sh /usr/local/wait-for-it.sh
+RUN git config --system --add safe.directory /seed
 
 # nginx configuration - replace the root/default nginx config file
 COPY /docker/nginx-seed.conf /etc/nginx/nginx.conf
 # symlink maintenance.html that nginx will serve in the case of a 503
-RUN ln -sf /seed/collected_static/maintenance.html /var/lib/nginx/html/maintenance.html
+RUN ln -sf /seed/collected_static/maintenance.html /var/www/html/maintenance.html
 # set execute permissions on the maint script to toggle on and off
 RUN chmod +x ./docker/maintenance.sh
 
