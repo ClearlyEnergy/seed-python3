@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 // data_quality services
@@ -18,9 +18,20 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
      * @param  {int} org_id the id of the organization
      * @param  {int} data_quality_id, ID of the data quality results
      */
-    data_quality_factory.get_data_quality_results = function (org_id, data_quality_id) {
-      return $http.get('/api/v2/data_quality_checks/results/?organization_id=' + org_id + '&data_quality_id=' + data_quality_id).then(function (response) {
+    data_quality_factory.get_data_quality_results = function (org_id, run_id) {
+      return $http.get('/api/v3/data_quality_checks/results/?organization_id=' + org_id + '&run_id=' + run_id).then(function (response) {
         return response.data.data;
+      });
+    };
+
+    /**
+     * return data_quality results in CSV format.
+     * @param  {int} org_id the id of the organization
+     * @param  {int} run_id, ID of the data quality results
+     */
+    data_quality_factory.get_data_quality_results_csv = function (org_id, run_id) {
+      return $http.get('/api/v3/data_quality_checks/results_csv/?organization_id=' + org_id + '&run_id=' + run_id).then(function (response) {
+        return response.data;
       });
     };
 
@@ -29,7 +40,7 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
      * @param  {int} org_id the id of the organization
      */
     data_quality_factory.data_quality_rules = function (org_id) {
-      return $http.get('/api/v2/data_quality_checks/data_quality_rules/?organization_id=' + org_id).then(function (response) {
+      return $http.get('/api/v3/data_quality_checks/' + org_id + '/rules/').then(function (response) {
         return response.data;
       });
     };
@@ -39,57 +50,42 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
      * @param  {int} org_id the id of the organization
      */
     data_quality_factory.reset_all_data_quality_rules = function (org_id, dq_id) {
-      return $http.put('/api/v2/data_quality_checks/reset_all_data_quality_rules/?organization_id=' + org_id, {
-		data_quality_id: dq_id
-      }).then(function (response) {
+      return $http.put('/api/v3/data_quality_checks/' + org_id + '/rules/reset/', {data_quality_id: dq_id}).then(function (response) {
         return response.data;
       });
     };
 
     /**
-     * resets default data data_quality rules for an org
-     * @param  {int} org_id the id of the organization
+     * create a data quality rule
+     * @param  {int} org_id the ID of the organization
+     * @param  {obj} rule the details of the rule
      */
-    data_quality_factory.reset_default_data_quality_rules = function (org_id, dq_id) {
-      return $http.put('/api/v2/data_quality_checks/reset_default_data_quality_rules/?organization_id=' + org_id, {
-		data_quality_id: dq_id
-      }).then(function (response) {
+    data_quality_factory.create_data_quality_rule = function (org_id, rule) {
+      return $http.post('/api/v3/data_quality_checks/' + org_id + '/rules/', rule).then(function (response) {
         return response.data;
       });
     };
 
     /**
-     * saves the organization data data_quality rules
-     * @param  {int} org_id the id of the organization
-     * @param  {obj} data_quality_rules the updated rules to save
+     * update a data quality rule
+     * @param  {int} org_id the ID of the organization
+     * @param  {int} rule_id the ID of the rule to update
+     * @param  {obj} rule the details of the rule
      */
-    data_quality_factory.save_data_quality_rules = function (org_id, data_quality_rules, data_quality_id) {
-      return $http.post('/api/v2/data_quality_checks/save_data_quality_rules/?organization_id=' + org_id, {
-        data_quality_rules: data_quality_rules,
-		  data_quality_id: data_quality_id
-      }).then(function (response) {
+    data_quality_factory.update_data_quality_rule = function (org_id, rule_id, rule) {
+      return $http.put('/api/v3/data_quality_checks/' + org_id + '/rules/' + rule_id + '/', rule).then(function (response) {
         return response.data;
       });
     };
-	
-	/**
-	 * retrieves data quality actions
-	 * @param {int} org_id the id of the organization
-	 */
-    data_quality_factory.get_data_qualities = function (org_id) {
-      return $http.get('/api/v2/data_quality/?organization_id=' + org_id).then(function (response) {
-        var data_qualities = _.filter(response.data.data, {
-        }).sort(function (a, b) {
-          return naturalSort(a.name, b.name);
-        });
 
-        _.forEach(data_qualities, function (dq) {
-          // Remove exact duplicates - this shouldn't be necessary, but it has occurred and will avoid errors and cleanup the database at the same time
-          dq.columns = _.uniqWith(dq.columns, _.isEqual);
-
-          dq.columns = _.sortBy(dq.columns, ['order', 'column_name']);
-        });
-        return data_qualities;
+    /**
+     * delete a data quality rule
+     * @param  {int} org_id the ID of the organization
+     * @param  {obj} rule_id the ID of the rule to delete
+     */
+    data_quality_factory.delete_data_quality_rule = function (org_id, rule_id) {
+      return $http.delete('/api/v3/data_quality_checks/' + org_id + '/rules/' + rule_id + '/').then(function (response) {
+        return response.data;
       });
     };
 	
@@ -100,7 +96,7 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
 	 * @param {int} org_id the id of the organization
 	 */
 	data_quality_factory.update_data_quality = function (id, data){
-		return $http.put('/api/v2/data_quality/' + id + '/', data).then(function (response) {
+		return $http.put('/api/v3/data_quality_checks/' + id + '/', data).then(function (response) {
 			return response.data.data;
 		})		
 	}
@@ -130,7 +126,7 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
 	 * @param {int} org_id the id of the organization
 	 */
     data_quality_factory.new_data_quality = function (data) {
-      return $http.post('/api/v2/data_quality/', {
+      return $http.post('/api/v3/data_quality_checks/', {
 		organization: data['organization'],
 	    name: data['name'] 
       }).then(function (response) {
@@ -144,38 +140,36 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
 	 * @param {int} org_id the id of the organization
 	 */
     data_quality_factory.remove_data_quality = function (id, org_id) {
-      return $http.delete('/api/v2/data_quality/' + id + '/', {
+      return $http.delete('/api/v3/data_quality_checks/' + id + '/', {
         params: {
 		  organization_id: org_id
         }      	
       });
     };
 	
-//curl -X DELETE "http://localhost:8000/api/v2/data_quality/10/" -H "accept: application/json" -H "X-CSRFToken: WGkA9DoMZ9kxFwXe1NdAKSFMyugMvwl3Jqmtl9zTXSDEQqpm0p1DxVnLIa3o8Sdp"
-
     data_quality_factory.start_data_quality_checks_for_import_file = function (org_id, import_file_id) {
-      return $http.post('/api/v2/import_files/' + import_file_id + '/start_data_quality_checks/?organization_id=' + org_id).then(function (response) {
+      return $http.post('/api/v3/import_files/' + import_file_id + '/start_data_quality_checks/?organization_id=' + org_id).then(function (response) {
         return response.data;
       });
     };
 
-//    data_quality_factory.start_data_quality_checks = function (property_state_ids, taxlot_state_ids) {
-	data_quality_factory.start_data_quality_checks = function (data_quality_id, property_state_ids, taxlot_state_ids) {
-//      return data_quality_factory.start_data_quality_checks_for_org(user_service.get_organization().id, property_state_ids, taxlot_state_ids);
+    //data_quality_factory.start_data_quality_checks = function (property_view_ids, taxlot_view_ids) {
+    data_quality_factory.start_data_quality_checks = function (data_quality_id, property_view_ids, taxlot_view_ids) {
+      // return data_quality_factory.start_data_quality_checks_for_org(user_service.get_organization().id, property_view_ids, taxlot_view_ids);
       return data_quality_factory.start_data_quality_checks_by_id(data_quality_id, property_state_ids, taxlot_state_ids);
     };
 
-    data_quality_factory.start_data_quality_checks_for_org = function (org_id, property_state_ids, taxlot_state_ids) {
-      return $http.post('/api/v2/data_quality_checks/?organization_id=' + org_id, {
-        property_state_ids: property_state_ids,
-        taxlot_state_ids: taxlot_state_ids
+    data_quality_factory.start_data_quality_checks_for_org = function (org_id, property_view_ids, taxlot_view_ids) {
+      return $http.post('/api/v3/data_quality_checks/' + org_id + '/start/', {
+        property_view_ids: property_view_ids,
+        taxlot_view_ids: taxlot_view_ids
       }).then(function (response) {
         return response.data;
       });
     };
 
     data_quality_factory.start_data_quality_checks_by_id = function (data_quality_id, property_state_ids, taxlot_state_ids) {
-      return $http.post('/api/v2/data_quality_checks/?data_quality_id=' + data_quality_id, {
+      return $http.post('/api/v3/data_quality_checks/?data_quality_id=' + data_quality_id, {
         property_state_ids: property_state_ids,
         taxlot_state_ids: taxlot_state_ids
       }).then(function (response) {
@@ -190,7 +184,7 @@ angular.module('BE.seed.service.data_quality', []).factory('data_quality_service
     };
 
     var checkStatusLoop = function (deferred, progress_key) {
-      $http.get('/api/v2/progress/' + progress_key + '/').then(function (response) {
+      $http.get('/api/v3/progress/' + progress_key + '/').then(function (response) {
         $timeout(function () {
           if (response.data.progress < 100) {
             checkStatusLoop(deferred, progress_key);

@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 // test Data Quality, labels, delete function and other misc items after data is loaded
@@ -64,8 +64,6 @@ describe('When I do miscellaneous things', function () {
     $$('[ng-model="rule.data_type"]').first().click();
     $('[label="Year"]').click();
 
-    $$('[ng-click="change_required(rule)"]').first().click();
-
     $$('[ng-model="rule.severity"]').first().click();
     $('[value="warning"]').click();
 
@@ -127,7 +125,7 @@ describe('When I do miscellaneous things', function () {
 
   it('should refesh and rules are correctly saved', function () {
     expect(element.all(by.repeater('rule in ruleGroup')).first().$('.form-control.label.label-primary').isPresent()).toBe(true);
-    $$('[ng-click="removeLabelFromRule(rule)"]').first().click();
+    $$('[ng-click="remove_label(rule)"]').first().click();
     expect(element.all(by.repeater('rule in ruleGroup')).first().$('.form-control.label.label-primary').isPresent()).toBe(false);
     $$('[ng-click="save_settings()"]').first().click();
     browser.driver.navigate().refresh();

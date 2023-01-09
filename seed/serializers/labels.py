@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 from rest_framework import serializers
@@ -41,11 +41,21 @@ class LabelSerializer(serializers.ModelSerializer):
             "organization_id",
             "super_organization",
             "is_applied",
+            "show_in_list",
         )
         extra_kwargs = {
             "super_organization": {"write_only": True},
         }
         model = Label
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+
+        # Avoid the impression that no records "is_applied" if inventory isn't provided and a search never occurred
+        if not self.inventory:
+            del ret['is_applied']
+
+        return ret
 
     def get_is_applied(self, obj):
         filtered_result = []

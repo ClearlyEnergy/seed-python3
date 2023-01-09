@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.controller.inventory_settings', [])
@@ -15,6 +15,7 @@ angular.module('BE.seed.controller.inventory_settings', [])
     'user_service',
     'urls',
     'all_columns',
+    'derived_columns_payload',
     'profiles',
     'current_profile',
     'shared_fields_payload',
@@ -33,6 +34,7 @@ angular.module('BE.seed.controller.inventory_settings', [])
       user_service,
       urls,
       all_columns,
+      derived_columns_payload,
       profiles,
       current_profile,
       shared_fields_payload,
@@ -51,26 +53,75 @@ angular.module('BE.seed.controller.inventory_settings', [])
       $scope.profiles = profiles;
       $scope.currentProfile = current_profile;
 
-      var initializeRowSelections = function () {
-        if ($scope.gridApi) {
-          _.delay(function () {
-            $scope.$apply(function () {
-              _.forEach($scope.gridApi.grid.rows, function (row) {
-                if (row.entity.visible === false) row.setSelected(false);
-                else row.setSelected(true);
-              });
-            });
+      const derived_columns = derived_columns_payload.derived_columns;
+
+      $scope.gridOptions = {
+        enableColumnMenus: false,
+        enableFiltering: true,
+        enableGridMenu: true,
+        enableSorting: false,
+        flatEntityAccess: true,
+        gridMenuShowHideColumns: false,
+        minRowsToShow: 30,
+        rowTemplate: '<div grid="grid" class="ui-grid-draggable-row" draggable="true"><div ng-repeat="(colRenderIndex, col) in colContainer.renderedColumns track by col.colDef.name" class="ui-grid-cell" ng-class="{ \'ui-grid-row-header-cell\': col.isRowHeader, \'custom\': true }" ui-grid-cell></div></div>',
+        columnDefs: [{
+          name: 'pinnedLeft',
+          displayName: '',
+          cellTemplate: '<div class="ui-grid-row-header-link" ng-if="!row.entity.is_derived_column">' +
+            '  <a class="ui-grid-cell-contents pinnable" style="text-align: center;" ng-disabled="!COL_FIELD" ng-click="grid.appScope.togglePinned(row)">' +
+            '    <i class="fa fa-thumb-tack"></i>' +
+            '  </a>' +
+            '</div>',
+          enableColumnMenu: false,
+          enableFiltering: false,
+          enableSorting: false,
+          width: 30
+        }, {
+          name: 'displayName',
+          displayName: 'Column Name',
+          headerCellFilter: 'translate',
+          cellFilter: 'translate',
+          cellTemplate: '<div class="ui-grid-cell-contents inventory-settings-cell" title="TOOLTIP" data-after-content="{$ row.entity.column_name $}"> <i ng-if="row.entity.is_derived_column" class="fa fa-link" style="margin-right: 10px;"></i>{$ COL_FIELD CUSTOM_FILTERS $} <span ng-if="row.entity.related" class="badge" style="margin-left: 10px;">{$ grid.appScope.inventory_type === "properties" ? ("tax lot" | translate) : ("property" | translate) $}</span></div>',
+          enableHiding: false
+        }],
+        onRegisterApi: function (gridApi) {
+          $scope.gridApi = gridApi;
+          initializeRowSelections();
+
+          gridApi.selection.on.rowSelectionChanged($scope, rowSelectionChanged);
+          gridApi.selection.on.rowSelectionChangedBatch($scope, rowSelectionChanged);
+          gridApi.draggableRows.on.rowDropped($scope, modified_service.setModified);
+
+          _.delay($scope.updateHeight, 150);
+          var debouncedHeightUpdate = _.debounce($scope.updateHeight, 150);
+          angular.element($window).on('resize', debouncedHeightUpdate);
+          $scope.$on('$destroy', function () {
+            angular.element($window).off('resize', debouncedHeightUpdate);
           });
         }
       };
 
+      var initializeRowSelections = function () {
+        $scope.gridApi.grid.modifyRows($scope.gridOptions.data);
+        _.forEach($scope.gridApi.grid.rows, function (row) {
+          if (row.entity.visible !== false) {
+            row.setSelected(true);
+          }
+        });
+      };
+
       var setColumnsForCurrentProfile = function () {
-        var deselected_columns = all_columns.slice();
+        var deselected_columns = angular.copy(all_columns);
+        var deselected_derived_columns = angular.copy(derived_columns);
         if ($scope.currentProfile) {
           var profileColumns = _.filter($scope.currentProfile.columns, function (col) {
-            return _.find(all_columns, {id: col.id});
+            return _.find(angular.copy(all_columns), {id: col.id});
           });
-          $scope.data = _.map(profileColumns, function (col) {
+          var profileDerivedColumns = _.filter($scope.currentProfile.derived_columns, function (col) {
+            return _.find(angular.copy(derived_columns), {id: col.id});
+          });
+
+          $scope.gridOptions.data = _.map(profileColumns, function (col) {
             var c = _.remove(deselected_columns, {id: col.id})[0];
             c.pinnedLeft = col.pinned;
             c.visible = true;
@@ -79,16 +130,30 @@ angular.module('BE.seed.controller.inventory_settings', [])
             col.pinnedLeft = false;
             col.visible = false;
             return col;
+          })).concat(_.map(profileDerivedColumns, function (col) {
+            var c = _.remove(deselected_derived_columns, {id: col.id})[0];
+            c.pinnedLeft = false;
+            c.visible = true;
+            c.is_derived_column = true;
+            c.displayName = c.name;
+            return c;
+          })).concat(_.map(deselected_derived_columns, function (col) {
+            col.pinnedLeft = false;
+            col.visible = false;
+            col.is_derived_column = true;
+            col.displayName = col.name;
+            return col;
           }));
+
+          $scope.gridOptions.data = inventory_service.reorderSettings($scope.gridOptions.data);
         } else {
           // No profiles exist
-          $scope.data = _.map(deselected_columns, function (col) {
+          var data = _.map(deselected_columns, function (col) {
             col.visible = !col.is_extra_data;
             return col;
           });
-          $scope.data = inventory_service.reorderSettings($scope.data);
+          $scope.gridOptions.data = inventory_service.reorderSettings(data);
         }
-        initializeRowSelections();
       };
       setColumnsForCurrentProfile();
 
@@ -124,6 +189,7 @@ angular.module('BE.seed.controller.inventory_settings', [])
         }
 
         setColumnsForCurrentProfile();
+        initializeRowSelections();
       }
 
       // set up i18n
@@ -143,7 +209,7 @@ angular.module('BE.seed.controller.inventory_settings', [])
           row.entity.visible = row.isSelected;
           if (!row.isSelected && row.entity.pinnedLeft) row.entity.pinnedLeft = false;
         });
-        $scope.data = inventory_service.reorderSettings($scope.data);
+        $scope.gridOptions.data = inventory_service.reorderSettings($scope.gridOptions.data);
         modified_service.setModified();
       };
 
@@ -164,25 +230,34 @@ angular.module('BE.seed.controller.inventory_settings', [])
 
       var currentColumns = function () {
         var columns = [];
+        var derived_columns = [];
         _.forEach($scope.gridApi.grid.rows, function (row) {
           if (row.isSelected) {
-            columns.push({
-              column_name: row.entity.column_name,
-              id: row.entity.id,
-              order: columns.length + 1,
-              pinned: Boolean(row.entity.pinnedLeft),
-              table_name: row.entity.table_name
-            });
+            if (row.entity.is_derived_column) {
+              derived_columns.push({
+                id: row.entity.id
+              });
+            } else {
+              columns.push({
+                column_name: row.entity.column_name,
+                id: row.entity.id,
+                order: columns.length + 1,
+                pinned: Boolean(row.entity.pinnedLeft),
+                table_name: row.entity.table_name
+              });
+            }
           }
         });
-        return columns;
+        return { columns, derived_columns };
       };
 
       $scope.saveProfile = function () {
         var id = $scope.currentProfile.id;
         var profile = _.omit($scope.currentProfile, 'id');
-        profile.columns = currentColumns();
-        inventory_service.update_settings_profile(id, profile).then(function (updatedProfile) {
+        const { columns, derived_columns } = currentColumns();
+        profile.columns = columns;
+        profile.derived_columns = derived_columns;
+        inventory_service.update_column_list_profile(id, profile).then(function (updatedProfile) {
           var index = _.findIndex($scope.profiles, {id: updatedProfile.id});
           $scope.profiles[index] = updatedProfile;
           modified_service.resetModified();
@@ -199,7 +274,7 @@ angular.module('BE.seed.controller.inventory_settings', [])
           resolve: {
             action: _.constant('rename'),
             data: _.constant($scope.currentProfile),
-            settings_location: _.constant('List View Settings'),
+            profile_location: _.constant('List View Profile'),
             inventory_type: function () {
               return $scope.inventory_type === 'properties' ? 'Property' : 'Tax Lot';
             }
@@ -222,7 +297,7 @@ angular.module('BE.seed.controller.inventory_settings', [])
           resolve: {
             action: _.constant('remove'),
             data: _.constant($scope.currentProfile),
-            settings_location: _.constant('List View Settings'),
+            profile_location: _.constant('List View Profile'),
             inventory_type: function () {
               return $scope.inventory_type === 'properties' ? 'Property' : 'Tax Lot';
             }
@@ -244,7 +319,7 @@ angular.module('BE.seed.controller.inventory_settings', [])
           resolve: {
             action: _.constant('new'),
             data: currentColumns,
-            settings_location: _.constant('List View Settings'),
+            profile_location: _.constant('List View Profile'),
             inventory_type: function () {
               return $scope.inventory_type === 'properties' ? 'Property' : 'Tax Lot';
             }
@@ -269,54 +344,8 @@ angular.module('BE.seed.controller.inventory_settings', [])
           row.entity.visible = true;
           row.setSelected(true);
         }
-        $scope.data = inventory_service.reorderSettings($scope.data);
+        $scope.gridOptions.data = inventory_service.reorderSettings($scope.gridOptions.data);
         modified_service.setModified();
       };
 
-      $scope.gridOptions = {
-        data: 'data',
-        enableColumnMenus: false,
-        enableFiltering: true,
-        enableGridMenu: true,
-        enableSorting: false,
-        flatEntityAccess: true,
-        gridMenuShowHideColumns: false,
-        minRowsToShow: 30,
-        rowTemplate: '<div grid="grid" class="ui-grid-draggable-row" draggable="true"><div ng-repeat="(colRenderIndex, col) in colContainer.renderedColumns track by col.colDef.name" class="ui-grid-cell" ng-class="{ \'ui-grid-row-header-cell\': col.isRowHeader, \'custom\': true }" ui-grid-cell></div></div>',
-        columnDefs: [{
-          name: 'pinnedLeft',
-          displayName: '',
-          cellTemplate: '<div class="ui-grid-row-header-link">' +
-          '  <a class="ui-grid-cell-contents pinnable" style="text-align: center;" ng-disabled="!COL_FIELD" ng-click="grid.appScope.togglePinned(row)">' +
-          '    <i class="fa fa-thumb-tack"></i>' +
-          '  </a>' +
-          '</div>',
-          enableColumnMenu: false,
-          enableFiltering: false,
-          enableSorting: false,
-          width: 30
-        }, {
-          name: 'displayName',
-          displayName: 'Column Name',
-          headerCellFilter: 'translate',
-          cellFilter: 'translate',
-          cellTemplate: '<div class="ui-grid-cell-contents inventory-settings-cell" title="TOOLTIP" data-after-content="{$ row.entity.column_name $}">{$ COL_FIELD CUSTOM_FILTERS $} <span ng-if="row.entity.related" class="badge" style="margin-left: 10px;">{$ grid.appScope.inventory_type === "properties" ? ("tax lot" | translate) : ("property" | translate) $}</span></div>',
-          enableHiding: false
-        }],
-        onRegisterApi: function (gridApi) {
-          $scope.gridApi = gridApi;
-          initializeRowSelections();
-
-          gridApi.selection.on.rowSelectionChanged($scope, rowSelectionChanged);
-          gridApi.selection.on.rowSelectionChangedBatch($scope, rowSelectionChanged);
-          gridApi.draggableRows.on.rowDropped($scope, modified_service.setModified);
-
-          _.delay($scope.updateHeight, 150);
-          var debouncedHeightUpdate = _.debounce($scope.updateHeight, 150);
-          angular.element($window).on('resize', debouncedHeightUpdate);
-          $scope.$on('$destroy', function () {
-            angular.element($window).off('resize', debouncedHeightUpdate);
-          });
-        }
-      };
     }]);

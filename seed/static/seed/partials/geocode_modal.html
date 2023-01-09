@@ -2,6 +2,7 @@
     <h4 class="modal-title" id="exportModalLabel" ng-show="geocode_state === 'verify'" translate>GEOCODE_INVENTORY_BASE_TITLE</h4>
     <h4 class="modal-title" id="exportModalLabel" ng-show="geocode_state === 'geocoding'" translate>GEOCODING_NOW</h4>
     <h4 class="modal-title" id="exportModalLabel" ng-show="geocode_state === 'result'" translate>GEOCODING_INVENTORY_COMPLETE</h4>
+    <h4 class="modal-title" id="exportModalLabel" ng-show="geocode_state === 'fail'" translate>GEOCODING_INVENTORY_INCOMPLETE</h4>
 </div>
 <div class="modal-body">
 
@@ -18,6 +19,12 @@
             <p translate>DIRECTIONS_FOR_UPDATING_MQ_API_KEY</p>
         </div>
     </div>
+
+    <div ng-hide="geocoding_enabled">
+        <div class="alert alert-danger">
+            <p translate>Geolocating has been disabled for this organization.</p>
+        </div>
+    </div>   
 
     <div ng-show="has_api_key && has_enough_geocoding_columns && geocode_state === 'verify'">
         <div translate>SUGGEST_TO_VERIFY</div>
@@ -85,10 +92,15 @@
             </div>
         </div>
     </div>
+    <div ng-show="geocode_state === 'fail'">
+        <div class="alert alert-danger"  ng-if="error_message">
+            <p>{$ error_message | translate $}</p>
+        </div>
+    </div>
 
 </div>
 <div class="modal-footer">
-    <button type="button" class="btn btn-primary" ng-click="geocode_buildings()" ng-show="geocode_state === 'verify' && has_api_key && has_enough_geocoding_columns" translate>Geocode</button>
+    <button type="button" class="btn btn-primary" ng-click="geocode_buildings()" ng-show="geocoding_enabled && (geocode_state === 'verify' && has_api_key && has_enough_geocoding_columns)" translate>Geocode</button>
     <button type="button" class="btn btn-default" ng-show="geocode_state == 'verify'" ng-click="cancel()" translate>Cancel</button>
-    <button type="button" class="btn btn-default" ng-show="geocode_state === 'result'" ng-click="close()" translate>Close</button>
+    <button type="button" class="btn btn-default" ng-show="geocoding_enabled && (geocode_state === 'result' || geocode_state === 'fail')" ng-click="close()" translate>Close</button>
 </div>

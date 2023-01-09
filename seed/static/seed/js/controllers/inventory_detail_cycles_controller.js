@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.controller.inventory_detail_cycles', [])
@@ -15,6 +15,7 @@ angular.module('BE.seed.controller.inventory_detail_cycles', [])
     'columns',
     'profiles',
     'current_profile',
+    'organization_payload',
     function (
       $scope,
       $filter,
@@ -26,23 +27,26 @@ angular.module('BE.seed.controller.inventory_detail_cycles', [])
       inventory_payload,
       columns,
       profiles,
-      current_profile
+      current_profile,
+      organization_payload
     ) {
       $scope.inventory_type = $stateParams.inventory_type;
       $scope.inventory = {
-        view_id: $stateParams.view_id,
+        view_id: $stateParams.view_id
       };
 
       $scope.states = inventory_payload.data;
       $scope.base_state = _.find(inventory_payload.data, {view_id: $stateParams.view_id});
 
-      $scope.cycles = _.reduce(cycles.cycles, function(cycles_by_id, cycle) {
+      $scope.cycles = _.reduce(cycles.cycles, function (cycles_by_id, cycle) {
         cycles_by_id[cycle.id] = cycle;
         return cycles_by_id;
       }, {});
 
+      $scope.organization = organization_payload.organization;
+
       // Flag columns whose values have changed between cycles.
-      var changes_check = function(column) {
+      var changes_check = function (column) {
         var uniq_column_values;
 
         if (column.is_extra_data) {
@@ -53,11 +57,11 @@ angular.module('BE.seed.controller.inventory_detail_cycles', [])
           uniq_column_values = _.uniqBy($scope.states, column.column_name);
         }
 
-        column['changed'] = uniq_column_values.length > 1;
+        column.changed = uniq_column_values.length > 1;
         return column;
       };
 
-      // Detail Settings Profile
+      // Detail Column List Profile
       $scope.profiles = profiles;
       $scope.currentProfile = current_profile;
 
@@ -69,7 +73,7 @@ angular.module('BE.seed.controller.inventory_detail_cycles', [])
         });
       } else {
         // No profiles exist
-        $scope.columns = _.map(_.reject(columns, 'is_extra_data'), function(col) {
+        $scope.columns = _.map(_.reject(columns, 'is_extra_data'), function (col) {
           return changes_check(col);
         });
       }
@@ -89,10 +93,32 @@ angular.module('BE.seed.controller.inventory_detail_cycles', [])
       // Horizontal scroll for "2 tables" that scroll together for fixed header effect.
       var table_container = $('.table-xscroll-fixed-header-container');
 
-      table_container.scroll(function() {
+      table_container.scroll(function () {
         $('.table-xscroll-fixed-header-container > .table-body-x-scroll').width(
           table_container.width() + table_container.scrollLeft()
         );
       });
+
+      $scope.inventory_display_name = function (property_type) {
+        let error = '';
+        let field = property_type == 'property' ? $scope.organization.property_display_field : $scope.organization.taxlot_display_field;
+        if (!(field in $scope.base_state)) {
+          error = field + ' does not exist';
+          field = 'address_line_1';
+        }
+        if (!$scope.base_state[field]) {
+          error += (error == '' ? '' : ' and default ') + field + ' is blank';
+        }
+        $scope.inventory_name = $scope.base_state[field] ? $scope.base_state[field] : '(' + error + ') <i class="glyphicon glyphicon-question-sign" title="This can be changed from the organization settings page."></i>';
+      };
+
+      $scope.displayValue = function (dataType, value) {
+        if (dataType === 'datetime') {
+          return $filter('date')(value, 'yyyy-MM-dd h:mm a');
+        } else if (dataType === 'eui' || dataType === 'area') {
+          return $filter('number')(value, $scope.organization.display_significant_figures);
+        }
+        return value;
+      };
 
     }]);

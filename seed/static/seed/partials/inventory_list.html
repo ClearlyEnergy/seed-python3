@@ -37,6 +37,12 @@
                     <li role="menuitem">
                         <a ng-click="run_data_quality_check()" ng-disabled="selectedCount === 0" translate>Data Quality Check</a>
                     </li>
+                    <li role="menuitem">
+                        <a ng-click="open_postoffice_modal()" ng-disabled="selectedCount === 0" translate>Email</a>
+                    </li>
+                    <li role="menuitem">
+                        <a ng-click="open_analyses_modal()" ng-disabled="selectedCount === 0" translate>Run Analysis</a>
+                    </li>
                     <li class="divider"></li>
                     <li role="menuitem">
                         <a ng-click="open_geocode_modal()" ng-disabled="selectedCount === 0" translate>Geocode Selected</a>
@@ -90,7 +96,7 @@
         </span>
 
         <span ng-show="profiles.length > 0">
-            <label>{$:: 'List Settings Profile' | translate $}:</label>
+            <label>{$:: 'Column List Profile'| translate $}:</label>
             <div style="display: inline-block;">
                 <select class="form-control input-sm" ng-model="currentProfile" ng-options="option.name for option in profiles track by option.id"></select>
             </div>

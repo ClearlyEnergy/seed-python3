@@ -115,6 +115,17 @@ fields. Follow the steps below to add new fields to the SEED database:
 #. Test import workflow with mapping to new fields
 
 
+NginX Notes
+-----------
+
+Toggle *maintenance mode* to display a maintenance page and prevent access to all site resources including API endpoints:
+
+.. code-block:: Bash
+
+    docker exec seed_web ./docker/maintenance.sh on
+    docker exec seed_web ./docker/maintenance.sh off
+
+
 AngularJS Integration Notes
 ---------------------------
 
@@ -236,14 +247,14 @@ user:
 
     createuser -U seed seeduser
 
-    psql -c 'DROP DATABASE "seeddb"'
-    psql -c 'CREATE DATABASE "seeddb" WITH OWNER = "seeduser";'
-    psql -c 'GRANT ALL PRIVILEGES ON DATABASE "seeddb" TO seeduser;'
+    psql -c 'DROP DATABASE "seed"'
+    psql -c 'CREATE DATABASE "seed" WITH OWNER = "seeduser";'
+    psql -c 'GRANT ALL PRIVILEGES ON DATABASE "seed" TO seeduser;'
     psql -c 'ALTER USER "seeduser" CREATEDB CREATEROLE SUPERUSER;'
-    psql -d seeddb -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
-    psql -d seeddb -c 'CREATE EXTENSION IF NOT EXISTS timescaledb;'
-    psql -d seeddb -c 'SELECT timescaledb_pre_restore();'
-    psql -d seeddb -c 'SELECT timescaledb_post_restore();'
+    psql -d seed -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
+    psql -d seed -c 'CREATE EXTENSION IF NOT EXISTS timescaledb;'
+    psql -d seed -c 'SELECT timescaledb_pre_restore();'
+    psql -d seed -c 'SELECT timescaledb_post_restore();'
 
     ./manage.py migrate
     ./manage.py create_default_user \
@@ -256,18 +267,20 @@ Restoring a Database Dump
 
 .. code-block:: console
 
-    psql -c 'DROP DATABASE "seeddb";'
-    psql -c 'CREATE DATABASE "seeddb" WITH OWNER = "seeduser";'
-    psql -c 'GRANT ALL PRIVILEGES ON DATABASE "seeddb" TO "seeduser";'
+    psql -c 'DROP DATABASE "seed";'
+    psql -c 'CREATE DATABASE "seed" WITH OWNER = "seeduser";'
+    psql -c 'GRANT ALL PRIVILEGES ON DATABASE "seed" TO "seeduser";'
     psql -c 'ALTER USER "seeduser" CREATEDB CREATEROLE SUPERUSER;'
-    psql -d seeddb -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
-    psql -d seeddb -c 'CREATE EXTENSION IF NOT EXISTS timescaledb;'
-    psql -d seeddb -c 'SELECT timescaledb_pre_restore();'
+    psql -d seed -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
+    psql -d seed -c 'CREATE EXTENSION IF NOT EXISTS timescaledb;'
+    psql -d seed -c 'SELECT timescaledb_pre_restore();'
 
     # restore a previous database dump (must be pg_restore 12+)
-    /usr/lib/postgresql/12/bin/pg_restore -U seeduser -d seeddb /backups/prod-backups/seedv2_20191203_000002.dump
+    /usr/lib/postgresql/12/bin/pg_restore -U seeduser -d seed /backups/prod-backups/seedv2_20191203_000002.dump
+    # if any errors appear during the pg_restore process check that the `installed_version` of the timescaledb extension where the database was dumped matches the extension version where it's being restored
+    # `SELECT default_version, installed_version FROM pg_available_extensions WHERE name = 'timescaledb';`
 
-    psql -d seeddb -c 'SELECT timescaledb_post_restore();'
+    psql -d seed -c 'SELECT timescaledb_post_restore();'
 
     ./manage.py migrate
 
@@ -276,6 +289,16 @@ Restoring a Database Dump
         --username=demo@seed-platform.org \
         --password=password \
         --organization=testorg
+
+
+    # if restoring a seedv2 backup to a different deployment update the site settings for password reset emails
+    ./manage.py shell
+
+    from django.contrib.sites.models import Site
+    site = Site.objects.first()
+    site.domain = 'dev1.seed-platform.org'
+    site.name = 'SEED Dev1'
+    site.save()
 
 
 Migrating the Database
@@ -339,6 +362,51 @@ Best Practices
 8. Use the “DO NOT MERGE” label for Pull Requests that should not be merged
 9. When PR has been reviewed and approved, move the ticket/issue to the 'Ready to Deploy to Dev' box in the GitHub project tracker.
 
+Git Naming Conventions
+----------------------
+
+Commit messages should follow the format of
+
+.. code-block:: console
+
+    <type>[( optional scope )]: <subject>
+
+    [optional body]
+
+:code:`type` must be one of the following:
+
+- **docs**: Changes to the documentation (e.g. improving docstring, updating this file, etc)
+- **feat**: Adds a new feature
+- **fix**: A bug fix
+- **refactor**: Changes that don't fix a bug or add a new feature
+- **style**: Changes that don't affect the meaning of code (e.g. whitespace)
+- **test**: Adding or correcting tests
+
+:code:`scope` is optional for commit messages, and should indicate the general area of the application affected.
+
+:code:`subject` is a short description of the changes in imperative present tense (such as “add function to _”, not “added function”)
+
+Branches should be named as :code:`[<optional issue number> -]<type>/<scope>`, where :code:`scope` is the general scope affected, or if creating a feature branch, a shortened name of the feature being added. If :code:`scope` is more than one word, it should be separated by dashes.
+
+Pull Request titles should follow the format :code:`[# optional issue number] <type>[(optional scope)]: <subject>`, following the same conventions as commit messages.
+
+Commit examples:
+
+- :code:`feat(models): add date_modified field to MyModel`
+- :code:`refactor: change var to let/const in frontend`
+- :code:`docs: update release instructions`
+
+Branch examples:
+
+- :code:`1234-feat/buildingsync-v2.3-import`
+- :code:`5678-refactor/org-views-auth`
+- :code:`fix/error-mapping-pm-taxlots`
+
+Pull request examples:
+
+- :code:`#1234 feat(models): add date_modified to MyModel`
+- :code:`#4567 refactor: change var to let/const in frontend`
+
 Release Instructions
 --------------------
 
@@ -350,11 +418,11 @@ To make a release do the following:
 
 .. code-block:: console
 
-    python docs/scripts/change_log.py –k GITHUB_API_TOKEN –s 2018-02-26 –e 2018-05-30
+    python docs/scripts/change_log.py –k GITHUB_API_TOKEN –s 2020-09-25 –e 2020-12-28
 
-4. Paste the results (remove unneeded Accepted Pull Requests) into the CHANGELOG.md. Make sure to cleanup the formatting.
+4. Paste the results (remove unneeded Accepted Pull Requests and the new issues) into the CHANGELOG.md. Cleanup the formatting (if needed).
 5. Make sure that any new UI needing localization has been tagged for translation, and that any new translation keys exist in the lokalise.com project. (see :doc:`translation documentation <translation>`).
-6. Once develop passes, then create a new PR from develop to master.
+6. Once develop passes, then create a new PR from develop to main.
 7. Draft new Release from Github (https://github.com/SEED-platform/seed/releases).
 8. Include list of changes since previous release (i.e. the content in the CHANGELOG.md)
 9. Verify that the Docker versions are built and pushed to Docker hub (https://hub.docker.com/r/seedplatform/seed/tags/).

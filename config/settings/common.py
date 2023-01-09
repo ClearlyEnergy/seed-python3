@@ -1,5 +1,5 @@
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California,
+:copyright (c) 2014 - 2021, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
@@ -14,7 +14,7 @@ from kombu.serialization import register
 
 from seed.serializers.celery import CeleryDatetimeSerializer
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -105,13 +105,14 @@ INSTALLED_APPS = (
     'django_filters',
     'oauth2_provider',
     'rest_framework',
-    'rest_framework_swagger',
     'drf_yasg',
     'oauth2_jwt_provider',
     'crispy_forms',  # needed to squash warnings around collectstatic with rest_framework
+    'post_office',
     'tos',
     'mozilla_django_oidc',
     'corsheaders',
+    'storages'
 )
 
 SEED_CORE_APPS = (
@@ -120,6 +121,7 @@ SEED_CORE_APPS = (
     'seed.data_importer',
     'seed',
     'seed.lib.superperms.orgs',
+    'seed.docs'
 )
 
 HELIX_APPS = (
@@ -128,6 +130,14 @@ HELIX_APPS = (
     'leed',
     'label',
 )
+
+# Added by Ashray Wadhwa (08/19/2020)
+POST_OFFICE = {
+    'BACKENDS': {
+        'default': 'smtp.EmailBackend',
+        'post_office_backend': 'django.core.mail.backends.console.EmailBackend',
+    }
+}
 
 # Apps with tables created by migrations, but which 3rd-party apps depend on.
 # Internal apps can resolve this via South's depends_on.
@@ -140,17 +150,19 @@ SEED_URL_APPS = (
     'seed',
 )
 
-MEDIA_URL = '/media/'
+MEDIA_URL = '/api/v3/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'collected_static')
 COMPRESS_AUTOPREFIXER_BINARY = 'node_modules/.bin/postcss'
-COMPRESS_CSS_FILTERS = [
-    'compressor.filters.css_default.CssAbsoluteFilter',
-    'django_compressor_autoprefixer.AutoprefixerFilter',
-    'compressor.filters.cssmin.CSSMinFilter'
-]
+COMPRESS_FILTERS = {
+    'css': [
+        'compressor.filters.css_default.CssAbsoluteFilter',
+        'django_compressor_autoprefixer.AutoprefixerFilter',
+        'compressor.filters.cssmin.CSSMinFilter',
+    ]
+}
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'vendors')
 ]
@@ -163,6 +175,22 @@ COMPRESS_PRECOMPILERS = (
     ('text/x-scss', 'django_libsass.SassCompiler'),
 )
 AWS_QUERYSTRING_AUTH = False
+
+USE_S3 = os.getenv('USE_S3') == 'TRUE'
+if USE_S3:
+    # aws settings
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+    # s3 media settings
+    MEDIA_ROOT = "media"
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+else:
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # django-longer-username-and-email
 REQUIRE_UNIQUE_EMAIL = False
@@ -271,6 +299,7 @@ AUTH_PASSWORD_VALIDATORS = [
         }
     },
 ]
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Allow super users to register applications for OAuth authentication
 OAUTH2_PROVIDER = {
@@ -294,17 +323,21 @@ AUTHENTICATION_BACKENDS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'mozilla_django_oidc.contrib.drf.OIDCAuthentication',
-        'oauth2_provider.ext.rest_framework.OAuth2Authentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
         'seed.authentication.SEEDAuthentication',
     ),
-    'DEFAULT_FILTER_BACKENDS':
-        ('django_filters.rest_framework.DjangoFilterBackend',),
+    'DEFAULT_FILTER_BACKENDS': (
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_PAGINATION_CLASS':
         'seed.utils.pagination.ResultsListPagination',
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
     'PAGE_SIZE': 25,
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
@@ -334,11 +367,29 @@ SWAGGER_SETTINGS = {
     'LOGOUT_URL': '/accounts/logout',
 }
 
+BSYNCR_SERVER_HOST = os.environ.get('BSYNCR_SERVER_HOST')
+BSYNCR_SERVER_PORT = os.environ.get('BSYNCR_SERVER_PORT', '80')
+
+# LBNL's BETTER tool host location
+BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better.lbl.gov') 
+
+# Google reCAPTCHA env variable for self-registration. SITE_KEY defaults
+# to the key registered for SEED. Override it needing to test.
+# https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do
+GOOGLE_RECAPTCHA_SITE_KEY = os.environ.get('GOOGLE_RECAPTCHA_SITE_KEY', '6LexR2MaAAAAAMkCFmLaucT0KwSfx0PjiX-cf6rV')
+GOOGLE_RECAPTCHA_SECRET_KEY = os.environ.get('GOOGLE_RECAPTCHA_SECRET_KEY')
+
 # Certification
 # set this for a default validity_duration
 # should be a integer representing a number of days
 # GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION=5 * 365
 GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION = None
+
+# Config to include v2 APIs
+INCLUDE_SEED_V2_APIS = os.environ.get('INCLUDE_SEED_V2_APIS', 'true').lower() == 'true'
+
+# Config self registration
+INCLUDE_ACCT_REG = os.environ.get('INCLUDE_ACCT_REG', 'true').lower() == 'true'
 
 OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://sparkplatform.com/openid/authorize'
 OIDC_OP_TOKEN_ENDPOINT = 'https://sparkplatform.com/openid/token'

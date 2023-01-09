@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 
@@ -20,7 +20,7 @@ from django.db import (
 )
 from django.db.models import Q
 from django.db.models.signals import pre_save, post_save
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from seed.lib.superperms.orgs.models import Organization as SuperOrganization
 from seed.models.column_mappings import ColumnMapping
@@ -617,6 +617,13 @@ class Column(models.Model):
 
     recognize_empty = models.BooleanField(default=False)
 
+    comstock_mapping = models.CharField(max_length=64, null=True, blank=True, default=None)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['organization', 'comstock_mapping'], name='unique_comstock_mapping'),
+        ]
+
     def __str__(self):
         return '{} - {}:{}'.format(self.pk, self.table_name, self.column_name)
 
@@ -653,7 +660,7 @@ class Column(models.Model):
         from pint.errors import DimensionalityError
         from seed.models.properties import PropertyState
         from seed.models.tax_lots import TaxLotState, DATA_STATE_MATCHING
-        from quantityfield import ureg
+        from quantityfield.units import ureg
         STR_TO_CLASS = {'TaxLotState': TaxLotState, 'PropertyState': PropertyState}
 
         def _serialize_for_extra_data(column_value):
@@ -774,7 +781,7 @@ class Column(models.Model):
 
         mappings = []
         if os.path.isfile(filename):
-            with open(filename, 'rU') as csvfile:
+            with open(filename, 'r', newline=None) as csvfile:
                 for row in csv.reader(csvfile):
                     data = {
                         "from_field": row[0],
@@ -1001,26 +1008,38 @@ class Column(models.Model):
             try:
                 # the from column is the field in the import file, thus the table_name needs to be
                 # blank. Eventually need to handle passing in import_file_id
-                from_org_col, _ = Column.objects.get_or_create(
+                from_org_col, _ = Column.objects.update_or_create(
                     organization=organization,
-                    table_name__in=[None, ''],
+                    table_name='',
                     column_name=field['from_field'],
-                    units_pint=field.get('from_units'),  # might be None
-                    is_extra_data=False  # data from header rows in the files are NEVER extra data
+                    is_extra_data=False,  # Column objects representing raw/header rows are NEVER extra data
+                    defaults={'units_pint': field.get('from_units', None)}
                 )
             except Column.MultipleObjectsReturned:
+                # We want to avoid the ambiguity of having multiple Column objects for a specific raw column.
+                # To do that, delete all multiples along with any associated ColumnMapping objects.
                 _log.debug(
                     "More than one from_column found for {}.{}".format(field['to_table_name'],
                                                                        field['to_field']))
 
-                # TODO: write something to remove the duplicate columns
-                from_org_col = Column.objects.filter(organization=organization,
-                                                     table_name__in=[None, ''],
-                                                     column_name=field['from_field'],
-                                                     units_pint=field.get('from_units'),
-                                                     # might be None
-                                                     is_extra_data=is_extra_data).first()
-                _log.debug("Grabbing the first from_column")
+                all_from_cols = Column.objects.filter(
+                    organization=organization,
+                    table_name='',
+                    column_name=field['from_field'],
+                    is_extra_data=False
+                )
+
+                ColumnMapping.objects.filter(column_raw__id__in=models.Subquery(all_from_cols.values('id'))).delete()
+                all_from_cols.delete()
+
+                from_org_col = Column.objects.create(
+                    organization=organization,
+                    table_name='',
+                    units_pint=field.get('from_units', None),
+                    column_name=field['from_field'],
+                    is_extra_data=False  # Column objects representing raw/header rows are NEVER extra data
+                )
+                _log.debug("Creating a new from_column")
 
             new_field['to_column_object'] = select_col_obj(field['to_field'],
                                                            field['to_table_name'], to_org_col)

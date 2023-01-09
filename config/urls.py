@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 from django.conf import settings
@@ -13,7 +13,7 @@ from django.contrib import admin
 from config.views import robots_txt
 from seed.api.base.urls import urlpatterns as api
 from seed.landing.views import password_reset_complete, password_reset_confirm, password_reset_done
-from seed.views.main import angular_js_tests
+from seed.views.main import angular_js_tests, version
 
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -54,6 +54,7 @@ urlpatterns = [
     # Application
     url(r'^', include(('seed.landing.urls', "seed.landing"), namespace="landing")),
     url(r'^app/', include(('seed.urls', "seed"), namespace="seed")),
+    url(r'^documentation/', include(('seed.docs.urls', 'seed.docs'), namespace='docs')),
 
     # root configuration items
     url(r'^eula/', include(('tos.urls', 'tos'), namespace='tos')),
@@ -62,6 +63,7 @@ urlpatterns = [
 
     # API
     url(r'^api/swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    url(r'^api/version/$', version, name='version'),
     url(r'^api/', include((api, "seed"), namespace='api')),
     url(r'^oauth/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 ]

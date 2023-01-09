@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 import json
@@ -11,11 +11,12 @@ from datetime import datetime
 from django.urls import reverse
 from django.utils.timezone import get_current_timezone
 
-from seed.data_importer.tasks import match_buildings
+from seed.data_importer.tasks import geocode_and_match_buildings_task
 from seed.landing.models import SEEDUser as User
 from seed.models import (
     Column,
     DATA_STATE_MAPPING,
+    Note,
     PropertyView,
     TaxLot,
     TaxLotProperty,
@@ -23,7 +24,7 @@ from seed.models import (
     VIEW_LIST_TAXLOT,
 )
 from seed.test_helpers.fake import (
-    FakeColumnListSettingsFactory,
+    FakeColumnListProfileFactory,
     FakeCycleFactory,
     FakeNoteFactory,
     FakePropertyFactory,
@@ -55,7 +56,7 @@ class TaxLotViewTests(DataMappingBaseTestCase):
         self.taxlot_factory = FakeTaxLotFactory(organization=self.org)
         self.taxlot_state_factory = FakeTaxLotStateFactory(organization=self.org)
 
-        self.column_list_factory = FakeColumnListSettingsFactory(organization=self.org)
+        self.column_list_factory = FakeColumnListProfileFactory(organization=self.org)
 
     def test_get_links_for_a_single_property(self):
         # Create 2 linked property sets
@@ -75,11 +76,9 @@ class TaxLotViewTests(DataMappingBaseTestCase):
         # save all the columns in the state to the database
         Column.save_column_names(state)
 
-        url = reverse('api:v2:taxlots-links', args=[view_1.id])
-        post_params = json.dumps({
-            'organization_id': self.org.pk
-        })
-        response = self.client.post(url, post_params, content_type='application/json')
+        url = reverse('api:v3:taxlots-links', args=[view_1.id])
+        url += f'?organization_id={self.org.pk}'
+        response = self.client.get(url)
         data = response.json()['data']
 
         self.assertEqual(len(data), 2)
@@ -97,6 +96,66 @@ class TaxLotViewTests(DataMappingBaseTestCase):
         self.assertEqual(result_2['cycle_id'], later_cycle.id)
         self.assertEqual(result_2['view_id'], view_2.id)
 
+    def test_edit_properties_creates_notes_after_initial_edit(self):
+        state = self.taxlot_state_factory.get_taxlot_state()
+        taxlot = self.taxlot_factory.get_taxlot()
+        view = TaxLotView.objects.create(
+            taxlot=taxlot, cycle=self.cycle, state=state
+        )
+
+        # create the Some Extra Data column so serializers enables edit changes to be tracked by log Notes.
+        Column.objects.create(
+            column_name="Some Extra Data",
+            organization=self.org,
+            is_extra_data=True,
+            table_name='TaxLotState'
+        )
+
+        # update the address
+        new_data = {
+            "state": {
+                "address_line_1": "742 Evergreen Terrace",
+                "extra_data": {"Some Extra Data": "111"}
+            }
+        }
+        url = reverse('api:v3:taxlots-detail', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
+        self.client.put(url, json.dumps(new_data), content_type='application/json')
+
+        self.assertEqual(view.notes.count(), 1)
+
+        # update the address again
+        new_data = {
+            "state": {
+                "address_line_1": "123 note street",
+                "extra_data": {"Some Extra Data": "222"}
+            }
+        }
+        url = reverse('api:v3:taxlots-detail', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
+        self.client.put(url, json.dumps(new_data), content_type='application/json')
+
+        self.assertEqual(view.notes.count(), 2)
+        refreshed_view = TaxLotView.objects.get(id=view.id)
+        note = refreshed_view.notes.order_by('created').last()
+
+        expected_log_data = [
+            {
+                "field": "address_line_1",
+                "previous_value": "742 Evergreen Terrace",
+                "new_value": "123 note street",
+                "state_id": refreshed_view.state_id
+            },
+            {
+                "field": "Some Extra Data",
+                "previous_value": "111",
+                "new_value": "222",
+                "state_id": refreshed_view.state_id
+            },
+        ]
+        self.assertEqual(note.note_type, Note.LOG)
+        self.assertEqual(note.name, "Automatically Created")
+        # import pdb; pdb.set_trace()
+        self.assertCountEqual(note.log_data, expected_log_data)
+
     def test_first_lat_long_edit(self):
         state = self.taxlot_state_factory.get_taxlot_state()
         taxlot = self.taxlot_factory.get_taxlot()
@@ -111,7 +170,7 @@ class TaxLotViewTests(DataMappingBaseTestCase):
                 "longitude": -104.986138,
             }
         }
-        url = reverse('api:v2:taxlots-detail', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-detail', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
         response = self.client.put(url, json.dumps(new_data), content_type='application/json')
         data = json.loads(response.content)
         self.assertEqual(data['status'], 'success')
@@ -138,12 +197,12 @@ class TaxLotViewTests(DataMappingBaseTestCase):
         # set import_file_1 mapping done so that record is "created for users to view".
         import_file_1.mapping_done = True
         import_file_1.save()
-        match_buildings(import_file_1.id)
+        geocode_and_match_buildings_task(import_file_1.id)
 
         _import_record_2, import_file_2 = self.create_import_file(self.user, self.org, self.cycle)
 
-        url = reverse('api:v2:taxlots-filter') + '?cycle_id={}&organization_id={}&page=1&per_page=999999999'.format(self.cycle.pk, self.org.pk)
-        response = self.client.post(url)
+        url = reverse('api:v3:taxlots-filter') + '?cycle_id={}&organization_id={}&page=1&per_page=999999999'.format(self.cycle.pk, self.org.pk)
+        response = self.client.post(url, content_type='application/json')
         data = json.loads(response.content)
 
         self.assertFalse(data['results'][0]['merged_indicator'])
@@ -156,10 +215,10 @@ class TaxLotViewTests(DataMappingBaseTestCase):
         # set import_file_2 mapping done so that match merging can occur.
         import_file_2.mapping_done = True
         import_file_2.save()
-        match_buildings(import_file_2.id)
+        geocode_and_match_buildings_task(import_file_2.id)
 
-        url = reverse('api:v2:taxlots-filter') + '?cycle_id={}&organization_id={}&page=1&per_page=999999999'.format(self.cycle.pk, self.org.pk)
-        response = self.client.post(url)
+        url = reverse('api:v3:taxlots-filter') + '?cycle_id={}&organization_id={}&page=1&per_page=999999999'.format(self.cycle.pk, self.org.pk)
+        response = self.client.post(url, content_type='application/json')
         data = json.loads(response.content)
 
         self.assertTrue(data['results'][0]['merged_indicator'])
@@ -182,8 +241,8 @@ class TaxLotViewTests(DataMappingBaseTestCase):
             taxlot_view_id=TaxLotView.objects.get().id
         ).save()
 
-        url = reverse('api:v2:taxlots-filter') + '?cycle_id={}&organization_id={}&page=1&per_page=999999999'.format(self.cycle.pk, self.org.pk)
-        response = self.client.post(url)
+        url = reverse('api:v3:taxlots-filter') + '?cycle_id={}&organization_id={}&page=1&per_page=999999999'.format(self.cycle.pk, self.org.pk)
+        response = self.client.post(url, content_type='application/json')
         data = json.loads(response.content)
 
         related = data['results'][0]['related'][0]
@@ -211,7 +270,8 @@ class TaxLotViewTests(DataMappingBaseTestCase):
             taxlot=taxlot_2, cycle=cycle_2, state=tls_2
         )
 
-        url = reverse('api:v2:taxlots-match-merge-link', args=[view_1.id])
+        url = reverse('api:v3:taxlots-match-merge-link', args=[view_1.id])
+        url += f'?organization_id={self.org.pk}'
         response = self.client.post(url, content_type='application/json')
         summary = response.json()
 
@@ -244,8 +304,8 @@ class TaxLotViewTests(DataMappingBaseTestCase):
 
         # save all the columns in the state to the database so we can setup column list settings
         Column.save_column_names(state)
-        # get the columnlistsetting (default) for all columns
-        columnlistsetting = self.column_list_factory.get_columnlistsettings(
+        # get the columnlistprofile (default) for all columns
+        columnlistprofile = self.column_list_factory.get_columnlistprofile(
             inventory_type=VIEW_LIST_TAXLOT,
             columns=['address_line_1', 'field_1'],
             table_name='TaxLotState'
@@ -253,15 +313,15 @@ class TaxLotViewTests(DataMappingBaseTestCase):
 
         post_params = json.dumps({
             'organization_id': self.org.pk,
-            'profile_id': columnlistsetting.id,
+            'profile_id': columnlistprofile.id,
             'cycle_ids': [self.cycle.id, cycle_2.id]
         })
-        url = reverse('api:v2:taxlots-cycles')
+        url = reverse('api:v3:taxlots-filter-by-cycle')
         response = self.client.post(url, post_params, content_type='application/json')
         data = response.json()
 
-        address_line_1_key = 'address_line_1_' + str(columnlistsetting.columns.get(column_name='address_line_1').id)
-        field_1_key = 'field_1_' + str(columnlistsetting.columns.get(column_name='field_1').id)
+        address_line_1_key = 'address_line_1_' + str(columnlistprofile.columns.get(column_name='address_line_1').id)
+        field_1_key = 'field_1_' + str(columnlistprofile.columns.get(column_name='field_1').id)
 
         self.assertEqual(len(data), 2)
 
@@ -318,9 +378,9 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
         self.view_2.labels.add(label_2, label_3)
 
         # Merge the taxlots
-        url = reverse('api:v2:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
         post_params = json.dumps({
-            'state_ids': [self.state_2.pk, self.state_1.pk]
+            'taxlot_view_ids': [self.view_2.pk, self.view_1.pk]
         })
         self.client.post(url, post_params, content_type='application/json')
 
@@ -345,9 +405,9 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
         self.view_2.notes.add(note3)
 
         # Merge the taxlots
-        url = reverse('api:v2:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
         post_params = json.dumps({
-            'state_ids': [self.state_2.pk, self.state_1.pk]
+            'taxlot_view_ids': [self.view_2.pk, self.view_1.pk]
         })
         self.client.post(url, post_params, content_type='application/json')
 
@@ -390,9 +450,9 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
         ).save()
 
         # Merge the taxlots
-        url = reverse('api:v2:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
         post_params = json.dumps({
-            'state_ids': [self.state_2.pk, self.state_1.pk]  # priority given to state_1
+            'taxlot_view_ids': [self.view_2.pk, self.view_1.pk]  # priority given to state_1
         })
         self.client.post(url, post_params, content_type='application/json')
 
@@ -419,9 +479,9 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
         )
 
         # Merge the taxlots
-        url = reverse('api:v2:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
         post_params = json.dumps({
-            'state_ids': [self.state_2.pk, self.state_1.pk]  # priority given to state_1
+            'taxlot_view_ids': [self.view_2.pk, self.view_1.pk]  # priority given to state_1
         })
         self.client.post(url, post_params, content_type='application/json')
 
@@ -432,9 +492,9 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
 
     def test_taxlots_unmerge_without_losing_labels(self):
         # Merge the taxlots
-        url = reverse('api:v2:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
         post_params = json.dumps({
-            'state_ids': [self.state_2.pk, self.state_1.pk]  # priority given to state_1
+            'taxlot_view_ids': [self.view_2.pk, self.view_1.pk]  # priority given to state_1
         })
         self.client.post(url, post_params, content_type='application/json')
 
@@ -448,7 +508,7 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
         view.labels.add(label_1, label_2)
 
         # Unmerge the taxlots
-        url = reverse('api:v2:taxlots-unmerge', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-unmerge', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
         self.client.post(url, content_type='application/json')
 
         for new_view in TaxLotView.objects.all():
@@ -458,9 +518,9 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
 
     def test_unmerge_results_in_the_use_of_new_canonical_taxlots_and_deletion_of_old_canonical_state_if_unrelated_to_any_views(self):
         # Merge the taxlots
-        url = reverse('api:v2:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
         post_params = json.dumps({
-            'state_ids': [self.state_2.pk, self.state_1.pk]  # priority given to state_1
+            'taxlot_view_ids': [self.view_2.pk, self.view_1.pk]  # priority given to state_1
         })
         self.client.post(url, post_params, content_type='application/json')
 
@@ -469,7 +529,7 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
         taxlot_id = view.taxlot_id
 
         # Unmerge the taxlots
-        url = reverse('api:v2:taxlots-unmerge', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-unmerge', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
         self.client.post(url, content_type='application/json')
 
         self.assertFalse(TaxLot.objects.filter(pk=taxlot_id).exists())
@@ -477,9 +537,9 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
 
     def test_unmerge_results_in_the_persistence_of_old_canonical_state_if_related_to_any_views(self):
         # Merge the taxlots
-        url = reverse('api:v2:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-merge') + '?organization_id={}'.format(self.org.pk)
         post_params = json.dumps({
-            'state_ids': [self.state_2.pk, self.state_1.pk]  # priority given to state_1
+            'taxlot_view_ids': [self.view_2.pk, self.view_1.pk]  # priority given to state_1
         })
         self.client.post(url, post_params, content_type='application/json')
 
@@ -496,7 +556,7 @@ class TaxLotMergeUnmergeViewTests(DataMappingBaseTestCase):
         )
 
         # Unmerge the taxlots
-        url = reverse('api:v2:taxlots-unmerge', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
+        url = reverse('api:v3:taxlots-unmerge', args=[view.id]) + '?organization_id={}'.format(self.org.pk)
         self.client.post(url, content_type='application/json')
 
         self.assertTrue(TaxLot.objects.filter(pk=view.taxlot_id).exists())

@@ -1,5 +1,5 @@
 ## Standard Energy Efficiency Data (SEED) Platform™
-[![Build Status][travis-img]][travis-url] [![Coverage Status][coveralls-img]][coveralls-url]
+[![Build Status][build-img]][build-url] [![Coverage Status][coveralls-img]][coveralls-url]
 [![](http://readthedocs.org/projects/seed-platform/badge/?version=stable)](http://seed-platform.readthedocs.io/en/stable/)
 [![](http://readthedocs.org/projects/seed-platform/badge/?version=latest)](http://seed-platform.readthedocs.io/en/latest/)
 
@@ -55,7 +55,7 @@ celery -A seed worker -l info -c 4 --maxtasksperchild 1000 --events
 * Running tests: See [Testing Notes][developer-testing-notes]
 
 ### Copyright
-Copyright ©  2014 - 2020, The Regents of the University of California, through
+Copyright ©  2014 - 2021, The Regents of the University of California, through
 Lawrence Berkeley National Laboratory (subject to receipt of any required
 approvals from the U.S. Department of Energy) and contributors. All rights
 reserved.
@@ -70,7 +70,7 @@ reserved.
 [read-the-docs-stable-img]: https://readthedocs.io/projects/seed-platform/badge/?version=stable
 [read-the-docs-latest]: http://seed-platform.readthedocs.io/en/latest/
 [read-the-docs-latest-img]: https://readthedocs.io/projects/seed-platform/badge/?version=latest
-[travis-img]: https://travis-ci.org/SEED-platform/seed.svg?branch=develop
-[travis-url]: https://travis-ci.org/SEED-platform/seed
+[build-img]: https://github.com/SEED-platform/seed/workflows/CI/badge.svg?branch=develop
+[build-url]: https://github.com/SEED-platform/seed/actions?query=branch%3Adevelop
 [coveralls-img]: https://coveralls.io/repos/github/SEED-platform/seed/badge.svg?branch=HEAD
 [coveralls-url]: https://coveralls.io/github/SEED-platform/seed?branch=HEAD

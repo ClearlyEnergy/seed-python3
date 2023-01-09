@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California,
+:copyright (c) 2014 - 2021, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
@@ -9,6 +9,8 @@ All rights reserved.  # NOQA
 """
 
 import datetime
+import json
+
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponseNotFound
@@ -18,7 +20,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
-from rest_framework.viewsets import GenericViewSet
+from rest_framework.viewsets import ViewSet
 
 from seed.utils.match import match_merge_link
 from seed.decorators import ajax_request_class
@@ -30,8 +32,8 @@ from seed.lib.superperms.orgs.models import (
 from seed.models import (
     AUDIT_USER_EDIT,
     Column,
-    ColumnListSetting,
-    ColumnListSettingColumn,
+    ColumnListProfile,
+    ColumnListProfileColumn,
     Cycle,
     DATA_STATE_MATCHING,
     MERGE_STATE_DELETE,
@@ -216,10 +218,10 @@ class PropertyViewViewSet(SEEDOrgModelViewSet):
     filter_class = PropertyViewFilterSet
     orgfilter = 'property__organization_id'
     data_name = "property_views"
-    queryset = PropertyView.objects.all().select_related('state')
+    queryset = PropertyView.objects.all()
 
 
-class PropertyViewSet(GenericViewSet, ProfileIdMixin):
+class PropertyViewSet(ViewSet, ProfileIdMixin):
     renderer_classes = (JSONRenderer,)
     serializer_class = PropertySerializer
 
@@ -294,7 +296,7 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
         columns_from_database = Column.retrieve_all(org_id, 'property', False)
 
         # This uses an old method of returning the show_columns. There is a new method that
-        # is prefered in v2.1 API with the ProfileIdMixin.
+        # is preferred in v2.1 API with the ProfileIdMixin.
         if profile_id is None:
             show_columns = None
         elif profile_id == -1:
@@ -303,16 +305,16 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
             ).values_list('id', flat=True))
         else:
             try:
-                profile = ColumnListSetting.objects.get(
+                profile = ColumnListProfile.objects.get(
                     organization=org,
                     id=profile_id,
-                    settings_location=VIEW_LIST,
+                    profile_location=VIEW_LIST,
                     inventory_type=VIEW_LIST_PROPERTY
                 )
-                show_columns = list(ColumnListSettingColumn.objects.filter(
-                    column_list_setting_id=profile.id
+                show_columns = list(ColumnListProfileColumn.objects.filter(
+                    column_list_profile_id=profile.id
                 ).values_list('column_id', flat=True))
-            except ColumnListSetting.DoesNotExist:
+            except ColumnListProfile.DoesNotExist:
                 show_columns = None
 
         related_results = TaxLotProperty.get_related(property_views, show_columns,
@@ -846,13 +848,27 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
               required: false
               paramType: query
         """
-        organization_id = int(request.query_params.get('organization_id'))
-        only_used = request.query_params.get('only_used', False)
-        columns = Column.retrieve_all(organization_id, 'property', only_used)
-        organization = Organization.objects.get(pk=organization_id)
-        unitted_columns = [add_pint_unit_suffix(organization, x) for x in columns]
+        org_id = request.query_params.get('organization_id', None)
+        if not org_id:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Need to pass organization_id as query parameter'},
+                status=status.HTTP_400_BAD_REQUEST)
+        org_id = int(org_id)
 
-        return JsonResponse({'status': 'success', 'columns': unitted_columns})
+        try:
+            Organization.objects.get(pk=org_id)
+        except Organization.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'organization with id %s does not exist' % org_id
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        only_used = json.loads(request.query_params.get('only_used', 'false'))
+        columns = Column.retrieve_all(org_id, 'property', only_used)
+        organization = Organization.objects.get(pk=org_id)
+        columns_with_units = [add_pint_unit_suffix(organization, x) for x in columns]
+
+        return JsonResponse({'status': 'success', 'columns': columns_with_units})
 
     @api_endpoint_class
     @ajax_request_class
@@ -1095,7 +1111,7 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
                 if val == '':
                     new_property_state_data[key] = None
 
-            changed_fields = get_changed_fields(property_state_data, new_property_state_data)
+            changed_fields, previous_data = get_changed_fields(property_state_data, new_property_state_data)
             if not changed_fields:
                 result.update(
                     {'status': 'success', 'message': 'Records are identical'}
@@ -1162,8 +1178,12 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
 
                 if 'extra_data' in new_property_state_data:
                     property_state_data['extra_data'].update(
-                        new_property_state_data.pop('extra_data'))
-                property_state_data.update(new_property_state_data)
+                        new_property_state_data['extra_data']
+                    )
+
+                property_state_data.update(
+                    {k: v for k, v in new_property_state_data.items() if k != 'extra_data'}
+                )
 
                 log = PropertyAuditLog.objects.select_related().filter(
                     state=property_view.state
@@ -1190,6 +1210,8 @@ class PropertyViewSet(GenericViewSet, ProfileIdMixin):
 
                         # save the property view so that the datetime gets updated on the property.
                         property_view.save()
+
+                        Note.create_from_edit(request.user.id, property_view, new_property_state_data, previous_data)
 
                         merge_count, link_count, view_id = match_merge_link(property_view.id, 'PropertyState')
 

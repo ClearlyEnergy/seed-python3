@@ -1,5 +1,5 @@
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author nicholas.long@nrel.gov
 
 File contains settings needed to run SEED with docker
@@ -11,10 +11,15 @@ from config.settings.common import *  # noqa
 # Gather all the settings from the docker environment variables
 ENV_VARS = ['POSTGRES_DB', 'POSTGRES_PORT', 'POSTGRES_USER', 'POSTGRES_PASSWORD', ]
 
+# See the django docs for more info on these env vars:
+# https://docs.djangoproject.com/en/3.0/topics/email/#smtp-backend
+SMTP_ENV_VARS = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_HOST_USER',
+                 'EMAIL_HOST_PASSWORD', 'EMAIL_USE_TLS', 'EMAIL_USE_SSL']
+
 # The optional vars will set the SERVER_EMAIL information as needed
 OPTIONAL_ENV_VARS = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SES_REGION_NAME',
                      'AWS_SES_REGION_ENDPOINT', 'SERVER_EMAIL', 'SENTRY_JS_DSN', 'SENTRY_RAVEN_DSN',
-                     'REDIS_PASSWORD']
+                     'REDIS_PASSWORD', 'DJANGO_EMAIL_BACKEND'] + SMTP_ENV_VARS
 
 for loc in ENV_VARS + OPTIONAL_ENV_VARS:
     locals()[loc] = os.environ.get(loc)
@@ -27,6 +32,18 @@ DEBUG = False
 COMPRESS_ENABLED = False
 # COMPRESS_STORAGE = 'compressor.storage.GzipCompressorFileStorage'
 # COMPRESS_OFFLINE = True
+HES_USER_KEY = os.environ.get("HES_USER_KEY")
+HES_CLIENT_URL = os.environ.get('HES_CLIENT_URL')
+CE_API_KEY= os.environ.get('CE_API_KEY')
+
+AWS_BUCKET_NAME = os.environ.get('S3_BUCKET')
+GOOGLEMAPS_KEY = os.environ.get('GOOGLEMAPS_KEY')
+PVWATTS_API_KEY = os.environ.get('PVWATTS_API_KEY')
+OIDC_RP_CLIENT_ID = os.environ.get('OIDC_RP_CLIENT_ID')
+OIDC_RP_CLIENT_SECRET = os.environ.get('OIDC_RP_CLIENT_SECRET')
+HELIX_SSL = os.environ.get("HELIX_SSL")
+if HELIX_SSL is not None:
+    FORCE_SSL_PROTOCOL = True
 
 # Make sure to disable secure cooking and csrf when usign Cloudflare
 SESSION_COOKIE_SECURE = False
@@ -37,8 +54,14 @@ ALLOWED_HOSTS = ['*']
 # By default we are using SES as our email client. If you would like to use
 # another backend (e.g. SMTP), then please update this model to support both and
 # create a pull request.
-EMAIL_BACKEND = 'django_ses.SESBackend'
+EMAIL_BACKEND = (DJANGO_EMAIL_BACKEND if 'DJANGO_EMAIL_BACKEND' in os.environ else "django_ses.SESBackend")
 DEFAULT_FROM_EMAIL = SERVER_EMAIL
+POST_OFFICE = {
+    'BACKENDS': {
+        'default': EMAIL_BACKEND,
+        'post_office_backend': EMAIL_BACKEND,
+    }
+}
 
 # PostgreSQL DB config
 DATABASES = {

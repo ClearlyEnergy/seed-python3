@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California,
+:copyright (c) 2014 - 2021, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Department of Energy) and contributors.
 All rights reserved.  # NOQA
@@ -210,7 +210,7 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin, serializers.ModelSeria
             changed_fields=str(validated_data),
             description="Updated by api call."
         )
-        # PATCH request, remove exisiting urls only if urls is supplied
+        # PATCH request, remove existing urls only if urls is supplied
         # PUT request, always remove urls
         # remove any existing urls not in urls
         if urls or not self.partial:

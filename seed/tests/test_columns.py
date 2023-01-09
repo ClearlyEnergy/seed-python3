@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
 
@@ -26,7 +26,7 @@ from seed.test_helpers.fake import (
     FakeTaxLotStateFactory,
 )
 from seed.utils.organizations import create_organization
-from quantityfield import ureg
+from quantityfield.units import ureg
 
 
 class TestColumns(TestCase):
@@ -200,7 +200,7 @@ class TestColumns(TestCase):
 
     def test_save_column_mapping_by_file_exception(self):
         self.mapping_import_file = os.path.abspath("./no-file.csv")
-        with self.assertRaisesRegexp(Exception, "Mapping file does not exist: .*/no-file.csv"):
+        with self.assertRaisesRegex(Exception, "Mapping file does not exist: .*/no-file.csv"):
             Column.create_mappings_from_file(self.mapping_import_file, self.fake_org,
                                              self.fake_user)
 
@@ -869,6 +869,7 @@ class TestColumnsByInventory(TestCase):
             'unit_type': None,
             'is_matching_criteria': False,
             'recognize_empty': False,
+            'comstock_mapping': None,
         }
         self.assertIn(c, columns)
 
@@ -887,6 +888,7 @@ class TestColumnsByInventory(TestCase):
             'unit_type': None,
             'is_matching_criteria': False,
             'recognize_empty': False,
+            'comstock_mapping': None,
         }
         self.assertIn(c, columns)
 
@@ -905,6 +907,7 @@ class TestColumnsByInventory(TestCase):
             'unit_type': None,
             'is_matching_criteria': False,
             'recognize_empty': False,
+            'comstock_mapping': None,
         }
         self.assertIn(c, columns)
 
@@ -924,6 +927,7 @@ class TestColumnsByInventory(TestCase):
             'unit_type': None,
             'is_matching_criteria': True,
             'recognize_empty': False,
+            'comstock_mapping': None,
         }
         self.assertIn(c, columns)
 
@@ -942,6 +946,7 @@ class TestColumnsByInventory(TestCase):
             'unit_type': None,
             'is_matching_criteria': False,
             'recognize_empty': False,
+            'comstock_mapping': None,
         }
         self.assertIn(c, columns)
 
@@ -959,6 +964,7 @@ class TestColumnsByInventory(TestCase):
             'unit_type': None,
             'is_matching_criteria': False,
             'recognize_empty': False,
+            'comstock_mapping': None,
         }
         self.assertIn(c, columns)
 
@@ -987,6 +993,7 @@ class TestColumnsByInventory(TestCase):
             'unit_type': None,
             'is_matching_criteria': False,
             'recognize_empty': False,
+            'comstock_mapping': None,
         }
         self.assertIn(c, columns)
 
@@ -1005,7 +1012,7 @@ class TestColumnsByInventory(TestCase):
             is_extra_data=True
         )
 
-        with self.assertRaisesRegexp(Exception, 'Duplicate name'):
+        with self.assertRaisesRegex(Exception, 'Duplicate name'):
             Column.retrieve_all(self.fake_org.pk, 'property', False)
 
     def test_column_retrieve_schema(self):

@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 // check inventory pages after import and delete test dataset
@@ -130,13 +130,13 @@ describe('When I go to the taxlot page', function () {
 
   it('should change columns', function () {
     browser.get('/app/#/taxlots');
-    $('#list-settings').click();
+    $('#column-list-profiles').click();
     $('[ng-if="grid.options.enableSelectAll"]').click().click();
     $$('[ng-class="{\'ui-grid-row-selected\': row.isSelected}"]').first().click();
     $('#inventory-list').click();
     var cols = $('.ui-grid-render-container.ui-grid-render-container-body').all(by.repeater('col in colContainer.renderedColumns'));
     expect(cols.count()).toBe(1);
-    $('#list-settings').click();
+    $('#column-list-profiles').click();
     $('[ng-click="toggleMenu()"]').click();
     $$('[ng-click="itemAction($event, title)"]').get(1).click();
     $('[ng-click="toggleMenu()"]').click();

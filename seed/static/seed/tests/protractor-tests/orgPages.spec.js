@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 // test new orgs and sub orgs
@@ -197,7 +197,6 @@ describe('When I visit the the parent org', function () {
     $$('[ng-model="rule.field"]').first().click();
     $('[label="Postal Code (Property)"]').click();
     // element(by.cssContainingText('[ng-model="rule.field"]', 'PM Property ID')).click();
-    $$('[ng-click="change_not_null(rule)"]').first().click();
     $$('[ng-click="save_settings()"]').first().click();
     //should show checkmark
     expect($$('[ng-click="save_settings()"]').first().$('i.ng-hide').isPresent()).toBe(false);
@@ -223,7 +222,6 @@ describe('When I visit the the parent org', function () {
     $$('[ng-model="rule.field"]').first().click();
     $('[label="Address Line 1 (Tax Lot)"]').click();
     // element(by.cssContainingText('[ng-model="rule.field"]', 'Address Line 1 (Tax Lot)')).click();
-    $$('[ng-click="change_not_null(rule)"]').first().click();
     $$('[ng-click="save_settings()"]').first().click();
     //should show checkmark
     expect($$('[ng-click="save_settings()"]').first().$('i.ng-hide').isPresent()).toBe(false);

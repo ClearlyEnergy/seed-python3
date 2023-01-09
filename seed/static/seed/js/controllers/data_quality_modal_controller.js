@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.controller.data_quality_modal', [])
@@ -7,29 +7,38 @@ angular.module('BE.seed.controller.data_quality_modal', [])
     '$scope',
     '$uibModalInstance',
     'search_service',
+    'data_quality_service',
     'naturalSort',
     'dataQualityResults',
     'name',
     'uploaded',
-    'importFileId',
+    'run_id',
     'orgId',
     function (
       $scope,
       $uibModalInstance,
       search_service,
+      data_quality_service,
       naturalSort,
       dataQualityResults,
       name,
       uploaded,
-      importFileId,
+      run_id,
       orgId
     ) {
       $scope.name = name;
       $scope.uploaded = moment.utc(uploaded).local().format('MMMM Do YYYY, h:mm:ss A Z');
       var originalDataQualityResults = dataQualityResults || [];
       $scope.dataQualityResults = originalDataQualityResults;
-      $scope.importFileId = importFileId;
+      $scope.run_id = run_id;
       $scope.orgId = orgId;
+
+      $scope.download_results_csv = function () {
+        data_quality_service.get_data_quality_results_csv($scope.orgId, $scope.run_id).then(function (data) {
+          var blob = new Blob([data], {type: 'text/csv'});
+          saveAs(blob, 'Data Quality Check Results.csv');
+        });
+      };
 
       $scope.close = function () {
         $uibModalInstance.close();

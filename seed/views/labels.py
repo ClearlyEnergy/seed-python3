@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author 'Piper Merriam <pmerriam@quickleft.com>'
 """
 from collections import namedtuple
@@ -118,6 +118,21 @@ class LabelViewSet(DecoratorMixin(drf_api_endpoint), viewsets.ModelViewSet):
 
 
 class UpdateInventoryLabelsAPIView(APIView):
+    """API endpoint for viewing and creating labels.
+
+            Returns::
+                [
+                    {
+                        'id': Label's primary key
+                        'name': Name given to label
+                        'color': Color of label,
+                        'organization_id': Id of organization label belongs to,
+                        'is_applied': Will be empty array if not applied to property/taxlots
+                    }
+                ]
+
+    ---
+    """
     renderer_classes = (JSONRenderer,)
     parser_classes = (JSONParser,)
     inventory_models = {'property': PropertyView, 'taxlot': TaxLotView}
@@ -129,6 +144,10 @@ class UpdateInventoryLabelsAPIView(APIView):
         'missing_org': ErrorState(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             'missing organization_id'
+        ),
+        'missing_inventory_ids': ErrorState(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            'inventory_ids cannot be undefined or empty'
         )
     }
 
@@ -201,11 +220,7 @@ class UpdateInventoryLabelsAPIView(APIView):
         added = []
         if add_label_ids:
             model = self.models[inventory_type]
-            inventory_model = self.inventory_models[inventory_type]
             exclude = self.exclude(qs, inventory_type, add_label_ids)
-            inventory_ids = inventory_ids if inventory_ids else [
-                m.pk for m in inventory_model.objects.all()
-            ]
             new_inventory_labels = [
                 self.label_factory(inventory_type, label_id, pk)
                 for label_id in add_label_ids for pk in inventory_ids
@@ -260,7 +275,7 @@ class UpdateInventoryLabelsAPIView(APIView):
         """
         add_label_ids = request.data.get('add_label_ids', [])
         remove_label_ids = request.data.get('remove_label_ids', [])
-        inventory_ids = request.data.get('inventory_ids', None)
+        inventory_ids = request.data.get('inventory_ids', [])
         organization_id = request.query_params['organization_id']
         error = None
         # ensure add_label_ids and remove_label_ids are different
@@ -268,6 +283,8 @@ class UpdateInventoryLabelsAPIView(APIView):
             error = self.errors['disjoint']
         elif not organization_id:
             error = self.errors['missing_org']
+        elif len(inventory_ids) == 0:
+            error = self.errors['missing_inventory_ids']
         if error:
             result = {
                 'status': 'error',

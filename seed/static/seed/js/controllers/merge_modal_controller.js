@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 angular.module('BE.seed.controller.merge_modal', [])
@@ -111,15 +111,15 @@ angular.module('BE.seed.controller.merge_modal', [])
         var plural = ($scope.inventory_type === 'properties' ? ' properties' : ' tax lots');
         // The term "subsequent" below implies not including itself
         var merged_count = Math.max(result.match_merged_count - 1, 0);
-        var link_count =  result.match_link_count;
+        var link_count = result.match_link_count;
 
         Notification.info({
           message: (merged_count + ' subsequent ' + (merged_count === 1 ? singular : plural) + ' merged'),
-          delay: 10000,
+          delay: 10000
         });
         Notification.info({
           message: ('Resulting ' + singular + ' has ' + link_count + ' cross-cycle link' + (link_count === 1 ? '' : 's')),
-          delay: 10000,
+          delay: 10000
         });
       };
 
@@ -136,8 +136,8 @@ angular.module('BE.seed.controller.merge_modal', [])
             },
             headers: function () {
               return {
-                properties: "The resulting property will be further merged & linked with any matching properties.",
-                taxlots: "The resulting tax lot will be further merged & linked with any matching tax lots.",
+                properties: 'The resulting property will be further merged & linked with any matching properties.',
+                taxlots: 'The resulting tax lot will be further merged & linked with any matching tax lots.'
               };
             }
           }
@@ -150,12 +150,11 @@ angular.module('BE.seed.controller.merge_modal', [])
 
       $scope.merge = function () {
         $scope.processing = true;
-        var state_ids;
         if ($scope.inventory_type === 'properties') {
-          state_ids = _.map($scope.data, 'property_state_id').reverse();
-          return matching_service.mergeProperties(state_ids).then(function (data) {
-            Notification.success('Successfully merged ' + state_ids.length + ' properties');
-            notify_merges_and_links(data)
+          const property_view_ids = _.map($scope.data, 'property_view_id').reverse();
+          return matching_service.mergeProperties(property_view_ids).then(function (data) {
+            Notification.success('Successfully merged ' + property_view_ids.length + ' properties');
+            notify_merges_and_links(data);
             $scope.close();
           }, function (err) {
             $log.error(err);
@@ -164,10 +163,10 @@ angular.module('BE.seed.controller.merge_modal', [])
             $scope.processing = false;
           });
         } else {
-          state_ids = _.map($scope.data, 'taxlot_state_id').reverse();
-          return matching_service.mergeTaxlots(state_ids).then(function (data) {
-            Notification.success('Successfully merged ' + state_ids.length + ' tax lots');
-            notify_merges_and_links(data)
+          const view_ids = _.map($scope.data, 'taxlot_view_id').reverse();
+          return matching_service.mergeTaxlots(view_ids).then(function (data) {
+            Notification.success('Successfully merged ' + view_ids.length + ' tax lots');
+            notify_merges_and_links(data);
             $scope.close();
           }, function (err) {
             $log.error(err);

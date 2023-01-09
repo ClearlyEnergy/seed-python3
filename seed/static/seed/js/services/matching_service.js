@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 
@@ -19,17 +19,20 @@ angular.module('BE.seed.service.matching', []).factory('matching_service', [
      * we wish to match against other buildings for an organization.
      */
     matching_service.start_system_matching = function (import_file_id) {
-      return $http.post('/api/v2/import_files/' + import_file_id + '/start_system_matching_and_geocoding/', {
-        organization_id: user_service.get_organization().id
-      }).then(function (response) {
+      return $http.post('/api/v3/import_files/' + import_file_id + '/start_system_matching_and_geocoding/', {},
+        {
+          params: { organization_id: user_service.get_organization().id }
+        }).then(function (response) {
         return response.data;
+      }).catch(function (e) {
+        return e.data;
       });
     };
 
-    matching_service.mergeProperties = function (state_ids) {
+    matching_service.mergeProperties = function (property_view_ids) {
       spinner_utility.show();
-      return $http.post('/api/v2/properties/merge/', {
-        state_ids: state_ids
+      return $http.post('/api/v3/properties/merge/', {
+        property_view_ids
       }, {
         params: {
           organization_id: user_service.get_organization().id
@@ -43,7 +46,7 @@ angular.module('BE.seed.service.matching', []).factory('matching_service', [
 
     matching_service.unmergeProperties = function (view_id) {
       spinner_utility.show();
-      return $http.post('/api/v2/properties/' + view_id + '/unmerge/', {}, {
+      return $http.put('/api/v3/properties/' + view_id + '/unmerge/', {}, {
         params: {
           organization_id: user_service.get_organization().id
         }
@@ -54,10 +57,10 @@ angular.module('BE.seed.service.matching', []).factory('matching_service', [
       });
     };
 
-    matching_service.mergeTaxlots = function (state_ids) {
+    matching_service.mergeTaxlots = function (taxlot_view_ids) {
       spinner_utility.show();
-      return $http.post('/api/v2/taxlots/merge/', {
-        state_ids: state_ids
+      return $http.post('/api/v3/taxlots/merge/', {
+        taxlot_view_ids
       }, {
         params: {
           organization_id: user_service.get_organization().id
@@ -71,7 +74,7 @@ angular.module('BE.seed.service.matching', []).factory('matching_service', [
 
     matching_service.unmergeTaxlots = function (view_id) {
       spinner_utility.show();
-      return $http.post('/api/v2/taxlots/' + view_id + '/unmerge/', {}, {
+      return $http.post('/api/v3/taxlots/' + view_id + '/unmerge/', {}, {
         params: {
           organization_id: user_service.get_organization().id
         }

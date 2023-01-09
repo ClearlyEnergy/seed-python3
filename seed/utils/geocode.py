@@ -67,6 +67,10 @@ def geocode_buildings(buildings):
     if not mapquest_api_key:
         return
 
+    # Don't continue if geocoding is disabled on this org
+    if not org.geocoding_enabled:
+        return
+
     id_addresses = _id_addresses(buildings_to_geocode, org)
 
     # Don't continue if there are no addresses to geocode, indiciating an insufficient
@@ -189,7 +193,7 @@ def _address_geocoding_results(id_addresses, mapquest_api_key):
             results += response.json().get('results')
         except Exception as e:
             if response.status_code == 403:
-                raise MapQuestAPIKeyError
+                raise MapQuestAPIKeyError('Failed geocoding property states due to MapQuest error. Your MapQuest API Key is either invalid or at its limit.')
             else:
                 raise e
 
@@ -247,4 +251,7 @@ def _id_geocodings(id_addresses, address_geocoding_results):
 
 def _batch_addresses(addresses, n=50):
     for i in range(0, len(addresses), n):
-        yield addresses[i:i + n]
+        try:
+            yield addresses[i:i + n]
+        except StopIteration:
+            return

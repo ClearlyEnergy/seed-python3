@@ -1,11 +1,14 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author 'Piper Merriam <pipermerriam@gmail.com>', Paul Munday<paul@paulmunday.net>
 
 Unit tests for seed/views/labels.py
 """
+
+import json
+
 from collections import defaultdict
 
 from datetime import datetime
@@ -25,6 +28,8 @@ from seed.test_helpers.fake import (
     mock_queryset_factory,
     FakeCycleFactory,
     FakePropertyStateFactory,
+    FakePropertyViewFactory,
+    FakeTaxLotViewFactory,
 )
 from seed.tests.util import DeleteModelsTestCase
 from seed.utils.organizations import create_organization
@@ -60,7 +65,7 @@ class TestLabelsViewSet(DeleteModelsTestCase):
         client = APIClient()
         client.login(username=user.username, password='secret')
 
-        url = reverse('api:v2:labels-list')
+        url = reverse('api:v3:labels-list')
 
         response = client.get(url, {'organization_id': organization.pk, 'inventory_type': 'property'})
 
@@ -101,7 +106,7 @@ class TestLabelsViewSet(DeleteModelsTestCase):
         client = APIClient()
         client.login(username=user.username, password='secret')
 
-        url = reverse('api:v2:labels-list')
+        url = reverse('api:v3:labels-list')
 
         response_a = client.get(url, {'organization_id': organization_a.pk, 'inventory_type': 'property'})
         response_b = client.get(url, {'organization_id': organization_b.pk, 'inventory_type': 'property'})
@@ -114,6 +119,72 @@ class TestLabelsViewSet(DeleteModelsTestCase):
 
         assert results_a == {organization_a.pk}
         assert results_b == {organization_b.pk}
+
+    def test_labels_list_endpoint_doesnt_include_is_applied(self):
+        user = User.objects.create_superuser(
+            email='test_user@demo.com',
+            username='test_user@demo.com',
+            password='secret',
+        )
+        organization_a, _, _ = create_organization(user, "test-organization-a")
+
+        # Ensures that at least a single label exists to ensure that we are not
+        # relying on auto-creation of labels for this test to pass.
+        Label.objects.create(
+            color="red",
+            name="test_label-a",
+            super_organization=organization_a,
+        )
+
+        client = APIClient()
+        client.login(username=user.username, password='secret')
+
+        url = reverse('api:v3:labels-list')
+
+        response_a = client.get(url)
+
+        for label in response_a.data:
+            self.assertNotIn('is_applied', label)
+
+    def test_labels_inventory_specific_filter_endpoint_provides_IDs_for_records_where_label_is_applied(self):
+        user = User.objects.create_superuser(
+            email='test_user@demo.com',
+            username='test_user@demo.com',
+            password='secret',
+        )
+        organization_a, _, _ = create_organization(user, "test-organization-a")
+
+        # Ensures that at least a single label exists to ensure that we are not
+        # relying on auto-creation of labels for this test to pass.
+        new_label = Label.objects.create(
+            color="red",
+            name="test_label-a",
+            super_organization=organization_a,
+        )
+
+        # Create 2 properties and 2 tax lots. Then, apply that label to one of each
+        property_view_factory = FakePropertyViewFactory(organization=organization_a, user=user)
+        p_view_1 = property_view_factory.get_property_view()
+        p_view_1.labels.add(new_label)
+        property_view_factory.get_property_view()
+
+        taxlot_view_factory = FakeTaxLotViewFactory(organization=organization_a, user=user)
+        tl_view_1 = taxlot_view_factory.get_taxlot_view()
+        tl_view_1.labels.add(new_label)
+        taxlot_view_factory.get_taxlot_view()
+
+        client = APIClient()
+        client.login(username=user.username, password='secret')
+
+        url = reverse('api:v3:properties-labels')
+        response_a = client.post(url + '?organization_id={}'.format(organization_a.pk))
+        data = json.loads(response_a.content)
+
+        for label in data:
+            if label.get('name') != 'test_label-a':
+                self.assertCountEqual(label.get('is_applied'), [])
+            else:
+                self.assertCountEqual(label.get('is_applied'), [p_view_1.id])
 
 
 class TestUpdateInventoryLabelsAPIView(DeleteModelsTestCase):
@@ -232,7 +303,7 @@ class TestUpdateInventoryLabelsAPIView(DeleteModelsTestCase):
             username=self.user_details['username'],
             password=self.user_details['password']
         )
-        r = reverse('api:v2:property-labels')
+        r = '/api/v3/labels_property/'
         url = "{}?organization_id={}".format(
             r, self.org.id
         )

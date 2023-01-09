@@ -15,6 +15,7 @@ angular.module('BE.seed.controller.inventory_detail_meters', [])
     'spinner_utility',
     'urls',
     'user_service',
+    'organization_payload',
     '$log',
     function (
       $state,
@@ -32,30 +33,33 @@ angular.module('BE.seed.controller.inventory_detail_meters', [])
       spinner_utility,
       urls,
       user_service,
-      $log,
+      organization_payload,
+      $log
     ) {
       spinner_utility.show();
       $scope.item_state = inventory_payload.state;
       $scope.inventory_type = $stateParams.inventory_type;
-      $scope.organization = user_service.get_organization();
+      $scope.organization = organization_payload.organization;
       $scope.filler_cycle = cycles.cycles[0].id;
-      $scope.scenarios = _.uniqBy(_.map(meters, function(meter) {
+      $scope.scenarios = _.uniqBy(_.map(meters, function (meter) {
         return {
           id: meter.scenario_id,
           name: meter.scenario_name
-        }
-      }), 'id').filter(scenario => scenario.id !== undefined && scenario.id !== null)
+        };
+      }), 'id').filter(function (scenario) {
+        return !_.isNil(scenario.id);
+      });
 
       $scope.inventory = {
         view_id: $stateParams.view_id
       };
 
-      const getMeterLabel = (meter) => {
-        return meter.type + ' - ' + meter.source + ' - ' + meter.source_id
-      }
+      var getMeterLabel = function (meter) {
+        return meter.type + ' - ' + meter.source + ' - ' + meter.source_id;
+      };
 
-      const resetSelections = () => {
-        $scope.meter_selections = _.map(sorted_meters, function(meter) {
+      var resetSelections = function () {
+        $scope.meter_selections = _.map(sorted_meters, function (meter) {
           return {
             selected: true,
             label: getMeterLabel(meter),
@@ -63,14 +67,14 @@ angular.module('BE.seed.controller.inventory_detail_meters', [])
           };
         });
 
-        $scope.scenario_selections = _.map($scope.scenarios, function(scenario) {
+        $scope.scenario_selections = _.map($scope.scenarios, function (scenario) {
           return {
             selected: true,
             label: scenario.name,
             value: scenario.id
-          }
+          };
         });
-      }
+      };
 
       // On page load, all meters and readings
       $scope.data = property_meter_usage.readings;
@@ -85,9 +89,9 @@ angular.module('BE.seed.controller.inventory_detail_meters', [])
         }
       };
 
-      $scope.scenario_selection_toggled = (is_open) => {
+      $scope.scenario_selection_toggled = function (is_open) {
         if (!is_open) {
-          $scope.applyFilters()
+          $scope.applyFilters();
         }
       };
 
@@ -150,70 +154,85 @@ angular.module('BE.seed.controller.inventory_detail_meters', [])
       };
       // remove option to filter by scenario if there are no scenarios
       if ($scope.scenarios.length === 0) {
-        $scope.filterMethod.options = ['meter']
+        $scope.filterMethod.options = ['meter'];
       }
 
       // given a list of meter labels, it returns the filtered readings and column defs
       // This is used by the primary filterBy... functions
-      const filterByMeterLabels = (readings, columnDefs, meterLabels) => {
-        const timeColumns = ['start_time', 'end_time', 'month', 'year']
-        const selectedColumns = meterLabels.concat(timeColumns)
+      var filterByMeterLabels = function filterByMeterLabels (readings, columnDefs, meterLabels) {
+        var timeColumns = ['start_time', 'end_time', 'month', 'year'];
+        var selectedColumns = meterLabels.concat(timeColumns);
+        var filteredReadings = readings.map(function (reading) {
+          return Object.entries(reading).reduce(function (newReading, _ref) {
+            var key = _ref[0],
+              value = _ref[1];
 
-        const filteredReadings = readings.map(reading => Object.entries(reading).reduce((newReading, [key, value]) => {
-          if (selectedColumns.includes(key)) {
-            newReading[key] = value;
-          }
-          return newReading;
-        }, {}));
+            if (selectedColumns.includes(key)) {
+              newReading[key] = value;
+            }
 
-        const filteredColumnDefs = columnDefs.filter(columnDef => selectedColumns.includes(columnDef.field))
-        return { readings: filteredReadings, columnDefs: filteredColumnDefs}
-      }
+            return newReading;
+          }, {});
+        });
+        var filteredColumnDefs = columnDefs.filter(function (columnDef) {
+          return selectedColumns.includes(columnDef.field);
+        });
+        return {
+          readings: filteredReadings,
+          columnDefs: filteredColumnDefs
+        };
+      };
 
       // given the meter selections, it returns the filtered readings and column defs
-      const filterByMeterSelections = (readings, columnDefs, meterSelections) => {
+      var filterByMeterSelections = function (readings, columnDefs, meterSelections) {
         // filter according to meter selections
-        const selectedMeterLabels = meterSelections.filter(selection => selection.selected)
-                                                   .map(selection => selection.label);
+        var selectedMeterLabels = meterSelections.filter(function (selection) {
+          return selection.selected;
+        })
+          .map(function (selection) {
+            return selection.label;
+          });
 
-        return filterByMeterLabels(readings, columnDefs, selectedMeterLabels)
-      }
+        return filterByMeterLabels(readings, columnDefs, selectedMeterLabels);
+      };
 
       // given the scenario selections, it returns the filtered readings and column defs
-      const filterByScenarioSelections = (readings, columnDefs, meters, scenarioSelections) => {
-        const selectedScenarioIds = scenarioSelections.filter(selection => selection.selected).map(selection => selection.value);
-        const selectedMeterLabels = meters.filter(meter => selectedScenarioIds.includes(meter.scenario_id))
-                                          .map(meter => getMeterLabel(meter))
+      var filterByScenarioSelections = function (readings, columnDefs, meters, scenarioSelections) {
+        var selectedScenarioIds = scenarioSelections.filter(function (selection) {
+          return selection.selected;
+        }).map(function (selection) {
+          return selection.value;
+        });
+        var selectedMeterLabels = meters.filter(function (meter) {
+          return selectedScenarioIds.includes(meter.scenario_id);
+        }).map(function (meter) {
+          return getMeterLabel(meter);
+        });
 
-        return filterByMeterLabels(readings, columnDefs, selectedMeterLabels)
-      }
+        return filterByMeterLabels(readings, columnDefs, selectedMeterLabels);
+      };
 
       // filters the meter readings by selected meters or scenarios and updates the table
-      $scope.applyFilters = () => {
-        let readings, columnDefs;
+      $scope.applyFilters = function () {
+        var results, readings, columnDefs;
         if ($scope.filterMethod.selected === 'meter') {
-          ({readings, columnDefs} = filterByMeterSelections(
-            property_meter_usage.readings,
-            property_meter_usage.column_defs,
-            $scope.meter_selections
-          ))
+          results = filterByMeterSelections(property_meter_usage.readings, property_meter_usage.column_defs, $scope.meter_selections);
+          readings = results.readings;
+          columnDefs = results.columnDefs;
         } else if ($scope.filterMethod.selected === 'scenario') {
-          ({readings, columnDefs} = filterByScenarioSelections(
-            property_meter_usage.readings,
-            property_meter_usage.column_defs,
-            sorted_meters,
-            $scope.scenario_selections
-          ))
+          results = filterByScenarioSelections(property_meter_usage.readings, property_meter_usage.column_defs, sorted_meters, $scope.scenario_selections);
+          readings = results.readings;
+          columnDefs = results.columnDefs;
         } else {
-          $log.error("Invalid filter method selected: ", $scope.filterMethod)
-          return
+          $log.error('Invalid filter method selected: ', $scope.filterMethod);
+          return;
         }
 
         $scope.data = readings;
         $scope.gridOptions.columnDefs = columnDefs;
         $scope.has_readings = $scope.data.length > 0;
         $scope.apply_column_settings();
-      }
+      };
 
       // refresh_readings make an API call to refresh the base readings data
       // according to the selected interval
@@ -255,6 +274,19 @@ angular.module('BE.seed.controller.inventory_detail_meters', [])
             }
           }
         });
+      };
+
+      $scope.inventory_display_name = function (property_type) {
+        let error = '';
+        let field = property_type == 'property' ? $scope.organization.property_display_field : $scope.organization.taxlot_display_field;
+        if (!(field in $scope.item_state)) {
+          error = field + ' does not exist';
+          field = 'address_line_1';
+        }
+        if (!$scope.item_state[field]) {
+          error += (error == '' ? '' : ' and default ') + field + ' is blank';
+        }
+        $scope.inventory_name = $scope.item_state[field] ? $scope.item_state[field] : '(' + error + ') <i class="glyphicon glyphicon-question-sign" title="This can be changed from the organization settings page."></i>';
       };
 
       $scope.updateHeight = function () {

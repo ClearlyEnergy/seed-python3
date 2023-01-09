@@ -1,5 +1,5 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
+ * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
  * :author
  */
 // create and test new dataset with import
@@ -46,7 +46,7 @@ describe('When I visit the data set page', function () {
 
   it('should be able to create a new data set async', function () {
 
-    // for remote travis ci to grab files
+    // for remote ci to grab files
     browser.setFileDetector(new remote.FileDetector());
 
     var fileToUpload = 'seed/data_importer/tests/data/example-data-properties.xlsx';
@@ -118,7 +118,7 @@ describe('When I visit the data set page', function () {
 
     element(by.cssContainingText('option', browser.params.testOrg.cycle)).click();
 
-    // for remote travis ci to grab the files
+    // for remote ci to grab the files
     browser.setFileDetector(new remote.FileDetector());
 
     var fileToUpload = 'seed/data_importer/tests/data/example-data-taxlots.xlsx';
