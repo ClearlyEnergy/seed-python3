@@ -151,7 +151,6 @@ SEED_URL_APPS = (
 )
 
 MEDIA_URL = '/api/v3/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'collected_static')
@@ -176,15 +175,16 @@ COMPRESS_PRECOMPILERS = (
 )
 AWS_QUERYSTRING_AUTH = False
 
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+
 USE_S3 = os.getenv('USE_S3') == 'TRUE'
 if USE_S3:
     # aws settings
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
-    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
     # s3 media settings
     MEDIA_ROOT = "media"
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
@@ -371,7 +371,7 @@ BSYNCR_SERVER_HOST = os.environ.get('BSYNCR_SERVER_HOST')
 BSYNCR_SERVER_PORT = os.environ.get('BSYNCR_SERVER_PORT', '80')
 
 # LBNL's BETTER tool host location
-BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better.lbl.gov') 
+BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better.lbl.gov')
 
 # Google reCAPTCHA env variable for self-registration. SITE_KEY defaults
 # to the key registered for SEED. Override it needing to test.
