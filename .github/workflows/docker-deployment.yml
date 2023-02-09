@@ -53,8 +53,8 @@ jobs:
             ${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }},
             ${{ steps.login-ecr.outputs.registry }}/helix:latest
           labels: ${{ steps.meta.outputs.labels }}
-          #cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/helix:latest
-          #cache-to: type=inline
+          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/helix:latest
+          cache-to: type=inline
 
       - name: Trigger Image update
         uses: benc-uk/workflow-dispatch@v1
