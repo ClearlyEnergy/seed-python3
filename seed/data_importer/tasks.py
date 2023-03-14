@@ -16,7 +16,7 @@ import traceback
 from _csv import Error
 from builtins import str
 from collections import namedtuple
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from itertools import chain
 from math import ceil
 import zipfile
@@ -480,8 +480,8 @@ def helix_certification_task(user_id, ids, import_file_id, progress_key):
     """
     progress_data = ProgressData.from_key(progress_key)
     import_file = ImportFile.objects.get(pk=import_file_id)
-    DataQualityCheck.initialize_cache(import_file_id)
     org = Organization.objects.get(pk=import_file.import_record.super_organization.pk)
+    DataQualityCheck.initialize_cache(import_file_id, org.id)
     user = User.objects.get(pk=user_id)
 
     data = PropertyState.objects.filter(id__in=ids).only('extra_data').iterator()
@@ -603,7 +603,7 @@ def helix_hes_to_file(user, org, dataset, cycle):
     :org organization
     """
     # create new cache id
-    cache_key, dq_id = DataQualityCheck.initialize_cache()
+    cache_key, dq_id = DataQualityCheck.initialize_cache(None, org.id)
 
     progress_data = ProgressData(func_name='synchronize_hes', unique_id=dq_id)
     progress_data.delete()
@@ -614,7 +614,7 @@ def helix_hes_to_file(user, org, dataset, cycle):
         return progress_data.finish_with_error('No HES partner information')
 
     if org.hes_start_date is None:
-        start_date = date.today() - datetime.timedelta(100)
+        start_date = date.today() - timedelta(100)
     else:
         start_date = org.hes_start_date
 
@@ -659,7 +659,7 @@ def helix_leed_to_file(user, org):
     :org organization
     """
     # create new cache id
-    cache_key, dq_id = DataQualityCheck.initialize_cache()
+    cache_key, dq_id = DataQualityCheck.initialize_cache(None, org.id)
 
     progress_data = ProgressData(func_name='synchronize_leed', unique_id=dq_id)
     progress_data.delete()
@@ -668,7 +668,7 @@ def helix_leed_to_file(user, org):
         return progress_data.finish_with_error('No LEED geographic identifier')
 
     if org.leed_start_date is None:
-        start_date = date.today() - datetime.timedelta(100)
+        start_date = date.today() - timedelta(100)
     else:
         start_date = org.leed_start_date
 

@@ -36,7 +36,7 @@ HES_USER_KEY = os.environ.get("HES_USER_KEY")
 HES_CLIENT_URL = os.environ.get('HES_CLIENT_URL')
 CE_API_KEY= os.environ.get('CE_API_KEY')
 
-AWS_BUCKET_NAME = os.environ.get('S3_BUCKET')
+AWS_BUCKET_NAME = os.environ.get('AWS_BUCKET_NAME')
 GOOGLEMAPS_KEY = os.environ.get('GOOGLEMAPS_KEY')
 PVWATTS_API_KEY = os.environ.get('PVWATTS_API_KEY')
 OIDC_RP_CLIENT_ID = os.environ.get('OIDC_RP_CLIENT_ID')
