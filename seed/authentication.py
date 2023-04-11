@@ -56,3 +56,15 @@ class SeedOpenIDAuthenticationBackend(OIDCAuthenticationBackend):
         else:
             organization, _, user_added = create_organization(user, settings.OIDC_SEED_ORG)
         return user
+
+
+class HELIXAuthentication:
+    def authenticate(self, request):
+        user = User.process_token_request(request)
+        return user
+
+    def get_user(self, user_id):
+        try:
+            return User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return None

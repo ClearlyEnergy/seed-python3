@@ -86,6 +86,35 @@ class SEEDUser(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = _('users')
 
     @classmethod
+    def process_token_request(cls, request):
+        """
+        Process the query string to return the user if it is a valid user using only the api key rather than the
+        joint encoded username and apikey
+
+        :param request: object, request object with HTTP Authorization
+        :return: User object
+        """
+        if request.GET is None:
+            return None
+
+        apikey = request.GET.get("apikey")
+
+        if apikey is None:
+            return None
+
+        try:
+            valid_api_key = re.search('^[a-f0-9]{40}$', apikey)
+            if not valid_api_key:
+                return None
+
+            user = SEEDUser.objects.get(api_key=apikey)
+            return user
+        except ValueError:
+            raise exceptions.AuthenticationFailed('Invalid API query parameter')
+        except SEEDUser.DoesNotExist:
+            return None
+
+    @classmethod
     def process_query_request(cls, request):
         """
         Process the query string to return the user if it is a valid user.
