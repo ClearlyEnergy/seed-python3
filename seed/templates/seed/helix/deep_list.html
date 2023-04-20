@@ -29,6 +29,7 @@
     </div>
   </div>
   {% endif %}
+  <div id="disclaimer_count" style="display:none">{{disclaimer}}</div>
   <div class="row">
     <div class="col-md-12">
       <div class="section_header_container toggle" id="property_list">
@@ -119,7 +120,7 @@
 <script>
   $(document).ready(
       function(){
-          var show_data = ($("#disclaimer").text() == '0');
+          var show_data = ($("#disclaimer_count").text() == '0');
           $("#disclaimer").click(function() {
             if (this.checked || show_data) {
               $("#property_list").show();
