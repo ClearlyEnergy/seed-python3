@@ -41,6 +41,7 @@ GOOGLEMAPS_KEY = os.environ.get('GOOGLEMAPS_KEY')
 PVWATTS_API_KEY = os.environ.get('PVWATTS_API_KEY')
 OIDC_RP_CLIENT_ID = os.environ.get('OIDC_RP_CLIENT_ID')
 OIDC_RP_CLIENT_SECRET = os.environ.get('OIDC_RP_CLIENT_SECRET')
+HELIX_SERVER_NAME = os.environ.get("HELIX_SERVER_NAME")
 HELIX_SSL = os.environ.get("HELIX_SSL")
 if HELIX_SSL is not None:
     FORCE_SSL_PROTOCOL = True
