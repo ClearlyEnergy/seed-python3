@@ -37,7 +37,7 @@ extraEnvFrom:
   # This secret configures the database. If the name is chanegd, it should also
   # be changed the timescaledb-single.env section. Needs to contain
   # POSTGRES_USER with the value seed, POSTGRES_PASSWORD, POSTGRES_HOST,
-  # POSTGRES_DB, POSTGRES_PORT
+  # POSTGRES_DB, POSTGRES_PORT, POSTGRES_URL
   - secretRef:
     name: helix-databases
 
@@ -165,6 +165,17 @@ celery:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
+
+canaries:
+  enabled: true
+  postgres:
+    url:
+      valueFrom:
+        secretKeyRef:
+          name: helix-databases
+          key: POSTGRES_URL
+  frontend:
+    endpoint: https://chart-example.local
 
 timescaledb-single:
   fullnameOverride: helix-db

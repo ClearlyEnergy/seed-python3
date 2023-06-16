@@ -1,0 +1,51 @@
+{{- if .Values.canaries.enabled }}
+apiVersion: canaries.flanksource.com/v1
+kind: Canary
+metadata:
+  name: {{ include "helix.fullname" . }}
+  namespace: {{ .Release.namespace }}
+  labels:
+    {{- include "helix.labels" . | nindent 4 }}
+spec:
+  interval: 30
+  kubernetes:
+    - name: HELIX
+      namespace:
+        name: {{ .Release.Namespace }}
+      resource:
+        name: {{ include "helix.fullname" . }}
+      kind: deployment
+      ready: true
+    - name: HELIX Celery
+      namespace:
+        name: {{ .Release.Namespace }}
+      resource:
+        name: {{ include "helix.fullname" . }}-celery
+      kind: deployment
+      ready: true
+    - name: HELIX Redis
+      namespace:
+        name: {{ .Release.Namespace }}
+      resource:
+        name: {{ include "helix.fullname" . }}-redis
+      kind: deployment
+      ready: true
+  postgres:
+    - name: Postgres database
+      auth:
+        username:
+          {{- toYaml .Values.canaries.postgres.url | nindent 10 }}
+      connection: "$(username)"
+      query: "SELECT 1;"
+  http:
+    - name: Frontend
+      endpoint: {{ .Values.canaries.frontend.endpoint }}
+      thresholdMillis: 3000
+      responseCodes: [201, 200, 301, 403]
+      responseContent: ""
+      maxSSLExpiry: 7
+  redis:
+    - name:  HELIX Redis database
+      addr: {{ include "helix-fullname" . }}-redis:6379
+      db: 0
+{{- end }}
