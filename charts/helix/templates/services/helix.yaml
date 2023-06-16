@@ -2,8 +2,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "helix.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "helix.labels" . | nindent 4 }}
+    component: helix
 spec:
   type: {{ .Values.helix.service.type }}
   ports:
@@ -13,3 +15,4 @@ spec:
       name: http
   selector:
     {{- include "helix.selectorLabels" . | nindent 4 }}
+    component: helix

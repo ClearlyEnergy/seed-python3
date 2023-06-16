@@ -173,6 +173,8 @@ celery:
     # targetMemoryUtilizationPercentage: 80
 
 timescaledb-single:
+  serviceAccount:
+    create: false
   replicaCount: 2
   image:
     repository: docker.io/timescale/timescaledb-ha
