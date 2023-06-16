@@ -88,4 +88,4 @@ docker-compose.*.yml
 
 # generated files
 /auto*.csv
-
+/charts/helix/charts/
