@@ -1,6 +1,7 @@
 # Default values for helix.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+# If changing this, you need to update timescaledb-single.fullnameOverride too
 nameOverride: ""
 fullnameOverride: ""
 
@@ -96,13 +97,6 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-persistentVolumes:
-  data:
-    enabled: true
-    size: 2Gi
-    accessModes:
-      - ReadWriteOnce
-
 redis:
   replicaCount: 1
   image:
@@ -173,8 +167,7 @@ celery:
     # targetMemoryUtilizationPercentage: 80
 
 timescaledb-single:
-  serviceAccount:
-    create: false
+  fullnameOverride: helix-db
   replicaCount: 2
   image:
     repository: docker.io/timescale/timescaledb-ha
