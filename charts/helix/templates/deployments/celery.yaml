@@ -48,13 +48,15 @@ spec:
           env:
             - name: REDIS_HOST
               value: {{ include "helix.fullname" . }}-redis
+            {{- range .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.envFrom }}
           envFrom:
-            - configMapRef:
-                name: helix
-            - secretRef:
-                name: helix
-            - secretRef:
-                name: helix-databases
+            {{- range . }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
           resources:
             {{- toYaml .Values.celery.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
