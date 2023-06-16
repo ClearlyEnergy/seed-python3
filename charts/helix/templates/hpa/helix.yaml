@@ -1,0 +1,28 @@
+{{- if .Values.helix.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "helix.fullname" . }}
+  labels:
+    {{- include "helix.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "helix.fullname" . }}
+  minReplicas: {{ .Values.helix.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.helix.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.helix.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.helix.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.helix.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.helix.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
