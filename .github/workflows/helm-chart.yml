@@ -1,0 +1,54 @@
+name: Create Release
+on:
+  push:
+    branches:
+      - develop
+jobs:
+  semantic-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release-version: ${{ steps.semantic.outputs.new_release_version }}
+      new-release-published: ${{ steps.semantic.outputs.new-release-published }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cycjimmy/semantic-release-action@v3
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  helm:
+    runs-on: ubuntu-latest
+    needs: semantic-release
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download yq
+        run: |
+          wget -nv -nc -O yq https://github.com/mikefarah/yq/releases/download/v4.20.2/yq_linux_amd64
+          chmod +x yq
+      - name: Update chart version
+        env:
+          RELEASE_VERSION: v${{ needs.semantic-release.outputs.release-version }}
+        run: ./yq -i e '.version = "${{ env.RELEASE_VERSION }}"' charts/helix/Chart.yaml
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+      - name: Package Helm chart
+        run: |
+          helm dependency update ./charts/helix
+          helm package ./charts/helix
+      - name: Clone charts repo
+        uses: actions/checkout@v3
+        with:
+          repository: "${{ github.repository_owner }}/charts"
+          path: charts
+          token: "${{ secrets.ANSIBLE_ACCESS_TOKEN }}"
+      - name: Update chart repo
+        run: |
+          cd charts
+          cp ../helix-*.tgz ./
+          helm repo index --merge index.yaml .
+      - name: Push changes to chart repo
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Release ${{ needs.semantic-release.outputs.release-version }} of ${{ github.repository }}"
+          branch: gh-pages
+          repository: ./charts
