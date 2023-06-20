@@ -15,16 +15,20 @@ spec:
   minReplicas: {{ .Values.helix.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.helix.autoscaling.maxReplicas }}
   metrics:
-    {{- if .Values.helix.autoscaling.targetCPUUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: cpu
-        targetAverageUtilization: {{ .Values.helix.autoscaling.targetCPUUtilizationPercentage }}
-    {{- end }}
-    {{- if .Values.helix.autoscaling.targetMemoryUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: memory
-        targetAverageUtilization: {{ .Values.helix.autoscaling.targetMemoryUtilizationPercentage }}
-    {{- end }}
+  {{- if .Values.helix.autoscaling.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.helix.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+  {{- if .Values.helix.autoscaling.targetMemoryUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.helix.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- end }}
 {{- end }}
