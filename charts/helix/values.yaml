@@ -1,0 +1,219 @@
+# Default values for helix.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# If changing this, you need to update timescaledb-single.fullnameOverride too
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+imagePullSecrets: []
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+extraEnv: {}
+
+extraEnvFrom:
+  - configMapRef:
+      name: helix
+  - secretRef:
+      name: helix
+  # This secret configures the database. If the name is chanegd, it should also
+  # be changed the timescaledb-single.env section. Needs to contain
+  # POSTGRES_USER with the value seed, POSTGRES_PASSWORD, POSTGRES_HOST,
+  # POSTGRES_DB, POSTGRES_PORT, POSTGRES_URL
+  - secretRef:
+    name: helix-databases
+
+helix:
+  replicaCount: 1
+  image:
+    repository: 870817328084.dkr.ecr.us-east-2.amazonaws.com/helix
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # requests:
+    #   cpu: 100m
+    #   memory: "128Mi"
+    # limits:
+    #   cpu: 100m
+    #   memory: "192Mi"
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+redis:
+  replicaCount: 1
+  image:
+    name: redis
+    repository: redis
+    imagePullPolicy: IfNotPresent
+    tag: 5.0.1
+
+  service:
+    type: ClusterIP
+    port: 6379
+
+  securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 500m
+    #   memory: 500Mi
+    # requests:
+    #   cpu: 200m
+    #   memory: 200Mi
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+celery:
+  replicaCount: 1
+
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # requests:
+    #   cpu: 100m
+    #   memory: "128Mi"
+    # limits:
+    #   cpu: 100m
+    #   memory: "192Mi"
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+canaries:
+  enabled: true
+  postgres:
+    url:
+      valueFrom:
+        secretKeyRef:
+          name: helix-databases
+          key: POSTGRES_URL
+  frontend:
+    endpoint: https://chart-example.local
+
+timescaledb-single:
+  fullnameOverride: helix-db
+  replicaCount: 2
+  image:
+    repository: docker.io/timescale/timescaledb-ha
+    tag: pg13.10-ts2.9.3-p1
+  env:
+    - name: PATRONI_seed_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: helix-databases
+          key: POSTGRES_PASSWORD
+    - name: PATRONI_seed_OPTIONS
+      value: createdb
+  prometheus:
+    enabled: true
+  podMonitor:
+    enabled: true
+    path: /metrics
+    interval: 10s
+    labels:
+      prometheus: enabled
+  persistentVolumes:
+    data:
+      enabled: true
+      size: 2Gi
+      mountPath: "/var/lib/postgresql/"
+      accessModes:
+        - ReadWriteOnce
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi

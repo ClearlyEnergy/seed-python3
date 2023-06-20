@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "helix.fullname" . }}-redis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "helix.labels" . | nindent 4 }}
+    component: redis
+spec:
+  {{- if not .Values.redis.autoscaling.enabled }}
+  replicas: {{ .Values.redis.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "helix.selectorLabels" . | nindent 6 }}-redis
+      component: redis
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "helix.selectorLabels" . | nindent 8 }}-redis
+        component: redis
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "helix.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-redis
+          securityContext:
+            {{- toYaml .Values.redis.securityContext | nindent 12 }}
+          image: {{ .Values.redis.image.repository}}
+          imagePullPolicy: {{ .Values.redis.image.imagePullPolicy }}
+          ports:
+            - name: redis
+              containerPort: {{ .Values.redis.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: redis
+          readinessProbe:
+            httpGet:
+              path: /
+              port: redis
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "helix.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "helix.labels" . | nindent 4 }}
+    component: helix
+spec:
+  {{- if not .Values.helix.autoscaling.enabled }}
+  replicas: {{ .Values.helix.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "helix.selectorLabels" . | nindent 6 }}
+      component: helix
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "helix.selectorLabels" . | nindent 8 }}
+        component: helix
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "helix.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.helix.securityContext | nindent 12 }}
+          image: "{{ .Values.helix.image.repository }}:{{ .Values.helix.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.helix.image.pullPolicy }}
+          env:
+            - name: REDIS_HOST
+              value: {{ include "helix.fullname" . }}-redis
+            {{- range .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- range . }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.helix.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.helix.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

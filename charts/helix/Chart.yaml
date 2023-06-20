@@ -1,0 +1,13 @@
+apiVersion: v2
+name: helix
+description: Deploy HELIX to Kubernetes
+type: application
+version: 0.0.0
+appVersion: "2023-04-20T19-33"
+maintainers:
+  - name: ClearlyEnergy
+    url: https://clearlyenergy.com
+dependencies:
+  - name: timescaledb-single
+    version: "0.33.1"
+    repository: https://charts.timescale.com
