@@ -3,13 +3,22 @@
 cd /seed
 
 echo "Waiting for postgres to start"
-/usr/local/wait-for-it.sh --strict -t 0 db-postgres:5432
+if [ -v POSTGRES_HOST ];
+then
+   POSTGRES_ACTUAL_HOST=$POSTGRES_HOST
+else
+   POSTGRES_ACTUAL_HOST=db-postgres
+fi
+/usr/local/wait-for-it.sh --strict $POSTGRES_ACTUAL_HOST:$POSTGRES_PORT
 
 echo "Waiting for redis to start"
-/usr/local/wait-for-it.sh --strict -t 0 db-redis:6379
-
-echo "Waiting for web to start"
-/usr/local/wait-for-it.sh --strict -t 0 web:80
+if [ -v REDIS_HOST ];
+then
+   REDIS_ACTUAL_HOST=$REDIS_HOST
+else
+   REDIS_ACTUAL_HOST=db-postgres
+fi
+/usr/local/wait-for-it.sh --strict $REDIS_ACTUAL_HOST:$REDIS_PORT
 
 # check if the number of workers is set in the env
 if [ -z ${NUMBER_OF_WORKERS} ]; then
