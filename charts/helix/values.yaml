@@ -29,7 +29,7 @@ affinity: {}
 
 extraEnv: {}
 
-extraEnvFrom:
+envFrom:
   - configMapRef:
       name: helix
   - secretRef:
