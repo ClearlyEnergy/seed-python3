@@ -18,7 +18,7 @@ then
 else
    REDIS_ACTUAL_HOST=db-postgres
 fi
-/usr/local/wait-for-it.sh --strict $REDIS_ACTUAL_HOST:$REDIS_PORT
+/usr/local/wait-for-it.sh --strict $REDIS_ACTUAL_HOST:6379
 
 # check if the number of workers is set in the env
 if [ -z ${NUMBER_OF_WORKERS} ]; then
