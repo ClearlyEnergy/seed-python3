@@ -53,9 +53,7 @@ spec:
             {{- end }}
           {{- with .Values.envFrom }}
           envFrom:
-            {{- range . }}
             {{- toYaml . | nindent 12 }}
-            {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.celery.resources | nindent 12 }}
