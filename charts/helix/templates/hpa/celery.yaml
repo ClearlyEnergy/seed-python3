@@ -15,16 +15,20 @@ spec:
   minReplicas: {{ .Values.celery.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.celery.autoscaling.maxReplicas }}
   metrics:
-    {{- if .Values.celery.autoscaling.targetCPUUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: cpu
-        targetAverageUtilization: {{ .Values.celery.autoscaling.targetCPUUtilizationPercentage }}
-    {{- end }}
-    {{- if .Values.celery.autoscaling.targetMemoryUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: memory
-        targetAverageUtilization: {{ .Values.celery.autoscaling.targetMemoryUtilizationPercentage }}
-    {{- end }}
+  {{- if .Values.celery.autoscaling.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.celery.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+  {{- if .Values.celery.autoscaling.targetMemoryUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.celery.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- end }}
 {{- end }}
