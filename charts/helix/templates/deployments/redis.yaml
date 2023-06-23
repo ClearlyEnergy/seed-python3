@@ -12,7 +12,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "helix.selectorLabels" . | nindent 6 }}-redis
+      {{- include "helix.selectorLabels" . | nindent 6 }}
       component: redis
   template:
     metadata:
@@ -21,7 +21,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "helix.selectorLabels" . | nindent 8 }}-redis
+        {{- include "helix.selectorLabels" . | nindent 8 }}
         component: redis
     spec:
       {{- with .Values.imagePullSecrets }}
@@ -39,7 +39,7 @@ spec:
           imagePullPolicy: {{ .Values.redis.image.imagePullPolicy }}
           ports:
             - name: redis
-              containerPort: {{ .Values.redis.service.port }}
+              containerPort: 6379
               protocol: TCP
           resources:
             {{- toYaml .Values.redis.resources | nindent 12 }}
