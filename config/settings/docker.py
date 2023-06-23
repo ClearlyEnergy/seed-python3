@@ -71,7 +71,7 @@ DATABASES = {
         'NAME': POSTGRES_DB,
         'USER': POSTGRES_USER,
         'PASSWORD': POSTGRES_PASSWORD,
-        'HOST': "db-postgres",
+        'HOST': (POSTGRES_HOST if 'POSTGRES_HOST' in os.environ else "db-postgres"),  # noqa F405
         'PORT': POSTGRES_PORT,
     }
 }
@@ -81,7 +81,7 @@ if 'REDIS_PASSWORD' in os.environ:
     CACHES = {
         'default': {
             'BACKEND': 'redis_cache.cache.RedisCache',
-            'LOCATION': "db-redis:6379",
+            'LOCATION': os.environ.get('REDIS_HOST', 'db-redis') + ':6379',
             'OPTIONS': {
                 'DB': 1,
                 'PASSWORD': REDIS_PASSWORD,
@@ -98,7 +98,7 @@ else:
     CACHES = {
         'default': {
             'BACKEND': 'redis_cache.cache.RedisCache',
-            'LOCATION': "db-redis:6379",
+            'LOCATION': os.environ.get('REDIS_HOST', 'db-redis') + ':6379',
             'OPTIONS': {
                 'DB': 1
             },
