@@ -7,6 +7,7 @@ on:
       - '.github/workflows/**'
       - 'charts/**'
       - '.releaserc.json'
+      - 'package.json'
 jobs:
   semantic-release:
     runs-on: ubuntu-latest
