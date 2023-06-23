@@ -37,14 +37,6 @@ spec:
             {{- toYaml .Values.celery.securityContext | nindent 12 }}
           image: "{{ .Values.helix.image.repository }}:{{ .Values.helix.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.helix.image.pullPolicy }}
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
           env:
             - name: REDIS_HOST
               value: {{ include "helix.fullname" . }}-redis
