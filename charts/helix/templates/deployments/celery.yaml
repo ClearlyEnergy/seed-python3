@@ -37,6 +37,8 @@ spec:
             {{- toYaml .Values.celery.securityContext | nindent 12 }}
           image: "{{ .Values.helix.image.repository }}:{{ .Values.helix.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.helix.image.pullPolicy }}
+          command:
+            - /seed/docker/start_celery_docker.sh
           env:
             - name: REDIS_HOST
               value: {{ include "helix.fullname" . }}-redis
