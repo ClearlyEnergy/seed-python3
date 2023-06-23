@@ -51,18 +51,6 @@ spec:
             - name: http
               containerPort: {{ .Values.helix.service.port }}
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 10
-            terminationGracePeriodSeconds: 60
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 30
-            terminationGracePeriodSeconds: 60
           resources:
             {{- toYaml .Values.helix.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
