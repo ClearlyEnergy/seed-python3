@@ -39,7 +39,7 @@ envFrom:
   # POSTGRES_USER with the value seed, POSTGRES_PASSWORD, POSTGRES_HOST,
   # POSTGRES_DB, POSTGRES_PORT, POSTGRES_URL
   - secretRef:
-    name: helix-databases
+      name: helix-databases
 
 helix:
   replicaCount: 1
