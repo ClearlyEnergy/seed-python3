@@ -46,6 +46,6 @@ spec:
       maxSSLExpiry: 7
   redis:
     - name:  HELIX Redis database
-      addr: {{ include "helix-fullname" . }}-redis:6379
+      addr: {{ include "helix.fullname" . }}-redis:6379
       db: 0
 {{- end }}
