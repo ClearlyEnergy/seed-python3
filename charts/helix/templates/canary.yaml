@@ -35,6 +35,8 @@ spec:
       auth:
         username:
           {{- toYaml .Values.canaries.postgres.url | nindent 10 }}
+        password:
+          value: notused
       connection: "$(username)"
       query: "SELECT 1;"
   http:
