@@ -19,12 +19,16 @@ spec:
     - type: Resource
       resource:
         name: cpu
-        targetAverageUtilization: {{ .Values.celery.autoscaling.targetCPUUtilizationPercentage }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.celery.autoscaling.targetCPUUtilizationPercentage }}
     {{- end }}
     {{- if .Values.celery.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
-        targetAverageUtilization: {{ .Values.celery.autoscaling.targetMemoryUtilizationPercentage }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.celery.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
 {{- end }}
