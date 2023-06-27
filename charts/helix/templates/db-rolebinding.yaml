@@ -1,0 +1,16 @@
+{{- $timescaledb := index .Values "timescaledb-single" }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "helix.fullname" . }}-db-services
+  namespace: {{ .Release.Namespace}}
+  labels:
+    {{- include "helix.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rbac
+subjects:
+- kind: ServiceAccount
+  name: {{ default $timescaledb.fullnameOverride $timescaledb.serviceAccount.name }}
+roleRef:
+  kind: Role
+  name: {{ include "helix.fullname" . }}-db-services
+  apiGroup: rbac.authorization.k8s.io

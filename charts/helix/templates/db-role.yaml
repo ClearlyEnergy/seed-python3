@@ -1,0 +1,13 @@
+#TODO: remove once https://github.com/timescale/helm-charts/pull/610 is merged and released
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: {{ .Release.Namespace}}
+  name: {{ include "helix.fullname" . }}-db-services
+  labels:
+    {{- include "helix.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["create", "get", "list", "patch", "update", "watch", "delete"]
