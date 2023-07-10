@@ -83,7 +83,6 @@ helix:
       path: /
       port: http
     initialDelaySeconds: 30
-    terminationGracePeriodSeconds: 60
   autoscaling:
     enabled: false
     minReplicas: 1
