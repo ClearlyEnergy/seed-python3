@@ -76,7 +76,7 @@ helix:
     httpGet:
       path: /
       port: http
-    initialDelaySeconds: 10
+    initialDelaySeconds: 30
     terminationGracePeriodSeconds: 60
   readinessProbe:
     httpGet:
