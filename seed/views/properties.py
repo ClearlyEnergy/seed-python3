@@ -1520,70 +1520,72 @@ def deep_list(request):
     server_url = _get_server_url(request)
 
     organizations = Organization.objects.filter(users=user)
-    property_view = None
-    tmp_property_view = None
-        
+    msg = ''
+    filters = {'property__organization__in': organizations}
+    done_searching = False
+
     if request.GET.get('state') is not None:
         state = request.GET.get('state')
-        tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__state=state)
-        if tmp_property_view:
-            property_view = tmp_property_view
+        new_filters = {'state__state': state}
+        qs = PropertyView.objects.filter(**new_filters, **filters)
+        if qs:
+            filters = {**new_filters, **filters}
+        else:
+            done_searching = True
 
     if request.GET.get('zipcode') is not None:
         zipcode = request.GET.get('zipcode')
-        if property_view is not None:
-            tmp_property_view = property_view.filter(state__postal_code=zipcode)
+        new_filters = {'state__postal_code': zipcode}
+        qs = PropertyView.objects.filter(**new_filters, **filters)
+        if qs:
+            filters = {**new_filters, **filters}
         else:
-            tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__postal_code=zipcode)
-            
-        if tmp_property_view:
-            property_view = tmp_property_view
+            done_searching = True
 
     if request.GET.get('street') is not None:
-        tmp_property_view = None
         street = request.GET.get('street')
         normalized_address, extra_data = normalize_address_str(street, '', None, {})
-        if extra_data['StreetName']:
-            if property_view is not None:
-                tmp_property_view = property_view.filter(state__normalized_address__icontains=normalized_address)
-            else:
-                tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__normalized_address__icontains=normalized_address)
-        if not tmp_property_view:
-            if property_view is not None:
-                tmp_property_view = property_view.filter(state__extra_data__StreetName__icontains=extra_data['StreetName'])
-            else:
-                tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations).filter(state__extra_data__StreetName__icontains=extra_data['StreetName'])
-            
-        if tmp_property_view:
-            property_view = tmp_property_view
-        
+        new_filters = {'state__normalized_address__icontains': normalized_address,
+                       'state__extra_data__StreetName__icontains': normalized_address}
+        qs = PropertyView.objects.filter(**new_filters, **filters)
+        if qs:
+            filters = {**new_filters, **filters}
+        else:
+            done_searching = True
+
     if request.GET.get('parcel_id') is not None:
         parcel_id = request.GET.get('parcel_id')
-        if property_view is not None:
-            tmp_property_view = property_view.filter(state__custom_id_1__contains=parcel_id)
+        new_filters = {'state__custom_id_1__contains': parcel_id}
+        qs = PropertyView.objects.filter(**new_filters, **filters)
+        if qs:
+            filters = {**new_filters, **filters}
         else:
-            tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__custom_id_1__contains=parcel_id)
-        if tmp_property_view:
-            property_view = tmp_property_view
+            done_searching = True
 
     if request.GET.get('latitude_1') is not None and request.GET.get('longitude_1'):
         lat1 = request.GET.get('latitude_1')
         lat2 = request.GET.get('latitude_2')
         lon1 = request.GET.get('longitude_1')
         lon2 = request.GET.get('longitude_2')
-        if property_view is not None:
-            tmp_property_view = property_view.filter(state__latitude__gte=lat1, state__latitude__lte=lat2, state__longitude__gte=lon1, state__longitude__lte=lon2)
+        new_filters = {}
+        for filter in [('latitude__gte', lat1), ('latitude__lte', lat2),
+                       ('longitude__gte', lon1), ('longitude__lte', lon2)]:
+            new_filters['state__' + filter[0]] = filter[1]
+        qs = PropertyView.objects.filter(**new_filters, **filters)
+        if qs:
+            filters = {**new_filters, **filters}
         else:
-            tmp_property_view = PropertyView.objects.filter(property__organization__in=organizations, state__latitude__gte=lat1, state__latitude__lte=lat2, state__longitude__gte=lon1, state__longitude__lte=lon2)
-        if tmp_property_view:
-            property_view = tmp_property_view
+            done_searching = True
 
-        
+    if done_searching:
+        msg = 'No exact listings were found. Nearby Homes are displayed'
+
+    qs = PropertyView.objects.filter(**filters)
+
     table_list = []
-    msg = ''
-    if property_view:
-        states = property_view.select_related('property','state').values_list('state', flat=True)
-        geo_states = sum([p.state.state in ['CT','NY','RI'] for p in property_view]) #mandatory acknowledgement checkbox
+    if qs:
+        states = qs.select_related('property','state').values_list('state', flat=True)
+        geo_states = sum([p.state.state in ['CT','NY','RI'] for p in qs]) #mandatory acknowledgement checkbox
 
         table_list = [{'Address Line 1': p.state.address_line_1,
                        'Address Line 2': str(p.state.address_line_2 or ''),
@@ -1592,23 +1594,23 @@ def deep_list(request):
                        'Postal Code': p.state.postal_code,
                        'Tax/Parcel ID': str(p.state.custom_id_1 or ''),
                        'DOE UBID': str(p.state.ubid or '')}
-                      for p in property_view]
-        today = datetime.datetime.today()    
+                      for p in qs]
+        today = datetime.datetime.today()
         reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations, is_reso_certification=True)
         measures = PropertyMeasure.objects.filter(
             property_state__in = states
         ).prefetch_related('measure', 'measurements')
         if geo_states > 0: #show opt-out values because they will be filtered by realtor
             certifications = HELIXGreenAssessmentProperty.objects.filter(
-                    view__in=property_view
+                    view__in=qs
                 ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
         else:
             certifications = HELIXGreenAssessmentProperty.objects.filter(
-                    view__in=property_view
+                    view__in=qs
                 ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False, assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
-        for i in range(len(property_view)):
-            certs = certifications.filter(view=property_view[i])
-            measure = measures.filter(property_state=property_view[i].state) 
+        for i, property_view in enumerate(qs):
+            certs = certifications.filter(view=property_view)
+            measure = measures.filter(property_state=property_view.state)
             table_list[i]['is_certified'] = len(certs) > 0
             table_list[i]['is_solar'] = len(measure) > 0
             if len(certs) > 0:
@@ -1627,11 +1629,11 @@ def deep_list(request):
                     PropertyMeasureReadOnlySerializer(meas).data
                     for meas in measure
                 ]
-            table_list[i]['pk'] = property_view[i].pk
+            table_list[i]['pk'] = property_view.pk
     else:
         msg = 'No records retrieved'
         geo_states = 0
-        
+
     context = {
         'disclaimer': geo_states,
         'table_columns': ['Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Tax/Parcel ID', 'DOE UBID', 'Certified?', 'Solar?'],
@@ -1681,8 +1683,8 @@ def deep_detail(request, pk):
         name += " %s" % (state.address_line_2)
     name += ", %s, %s %s" % (state.city, state.state, state.postal_code)
 
-    # Certifications 
-    today = datetime.datetime.today()    
+    # Certifications
+    today = datetime.datetime.today()
     reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
     certs = HELIXGreenAssessmentProperty.objects.filter(
         view=property_view
@@ -1692,7 +1694,7 @@ def deep_detail(request, pk):
         GreenAssessmentPropertyReadOnlySerializer(cert).data
         for cert in certs
     ]
-    
+
     certification_columns = ['Body', 'Type', 'Rating/Metric', 'Year', 'URL']
 
     # Measures
@@ -1703,7 +1705,7 @@ def deep_detail(request, pk):
         PropertyMeasureReadOnlySerializer(meas).data
         for meas in meass
     ]
-            
+
     measures_columns = ['Type', 'Size (kw)', 'Year Install', 'Ownership', 'Source', 'Annual (kwh)', 'Annuel Status']
 
     property_fields_camel = property_view.state.to_dict()
