@@ -102,6 +102,8 @@ class UploadViewSet(viewsets.ViewSet, OrgMixin):
 
         extension = the_file.name.split(".")[-1]
         if extension == "xlsx" or extension == "xls":
+            xlrd.xlsx.ensure_elementtree_imported(False, None)
+            xlrd.xlsx.Element_has_iter = True
             workbook = xlrd.open_workbook(file_contents=the_file.read())
             all_sheets_empty = True
             for sheet_name in workbook.sheet_names():
