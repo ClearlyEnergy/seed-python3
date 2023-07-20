@@ -59,7 +59,7 @@ jobs:
       - name: Trigger Image update
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: Replace image tag
+          workflow: Kubernetes Deployment
           repo: ClearlyEnergy/helix-aws-config
           token: ${{ secrets.ANSIBLE_ACCESS_TOKEN }}
           ref: master
