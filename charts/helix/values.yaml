@@ -72,17 +72,17 @@ helix:
     # limits:
     #   cpu: 100m
     #   memory: "192Mi"
-  livenessProbe:
-    httpGet:
-      path: /
-      port: http
-    initialDelaySeconds: 210
-    terminationGracePeriodSeconds: 120
-  readinessProbe:
-    httpGet:
-      path: /
-      port: http
-    initialDelaySeconds: 210
+  # livenessProbe:
+  #   httpGet:
+  #     path: /
+  #     port: http
+  #   initialDelaySeconds: 210
+  #   terminationGracePeriodSeconds: 120
+  # readinessProbe:
+  #   httpGet:
+  #     path: /
+  #     port: http
+  #   initialDelaySeconds: 210
   autoscaling:
     enabled: false
     minReplicas: 1
