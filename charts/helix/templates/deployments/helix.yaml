@@ -51,6 +51,10 @@ spec:
             - name: http
               containerPort: {{ .Values.helix.service.port }}
               protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.helix.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.helix.readinessProbe| nindent 12 }}
           resources:
             {{- toYaml .Values.helix.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
