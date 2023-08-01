@@ -16,6 +16,8 @@ serviceAccount:
 
 podAnnotations: {}
 
+enableProbes: false
+
 podSecurityContext: {}
   # fsGroup: 2000
 
@@ -72,17 +74,17 @@ helix:
     # limits:
     #   cpu: 100m
     #   memory: "192Mi"
-  # livenessProbe:
-  #   httpGet:
-  #     path: /
-  #     port: http
-  #   initialDelaySeconds: 600
-  #   terminationGracePeriodSeconds: 600
-  # readinessProbe:
-  #   httpGet:
-  #     path: /
-  #     port: http
-  #   initialDelaySeconds: 600
+  livenessProbe:
+    httpGet:
+      path: /accounts/login
+      port: http
+    initialDelaySeconds: 600
+    terminationGracePeriodSeconds: 600
+  readinessProbe:
+    httpGet:
+      path: /accounts/login
+      port: http
+    initialDelaySeconds: 600
   autoscaling:
     enabled: false
     minReplicas: 1
