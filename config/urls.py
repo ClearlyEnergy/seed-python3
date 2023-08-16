@@ -9,6 +9,7 @@ from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.contrib import admin
+from django.urls import path
 
 from config.views import robots_txt
 from seed.api.base.urls import urlpatterns as api
@@ -42,11 +43,8 @@ urlpatterns = [
         password_reset_complete,
         name='password_reset_complete',
     ),
-    url(
-        (
-            r'^accounts/password/reset/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/'
-            '(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$'
-        ),
+    path(
+        'accounts/password/reset/confirm/<uidb64>/<token>/',
         password_reset_confirm,
         name='password_reset_confirm'
     ),
