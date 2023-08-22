@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 describe('controller: mapping_controller', function () {
   // globals set up and used in each test scenario
@@ -83,6 +83,7 @@ describe('controller: mapping_controller', function () {
       column_name: 'pm_property_id',
       data_type: 'string',
       display_name: 'PM Property ID',
+      column_description: 'PM Property ID',
       id: 1,
       is_extra_data: false,
       name: 'pm_property_id_1',
@@ -93,6 +94,7 @@ describe('controller: mapping_controller', function () {
       column_name: 'property_name',
       data_type: 'string',
       display_name: 'Property Name',
+      column_description: 'Property Name',
       id: 2,
       is_extra_data: false,
       name: 'property_name_2',
@@ -102,6 +104,7 @@ describe('controller: mapping_controller', function () {
       column_name: 'property_notes',
       data_type: 'string',
       display_name: 'Property Notes',
+      column_description: 'Property Notes',
       id: 3,
       is_extra_data: false,
       name: 'property_notes_3',
@@ -111,6 +114,7 @@ describe('controller: mapping_controller', function () {
       column_name: 'address_line_1',
       data_type: 'string',
       display_name: 'Address Line 1',
+      column_description: 'Address Line 1',
       id: 4,
       is_extra_data: false,
       name: 'address_line_1_4',
@@ -120,6 +124,7 @@ describe('controller: mapping_controller', function () {
       column_name: 'custom_id_1',
       data_type: 'string',
       display_name: 'Custom ID 1',
+      column_description: 'Custom ID 1',
       id: 5,
       is_extra_data: false,
       name: 'custom_id_1_5',
@@ -129,6 +134,7 @@ describe('controller: mapping_controller', function () {
       column_name: 'ubid',
       data_type: 'string',
       display_name: 'UBID',
+      column_description: 'UBID',
       id: 6,
       is_extra_data: false,
       name: 'ubid_6',
@@ -149,6 +155,7 @@ describe('controller: mapping_controller', function () {
       column_name: 'custom_id_1',
       data_type: 'string',
       display_name: 'Custom ID 1',
+      column_description: 'Custom ID 1',
       id: 8,
       is_extra_data: false,
       name: 'custom_id_1_8',
@@ -158,18 +165,20 @@ describe('controller: mapping_controller', function () {
       column_name: 'jurisdiction_tax_lot_id',
       data_type: 'string',
       display_name: 'Jurisdiction Tax Lot ID',
+      column_description: 'Jurisdiction Tax Lot ID',
       id: 9,
       is_extra_data: false,
       name: 'jurisdiction_tax_lot_id_9',
       sharedFieldType: 'None',
       table_name: 'TaxLotState'
     }, {
-      column_name: 'ulid',
+      column_name: 'ubid',
       data_type: 'string',
-      display_name: 'ULID',
+      display_name: 'UBID',
+      column_description: 'UBID',
       id: 10,
       is_extra_data: false,
-      name: 'ulid_10',
+      name: 'ubid_10',
       sharedFieldType: 'None',
       table_name: 'TaxLotState'
     }];
@@ -189,7 +198,7 @@ describe('controller: mapping_controller', function () {
 
     var mock_matching_criteria_columns_payload = {
       PropertyState: ['address_line_1', 'custom_id_1', 'pm_property_id', 'ubid'],
-      TaxLotState: ['address_line_1', 'custom_id_1', 'jurisdiction_tax_lot_id', 'ulid']
+      TaxLotState: ['address_line_1', 'custom_id_1', 'jurisdiction_tax_lot_id', 'ubid']
     };
 
     var mock_raw_column_names = [
@@ -236,11 +245,14 @@ describe('controller: mapping_controller', function () {
       status: 'success',
       first_five_rows: mock_first_five_rows
     };
+    var fake_derived_columns_payload = {
+      derived_columns: [],
+    };
 
     const fake_organization_payload = {
       status: 'success',
       organization: {
-        display_significant_figures: 2,
+        display_decimal_places: 2,
         id: 1,
       }
     }
@@ -256,6 +268,7 @@ describe('controller: mapping_controller', function () {
       cycles: mock_cycles,
       inventory_service: mock_inventory_service,
       organization_payload: fake_organization_payload,
+      derived_columns_payload: fake_derived_columns_payload,
     });
   }
 

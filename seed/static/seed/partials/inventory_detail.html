@@ -26,7 +26,10 @@
                         <span ng-if="::inventory_type==='taxlots'">
                             <i class="fa fa-map-o"></i><span translate>Tax Lot</span> :
                         </span>
-                        <span ng-bind-html="inventory_name">{$ inventory_display_name(inventory_type==='properties' ? 'property' : 'taxlot') | translate $}</span>
+                        <span ng-style="!inventory_display_name && {'opacity': 0.5}">
+                            {$ (inventory_display_name || 'Unknown') | translate $}
+                            <i ng-if="!inventory_display_name" class="glyphicon glyphicon-question-sign" title="The display field can be changed from the organization settings page."></i>
+                        </span>
                     </h2>
                 </span>
             </div>
@@ -39,10 +42,13 @@
             </div>
         </div>
     </div>
+
+
+
     <div class="section_content_container">
         <div class="section_content with_padding" style="display:flex;margin:10px 0;">
             <div style="flex-grow:1;display:flex;flex-direction:column;row-gap:10px;">
-                <div uib-dropdown class="btn-group pointer" ng-style="nothing_selected_cursor()">
+                <div uib-dropdown class="btn-group">
                     <button id="btnInventoryActions"
                             type="button"
                             uib-dropdown-toggle
@@ -52,6 +58,10 @@
                     <ul id="#inventory-actions-dropdown" uib-dropdown-menu class="dropdown-menu" role="menu" aria-labelledby="btnInventoryActions">
                         <li role="menuitem" ng-if="::inventory_type === 'properties'" class="upload-list-item">
                             <div sd-uploader sourcetype="BuildingSyncUpdate" sourceprog="" sourcever="" importrecord="inventory.view_id" organization-id="organization.id" cycle-id="cycle.id" eventfunc="uploaderfunc(message, file, progress)">{$:: 'Update with BuildingSync' | translate $}</div>
+                        </li>
+
+                        <li role="menuitem" ng-if="::inventory_type === 'properties'" class="upload-list-item">
+                            <a ng-click="open_data_upload_audit_template_modal()">{$:: 'Update with Audit Template' | translate $}</a>
                         </li>
 
                         <li ng-if="::inventory_type === 'properties'" role="menuitem">
@@ -67,7 +77,7 @@
                         </li>
 
                         <li role="menuitem">
-                            <a ng-click="open_analyses_modal()">{$:: 'Run Analysis'$}</a>
+                            <a ng-click="open_analyses_modal()">{$:: 'Run Analysis' | translate $}</a>
                         </li>
 
                         <li role="menuitem" ng-if="::historical_items.length > 1">
@@ -75,8 +85,15 @@
                         </li>
 
                         <li role="menuitem">
-                            <!-- ng-click="open_match_merge_link_warning_modal(match_merge_link_record, 'manual')" -->
-                            <a style="opacity:.5;cursor:not-allowed;">Merge and Link Matches</a>
+                            <a ng-click="open_match_merge_link_warning_modal(match_merge_link_record, 'manual')">Merge and Link Matches</a>
+                        </li>
+
+                        <li role="menuitem" ng-if="organization.salesforce_enabled">
+                            <a ng-click="update_salesforce()">{$:: 'Update Salesforce' | translate $}</a>
+                        </li>
+
+                        <li role="menuitem">
+                            <a ng-click="open_ubid_admin_modal()">Add/Update UBID</a>
                         </li>
 
                         <li class="divider"></li>
@@ -90,8 +107,11 @@
                     </div>
                 </div>
                 <div class="ellipsis">
-                     <span popover-placement="top-left" popover-animation="false" popover-trigger="outsideClick" uib-popover="{$:: cycle.name $}">
-                         <strong>{$:: 'Cycle' | translate $}:</strong> {$:: cycle.name $}
+                     <span style="display:flex; align-items:baseline; gap:1rem">
+                         <strong>{$:: 'Cycle' | translate $}:</strong>
+                         <select class="form-control" ng-model="selected_view.view_id" ng-change="changeView()" style="width: auto">
+                            <option ng-repeat="view in views" ng-value="view.view_id">{$ view.cycle_name $}</option>
+                         </select>
                      </span>
                 </div>
                 <div style="display:flex;align-items:center;">
@@ -111,6 +131,11 @@
                     </span>
                 </div>
             </div>
+            <div ng-controller="inventory_detail_map_controller" style="margin:20px;">
+                <div style="margin: auto; width: 402px; overflow: hidden;">
+                    <div id="map"></div>
+                </div>
+            </div>
             <!-- NOTE: This is bad, using a controller created for someone else but it will work
                      we should refactor this into a AnalysisCard component. -->
             <div ng-if="analysis" ng-controller="analysis_details_controller" ng-include="::urls.static_url + 'seed/partials/analysis_card.html'" class="tab-content-card"></div>
@@ -126,7 +151,7 @@
             <div class="progress_bar_container" ng-show="uploader.in_progress">
                 <div class="progress_bar_copy_top"
                          translate="UPLOADING_PROGRESS"
-                         translate-values="{ dataset_filename: uploader.filename }"></div>
+                         translate-values="{ dataset_filename: uploader.filename, cycle_name: cycle.name }"></div>
 
                     <uib-progressbar class="progress-striped active" value="uploader.progress" type="success"></uib-progressbar>
                     <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $} {$ uploader.status_message ? ': ' + uploader.status_message : '' $}</div>
@@ -146,7 +171,7 @@
                             </th>
                             <!-- Historical values -->
                             <th ng-repeat="historical_item in ::historical_items">
-                                <div ng-if="::_.includes(['ImportFile', 'UserEdit'], historical_item.source)" uib-popover="{$:: historical_item.filename $}" popover-placement="bottom">
+                                <div ng-if="::_.includes(['ImportFile', 'UserEdit'], historical_item.source)" uib-popover="{$:: historical_item.filename $}" popover-trigger="'outsideClick'" popover-animation="false" popover-placement="top-left">
                                     {$:: historical_item.filename $}
                                     <a ng-if="::historical_item.file" style="padding-left: 8px;" href="{$:: historical_item.file $}" download="{$:: historical_item.filename $}">
                                         <i class="fa fa-download" aria-hidden="true"></i>
@@ -158,32 +183,32 @@
                     <tbody>
                         <tr ng-repeat="col in ::columns">
                             <!-- Column name -->
-                            <td ng-attr-title="{$:: col.column_name $}"><i ng-if="col.is_derived_column" class="fa fa-link"></i> {$:: col.displayName | translate $}</td>
+                            <td ng-attr-title="{$:: col.column_name $}"><i ng-if="col.derived_column" class="fa fa-link"></i> {$:: col.displayName | translate $}</td>
 
                             <!-- Show read-only current 'regular' field value -->
-                            <td ng-if="edit_form_showing===false && !col.is_extra_data && !col.is_derived_column && col.table_name.toLowerCase().includes('state')" ng-class="{highlight: col.changed}" class="ellipsis">
-                                <span class="sd-data-content" popover-placement="top-left" popover-animation="false" popover-trigger="outsideClick" uib-popover="{$:: item_state[col.column_name] $}">
+                            <td ng-if="edit_form_showing===false && !col.is_extra_data && !col.derived_column && col.table_name.toLowerCase().includes('state')" ng-class="{highlight: col.changed}" class="ellipsis">
+                                <span class="sd-data-content" uib-popover="{$:: item_state[col.column_description] $}" popover-trigger="'outsideClick'" popover-animation="false" popover-placement="top-left">
                                     <span>{$:: displayValue(col.data_type, item_state[col.column_name]) $}</span>
                                 </span>
                             </td>
 
                             <!-- Show read-only current 'extra_data' field value -->
                             <td ng-if="edit_form_showing===false && col.is_extra_data && col.table_name.toLowerCase().includes('state')" ng-class="{highlight: col.changed}" class="ellipsis">
-                                <span class="sd-data-content" popover-placement="top-left" popover-animation="false" popover-trigger="outsideClick" uib-popover="{$ item_state.extra_data[col.column_name] $}">
+                                <span class="sd-data-content" uib-popover="{$ item_state.extra_data[col.column_description] $}" popover-trigger="'outsideClick'" popover-animation="false" popover-placement="top-left">
                                     <span>{$:: displayValue(col.data_type, item_state.extra_data[col.column_name]) $}</span>
                                 </span>
                             </td>
 
                             <!-- Show read-only current 'property / taxlot' fields -->
-                            <td ng-if="edit_form_showing===false && !col.table_name.toLowerCase().includes('state') && !col.is_derived_column" ng-class="{highlight: col.changed}" class="ellipsis">
-                                <span class="sd-data-content" popover-placement="top-left" popover-animation="false" popover-trigger="outsideClick" uib-popover="{$ item_parent[col.column_name] $}">
+                            <td ng-if="edit_form_showing===false && !col.table_name.toLowerCase().includes('state') && !col.derived_column" ng-class="{highlight: col.changed}" class="ellipsis">
+                                <span class="sd-data-content" uib-popover="{$ item_parent[col.column_description] $}" popover-trigger="'outsideClick'" popover-animation="false" popover-placement="top-left">
                                     <span>{$:: displayValue(col.data_type, item_parent[col.column_name]) $}</span>
                                 </span>
                             </td>
 
                             <!-- Show read-only current derived column value -->
-                            <td ng-if="edit_form_showing===false && col.is_derived_column" class="ellipsis">
-                                <span class="sd-data-content" popover-placement="top-left" popover-animation="false" popover-trigger="outsideClick" uib-popover="{$ item_derived_values[col.column_name] $}">
+                            <td ng-if="edit_form_showing===false && col.derived_column" class="ellipsis">
+                                <span class="sd-data-content" uib-popover="{$ item_derived_values[col.column_description] $}" popover-trigger="'outsideClick'" popover-animation="false" popover-placement="top-left">
                                     <span ng-if="!item_derived_values.hasOwnProperty(col.id)"><i class="fa fa-spinner fa-pulse fa-fw" style="padding-right: 0"></i> Loading...</span>
                                     <span ng-if="!!item_derived_values.hasOwnProperty(col.id)">{$ item_derived_values[col.id] $}</span>
                                 </span>
@@ -191,26 +216,26 @@
 
                             <!-- Show input form to edit current field value -->
                             <td ng-if="edit_form_showing" ng-class="{highlight: col.changed}">
-                                <div ng-if="::!col.is_extra_data && !col.is_derived_column && col.table_name.toLowerCase().includes('state')">
+                                <div ng-if="::!col.is_extra_data && !col.derived_column && col.table_name.toLowerCase().includes('state')">
                                     <input id="edit_attribute_id" class="form-control input-sm" type="text" ng-model="item_state[col.column_name]" ng-disabled="::isDisabledField(col.column_name)">
                                 </div>
                                 <div ng-if="::col.is_extra_data && col.table_name.toLowerCase().includes('state')">
                                     <input id="edit_property_attribute_id" class="form-control input-sm" type="text" ng-model="item_state.extra_data[col.column_name]">
                                 </div>
-                                <div ng-if="::!col.is_extra_data && !col.is_derived_column && !col.table_name.toLowerCase().includes('state')">
+                                <div ng-if="::!col.is_extra_data && !col.derived_column && !col.table_name.toLowerCase().includes('state')">
                                     <input id="edit_attribute_id" class="form-control input-sm" type="text" ng-model="item_parent[col.column_name]" ng-disabled="::isDisabledField(col.column_name)">
                                 </div>
-                                <div ng-if="::col.is_derived_column">
+                                <div ng-if="::col.derived_column">
                                     {$ item_derived_values[col.id] $}
                                 </div>
                             </td>
 
                             <!-- Show read-only historical field value -->
                             <td ng-repeat="historical_item in historical_items" ng-class="{highlight: col.changed}" class="ellipsis">
-                                <span ng-if="::!col.is_extra_data && col.table_name.toLowerCase().includes('state')" class="sd-data-content" popover-placement="top-left" popover-trigger="outsideClick" popover-animation="false" uib-popover="{$:: historical_item.state[col.column_name] $}">
+                                <span ng-if="::!col.is_extra_data && col.table_name.toLowerCase().includes('state')" class="sd-data-content" uib-popover="{$:: historical_item.state[col.column_description] $}" popover-trigger="'outsideClick'" popover-animation="false" popover-placement="top-left">
                                     <span>{$:: displayValue(col.data_type, historical_item.state[col.column_name]) $}</span>
                                 </span>
-                                <span ng-if="::col.is_extra_data && col.table_name.toLowerCase().includes('state')" class="sd-data-content" popover-placement="top-left" popover-trigger="outsideClick" popover-animation="false" uib-popover="{$:: historical_item.state.extra_data[col.column_name] $}">
+                                <span ng-if="::col.is_extra_data && col.table_name.toLowerCase().includes('state')" class="sd-data-content" uib-popover="{$:: historical_item.state.extra_data[col.column_description] $}" popover-trigger="'outsideClick'" popover-animation="false" popover-placement="top-left">
                                     <span>{$:: displayValue(col.data_type, historical_item.state.extra_data[col.column_name]) $}</span>
                                 </span>
                             </td>
@@ -291,14 +316,58 @@
         </br>
         </br>
 
-        <ng-hide ng-hide="::hide_bricr">
-            <!-- Files Section -->
+        <div ng-if="::inventory_type==='properties'">
+            <!-- Inventory Document Section -->
             <div class="section">
                 <div class="section_header_container" style="margin-top: 20px; border-bottom: 0;">
                     <div class="section_header fixed_height_short has_no_padding">
                         <div class="section_action_container left" style="width: 50%;">
                         <span>
-                            <h2><i class="fa fa-file"></i> {$:: 'Files (Main State Only)' | translate $}</h2>
+                            <h2><i class="fa fa-paperclip"></i>{$:: 'Inventory Documents' | translate $} </h2>
+                        </span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-info" ng-click="open_doc_upload_modal()" style="margin: 15px;">
+                        <i class="fa fa-paperclip"></i> <span translate>Add a Document</span>
+                    </button>
+                </div>
+            </div>
+            <div class="section_content_container">
+                <!-- List of Documents -->
+                <div class="section_content">
+                    <div class="table_list_container table_item_detail">
+                        <table class="table table-striped table_highlight_first" style="margin-bottom:-1px;">
+                            <thead>
+                                <tr>
+                                    <th sd-resizable class="ellipsis-resizable" colspan="2">File Name</th>
+                                    <th sd-resizable>File Type</th>
+                                    <th sd-resizable class="ellipsis-resizable">Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="file in inventory_docs">
+                                    <td class="data_file_name" style="border-right:0px;">
+                                        {$:: file.filename $} - {$:: file.id $}
+                                    </td>
+                                    <td style="border-left:0px; text-align:right;">
+                                        <a style="margin-right: 8px;" href="{$ file.file $}" download="{$ file.filename $}"><i class="fa fa-download" aria-hidden="true"></i></a>
+                                        <a class="delete_link" ng-click="confirm_delete(file)"><i class="fa fa-trash-o"></i></a>
+                                    </td>
+                                    <td> {$ file.file_type $}</td>
+                                    <td>{$ file.created | date: 'yyyy-MM-dd h:mm a' $}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- Building Files Section -->
+            <div class="section">
+                <div class="section_header_container" style="margin-top: 20px; border-bottom: 0;">
+                    <div class="section_header fixed_height_short has_no_padding">
+                        <div class="section_action_container left" style="width: 50%;">
+                        <span>
+                            <h2><i class="fa fa-file"></i>{$:: 'Building Files (Main State Only)' | translate $} </h2>
                         </span>
                         </div>
                     </div>
@@ -327,102 +396,56 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Measures Section -->
-            <div class="section">
-                <div class="section_header_container" style="margin-top: 20px; border-bottom: 0;">
-                    <div class="section_header fixed_height_short has_no_padding">
-                        <div class="section_action_container left" style="width: 50%;">
-                        <span>
-                            <h2><i class="fa fa-cogs"></i> Measures</h2>
-                        </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="section_content_container">
-                <!-- List of measures -->
-                <div class="section_content">
-                    <div class="table_list_container table_item_detail">
-                        <table class="table table-striped table_highlight_first fixed-layout" style="margin-bottom:-1px;">
-                            <thead>
-                                <tr>
-                                    <th sd-resizable>Category</th>
-                                    <th sd-resizable class="ellipsis-resizable">Measure Name</th>
-                                    <th sd-resizable class="ellipsis-resizable">Measure Information</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr ng-repeat="measure in item_state.measures">
-                                    <td>
-                                        <div id="measureAnchor{$ measure.id $}">{$ measure.category_display_name $}</div>
-                                    </td>
-                                    <td> {$ measure.display_name $}</td>
-                                    <td> Status: {$ measure.implementation_status $} <br>
-                                        Recommended: {$ measure.recommended $} <br>
-                                        Scale: {$ measure.application_scale $} <br>
-                                        Category Affected: {$ measure.category_affected $} <br>
-                                        Installation Cost: {$ measure.cost_installation $} <br>
-                                        Material Cost: {$ measure.cost_material $} <br>
-                                        M&V Cost: {$ measure.cost_mv $} <br>
-                                        Residual Cost: {$ measure.cost_residual_value $} <br>
-                                        Total First Cost: {$ measure.cost_total_first $} <br>
-                                        Capital Replacement Cost: {$ measure.cost_capital_replacement $} <br>
-                                        Description: {$ measure.description $} <br>
-                                        Useful Life: {$ measure.useful_life ? measure.useful_life + ' years' : '' $} <br>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Scenarios Section -->
+            <!-- Scenarios and Measures Section -->
             <div class="section">
                 <div class="section_header_container" style="margin-top: 20px; border-bottom: 0;">
                     <div class="section_header fixed_height_short has_no_padding">
                         <div class="section_action_container left" style="width: 50%;">
                             <span>
-                                <h2><i class="fa fa-sitemap"></i> Scenarios</h2>
+                                <h2>
+                                    <!-- <i class="fa fa-bolt"></i> -->
+                                    <img class="icon-small-black" ng-src="{$ static_url $}seed/images/timeline_electricity.svg">
+                                    <img class="icon-small-black" ng-src="{$ static_url $}seed/images/timeline_natural_gas.svg" style="margin-right: 0;">
+
+                                    Scenarios & Measures
+                                </h2>
                             </span>
                         </div>
                     </div>
                 </div>
+                <span style="margin: 10px;">
+                    <button class="btn btn-primary" type="button" ng-click="collapseAccordions(!accordionsCollapsed)"
+                        style="padding: 1px 10px; margin-bottom: 2px">{$ accordionsCollapsed ? 'Expand All' : 'Collapse All' $}</button>
+                </span>
+                <div class="scenario-cycle">
+                    {$ cycle.name $}
+                </div>
             </div>
+            <!-- List of Scenarios and Measures grouped by AuditTemplate File Upload -->
             <div class="section_content_container">
-                <!-- List of measures -->
-                <div class="section_content">
-                    <div class="table_list_container table_item_detail">
-                        <table class="table table-striped table_highlight_first fixed-layout" style="margin-bottom:-1px;">
-                            <thead>
-                                <tr>
-                                    <th sd-resizable>Scenario</th>
-                                    <th sd-resizable class="ellipsis-resizable">Type</th>
-                                    <th sd-resizable class="ellipsis-resizable">Annual Savings</th>
-                                    <th sd-resizable class="ellipsis-resizable">Measures</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr ng-repeat="scenario in item_state.scenarios | orderBy:'$index':true">
-                                    <td> {$ scenario.name $}</td>
-                                    <td> {$ scenario.temporal_status $}</td>
-                                    <td>
-                                        Electricity savings (kBtu): {$ scenario.annual_electricity_savings | number : 2 $}<br>
-                                        Peak electricity reduction (kW): {$ scenario.annual_peak_electricity_reduction | number : 2 $}<br>
-                                        Natural gas savings (kBtu): {$ scenario.annual_natural_gas_savings | number : 2 $}
-                                    </td>
-                                    <td>
-                                        <div ng-repeat="measure in scenario.measures | orderBy:'$index':true">
-                                            <a href="" ng-click="gotoMeasureAnchor(measure.id)">{$ measure.category_display_name $} : {$ measure.display_name $}</a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div ng-repeat="historical_item in historical_items_with_scenarios">
+                    <div class="accordion-header" style="margin: 2px 0">
+                        <button
+                            class="accordion-button at-date"
+                            type="button"
+                            data-toggle="collapse"
+                            data-target="#historical-item-{$ $index $}"
+                        >
+                            <i class="fa fa-chevron-down accordion-indicator-default-open" id="indicator-{$ $index  $}"></i>
+                            <span class="event-detail">Audit Date: {$ historical_item.state.extra_data.audit_date $}</span>
+                            <span class="event-detail">Upload Date: {$ format_epoch(historical_item.date_edited) $}</span>
+                            <span class="event-detail">{$ historical_item.state.extra_data.audit_date_type $}</span>
+                        </button>
+                    </div>
+
+                    <div id="historical-item-{$ $index $}" class="accordion-body event-collapse collapse in">
+                        <div
+                            ng-include="::urls.static_url + 'seed/partials/at_scenarios.html'"
+                            ng-init="scenarios = historical_item.state.scenarios">
+                        </div>
                     </div>
                 </div>
             </div>
-        </ng-hide>
+        </div>
     </div>
 </div>

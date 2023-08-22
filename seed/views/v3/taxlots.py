@@ -1,10 +1,9 @@
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from collections import namedtuple
 
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Subquery
 from django.http import JsonResponse
 from drf_yasg.utils import swagger_auto_schema
@@ -12,29 +11,45 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
+
 from seed.decorators import ajax_request_class
 from seed.lib.superperms.orgs.decorators import has_perm_class
-from seed.lib.superperms.orgs.models import Organization
-from seed.models import (AUDIT_USER_EDIT, DATA_STATE_MATCHING,
-                         MERGE_STATE_DELETE, MERGE_STATE_MERGED,
-                         MERGE_STATE_NEW, VIEW_LIST, VIEW_LIST_TAXLOT, Column,
-                         ColumnListProfile, ColumnListProfileColumn, Cycle,
-                         Note, PropertyView, StatusLabel, TaxLot,
-                         TaxLotAuditLog, TaxLotProperty, TaxLotState,
-                         TaxLotView)
-from seed.serializers.pint import apply_display_unit_preferences
+from seed.models import (
+    AUDIT_USER_EDIT,
+    DATA_STATE_MATCHING,
+    MERGE_STATE_DELETE,
+    MERGE_STATE_MERGED,
+    MERGE_STATE_NEW,
+    Note,
+    PropertyView,
+    StatusLabel,
+    TaxLot,
+    TaxLotAuditLog,
+    TaxLotProperty,
+    TaxLotState,
+    TaxLotView
+)
 from seed.serializers.properties import PropertyViewSerializer
-from seed.serializers.taxlots import (TaxLotSerializer, TaxLotStateSerializer,
-                                      TaxLotViewSerializer,
-                                      UpdateTaxLotPayloadSerializer)
+from seed.serializers.taxlots import (
+    TaxLotSerializer,
+    TaxLotStateSerializer,
+    TaxLotViewSerializer,
+    UpdateTaxLotPayloadSerializer
+)
 from seed.utils.api import OrgMixin, ProfileIdMixin, api_endpoint_class
-from seed.utils.api_schema import AutoSchemaHelper, swagger_auto_schema_org_query_param
+from seed.utils.api_schema import (
+    AutoSchemaHelper,
+    swagger_auto_schema_org_query_param
+)
+from seed.utils.inventory_filter import get_filtered_results
 from seed.utils.labels import get_labels
 from seed.utils.match import match_merge_link
 from seed.utils.merge import merge_taxlots
-from seed.utils.properties import (get_changed_fields,
-                                   pair_unpair_property_taxlot,
-                                   update_result_with_master)
+from seed.utils.properties import (
+    get_changed_fields,
+    pair_unpair_property_taxlot,
+    update_result_with_master
+)
 from seed.utils.taxlots import taxlots_across_cycles
 
 ErrorState = namedtuple('ErrorState', ['status_code', 'message'])
@@ -47,10 +62,17 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
     _organization = None
 
     @swagger_auto_schema(
-        manual_parameters=[AutoSchemaHelper.query_org_id_field(required=True)],
+        manual_parameters=[
+            AutoSchemaHelper.query_org_id_field(required=True),
+            AutoSchemaHelper.query_integer_field(
+                name='cycle_id',
+                required=False,
+                description="Optional cycle id to restrict is_applied ids to only those in the specified cycle"
+            ),
+        ],
         request_body=AutoSchemaHelper.schema_factory(
             {
-                'selected': ['integer'],
+                'selected': 'integer',
             },
             description='IDs for taxlots to be checked for which labels are applied.'
         )
@@ -67,108 +89,6 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
         super_organization = self.get_organization(request)
         # TODO: refactor to avoid passing request here
         return get_labels(request, labels, super_organization, 'taxlot_view')
-
-    def _get_filtered_results(self, request, profile_id):
-        page = request.query_params.get('page', 1)
-        per_page = request.query_params.get('per_page', 1)
-        org_id = self.get_organization(request)
-        cycle_id = request.query_params.get('cycle')
-        # check if there is a query paramater for the profile_id. If so, then use that one
-        profile_id = request.query_params.get('profile_id', profile_id)
-        if not org_id:
-            return JsonResponse(
-                {'status': 'error', 'message': 'Need to pass organization_id as query parameter'},
-                status=status.HTTP_400_BAD_REQUEST)
-
-        if cycle_id:
-            cycle = Cycle.objects.get(organization_id=org_id, pk=cycle_id)
-        else:
-            cycle = Cycle.objects.filter(organization_id=org_id).order_by('name')
-            if cycle:
-                cycle = cycle.first()
-            else:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Could not locate cycle',
-                    'pagination': {
-                        'total': 0
-                    },
-                    'cycle_id': None,
-                    'results': []
-                })
-
-        # Return taxlot views limited to the 'taxlot_view_ids' list.  Otherwise, if selected is empty, return all
-        if 'taxlot_view_ids' in request.data and request.data['taxlot_view_ids']:
-            taxlot_views_list = TaxLotView.objects.select_related('taxlot', 'state', 'cycle') \
-                .filter(id__in=request.data['taxlot_view_ids'], taxlot__organization_id=org_id,
-                        cycle=cycle) \
-                .order_by('id')
-        else:
-            taxlot_views_list = TaxLotView.objects.select_related('taxlot', 'state', 'cycle') \
-                .filter(taxlot__organization_id=org_id, cycle=cycle) \
-                .order_by('id')
-
-        paginator = Paginator(taxlot_views_list, per_page)
-
-        try:
-            taxlot_views = paginator.page(page)
-            page = int(page)
-        except PageNotAnInteger:
-            taxlot_views = paginator.page(1)
-            page = 1
-        except EmptyPage:
-            taxlot_views = paginator.page(paginator.num_pages)
-            page = paginator.num_pages
-
-        org = Organization.objects.get(pk=org_id)
-
-        # Retrieve all the columns that are in the db for this organization
-        columns_from_database = Column.retrieve_all(org_id, 'taxlot', False)
-
-        # This uses an old method of returning the show_columns. There is a new method that
-        # is preferred in v2.1 API with the ProfileIdMixin.
-        if profile_id is None:
-            show_columns = None
-        elif profile_id == -1:
-            show_columns = list(Column.objects.filter(
-                organization_id=org_id
-            ).values_list('id', flat=True))
-        else:
-            try:
-                profile = ColumnListProfile.objects.get(
-                    organization=org,
-                    id=profile_id,
-                    profile_location=VIEW_LIST,
-                    inventory_type=VIEW_LIST_TAXLOT
-                )
-                show_columns = list(ColumnListProfileColumn.objects.filter(
-                    column_list_profile_id=profile.id
-                ).values_list('column_id', flat=True))
-            except ColumnListProfile.DoesNotExist:
-                show_columns = None
-
-        related_results = TaxLotProperty.get_related(taxlot_views, show_columns,
-                                                     columns_from_database)
-
-        # collapse units here so we're only doing the last page; we're already a
-        # realized list by now and not a lazy queryset
-        unit_collapsed_results = [apply_display_unit_preferences(org, x) for x in related_results]
-
-        response = {
-            'pagination': {
-                'page': page,
-                'start': paginator.page(page).start_index(),
-                'end': paginator.page(page).end_index(),
-                'num_pages': paginator.num_pages,
-                'has_next': paginator.page(page).has_next(),
-                'has_previous': paginator.page(page).has_previous(),
-                'total': paginator.count
-            },
-            'cycle_id': cycle.id,
-            'results': unit_collapsed_results
-        }
-
-        return JsonResponse(response)
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -192,7 +112,12 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
                 'profile_id',
                 required=False,
                 description='The ID of the column profile to use'
-            )
+            ),
+            AutoSchemaHelper.query_boolean_field(
+                'include_related',
+                required=False,
+                description='If False, related data (i.e., Property data) is not added to the response (default is True)'
+            ),
         ]
     )
     @api_endpoint_class
@@ -202,7 +127,7 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
         """
         List all the properties
         """
-        return self._get_filtered_results(request, profile_id=-1)
+        return get_filtered_results(request, 'taxlot', profile_id=-1)
 
     @swagger_auto_schema(
         request_body=AutoSchemaHelper.schema_factory(
@@ -260,6 +185,16 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
                 required=False,
                 description='The number of items per page to return'
             ),
+            AutoSchemaHelper.query_boolean_field(
+                'include_related',
+                required=False,
+                description='If False, related data (i.e., Property data) is not added to the response (default is True)'
+            ),
+            AutoSchemaHelper.query_boolean_field(
+                'ids_only',
+                required=False,
+                description='Function will return a list of tax lot ids instead of tax lot objects'
+            )
         ],
         request_body=AutoSchemaHelper.schema_factory(
             {
@@ -288,7 +223,7 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
             else:
                 profile_id = request.data['profile_id']
 
-        return self._get_filtered_results(request, profile_id=profile_id)
+        return get_filtered_results(request, 'taxlot', profile_id=profile_id)
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -310,7 +245,7 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
     def merge(self, request):
         """
         Merge multiple tax lot records into a single new record, and run this
-        new record through a match and merge round within it's current Cycle.
+        new record through a match and merge round within its current Cycle.
         """
         body = request.data
         organization_id = int(self.get_organization(request))
@@ -469,7 +404,7 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
         new_view1.save()
         new_view2.save()
 
-        # Asssociate labels
+        # Associate labels
         label_objs = StatusLabel.objects.filter(pk__in=label_ids)
         new_view1.labels.set(label_objs)
         new_view2.labels.set(label_objs)
@@ -733,7 +668,7 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
     def update(self, request, pk):
         """
         Update a taxlot and run the updated record through a match and merge
-        round within it's current Cycle.
+        round within its current Cycle.
         """
         data = request.data
 
@@ -774,10 +709,17 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
                         data=taxlot_state_data
                     )
                     if new_taxlot_state_serializer.is_valid():
-                        # create the new property state, and perform an initial save / moving relationships
+                        # create the new taxlot state, and perform an initial save / moving relationships
                         new_state = new_taxlot_state_serializer.save()
 
-                        # then assign this state to the property view and save the whole view
+                        # preserve any non-preferred UBIDs from the Import Creation state
+                        ubid_models = taxlot_view.state.ubidmodel_set.filter(preferred=False)
+                        for ubid_model in ubid_models:
+                            new_state.ubidmodel_set.create(
+                                ubid=ubid_model.ubid,
+                            )
+
+                        # then assign this state to the taxlot view and save the whole view
                         taxlot_view.state = new_state
                         taxlot_view.save()
 
@@ -795,9 +737,6 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
                         result.update(
                             {'state': new_taxlot_state_serializer.data}
                         )
-
-                        # save the property view so that the datetime gets updated on the property.
-                        taxlot_view.save()
                     else:
                         result.update({
                             'status': 'error',
@@ -841,7 +780,7 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
                             {'state': updated_taxlot_state_serializer.data}
                         )
 
-                        # save the property view so that the datetime gets updated on the property.
+                        # save the taxlot view so that the datetime gets updated on the taxlot.
                         taxlot_view.save()
 
                         Note.create_from_edit(request.user.id, taxlot_view, new_taxlot_state_data, previous_data)

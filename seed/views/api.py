@@ -1,16 +1,18 @@
 # !/usr/bin/env python
 # encoding: utf-8
-#
-# :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-# :author
-
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from seed.decorators import ajax_request
 from seed.utils.api import (
-    get_api_endpoints, format_api_docstring, api_endpoint
+    api_endpoint,
+    format_api_docstring,
+    get_api_endpoints
 )
 
 

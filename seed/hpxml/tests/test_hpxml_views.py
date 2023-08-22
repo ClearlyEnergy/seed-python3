@@ -1,8 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from datetime import datetime
 
@@ -10,13 +10,12 @@ from django.urls import reverse
 from django.utils import timezone
 
 from seed.landing.models import SEEDUser as User
-from seed.models import (
-    PropertyView,
-    StatusLabel,
-)
+from seed.models import PropertyView, StatusLabel
 from seed.test_helpers.fake import (
-    FakeCycleFactory, FakeColumnFactory,
-    FakePropertyFactory, FakePropertyStateFactory,
+    FakeColumnFactory,
+    FakeCycleFactory,
+    FakePropertyFactory,
+    FakePropertyStateFactory,
     FakeTaxLotStateFactory
 )
 from seed.tests.util import DeleteModelsTestCase

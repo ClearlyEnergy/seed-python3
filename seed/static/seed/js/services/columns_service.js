@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.service.columns', []).factory('columns_service', [
   '$http',
@@ -11,6 +11,15 @@ angular.module('BE.seed.service.columns', []).factory('columns_service', [
 
     columns_service.update_column = function (column_id, data) {
       return columns_service.update_column_for_org(user_service.get_organization().id, column_id, data);
+    };
+
+    columns_service.create_column_for_org = function (org_id, data) {
+      return $http.post('/api/v3/columns/', {
+          organization_id: org_id,
+          ...data,
+      }).then(function (response) {
+        return response.data;
+      });
     };
 
     columns_service.update_column_for_org = function (org_id, column_id, data) {

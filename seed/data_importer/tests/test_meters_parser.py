@@ -1,32 +1,29 @@
 # !/usr/bin/env python
 # encoding: utf-8
-
-
-from config.settings.common import TIME_ZONE
-
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 from datetime import datetime
+from pathlib import Path
 
 from django.test import TestCase
-from django.utils.timezone import (
-    get_current_timezone,
-    make_aware,  # make_aware is used because inconsistencies exist in creating datetime with tzinfo
-)
-
+from django.utils.timezone import \
+    make_aware  # make_aware is used because inconsistencies exist in creating datetime with tzinfo
+from django.utils.timezone import get_current_timezone
 from pytz import timezone
 
+from config.settings.common import TIME_ZONE
 from seed.data_importer.meters_parser import MetersParser
 from seed.data_importer.utils import kbtu_thermal_conversion_factors
 from seed.landing.models import SEEDUser as User
+from seed.lib.mcm import reader
 from seed.lib.superperms.orgs.models import Organization
-from seed.models import (
-    Meter,
-    PropertyState,
-    PropertyView,
-)
+from seed.models import Meter, PropertyState, PropertyView
 from seed.test_helpers.fake import (
     FakeCycleFactory,
     FakePropertyFactory,
-    FakePropertyStateFactory,
+    FakePropertyStateFactory
 )
 from seed.utils.organizations import create_organization
 
@@ -86,6 +83,58 @@ class MeterUtilTests(TestCase):
         )
 
         self.tz_obj = timezone(TIME_ZONE)
+
+    def test_parse_meter_preprocess_raw_pm_data_request(self):
+        with open(Path(__file__).resolve().parent / "data" / "example-pm-data-request-with-meters.xlsx") as meters_file:
+            parser = reader.MCMParser(meters_file, sheet_name='Monthly Usage')
+
+        raw_meter_data = MetersParser.preprocess_raw_pm_data_request(parser.data)
+        self.assertEqual(raw_meter_data, [
+            {
+                'Start Date': '2016-01-01 00:00:00',
+                'End Date': '2016-02-01 00:00:00',
+                'Portfolio Manager ID': '4544232',
+                'Portfolio Manager Meter ID': 'Unknown',
+                'Meter Type': 'Electric - Grid',
+                'Usage/Quantity': '85887.1',
+                'Usage Units': 'kBtu (thousand Btu)'
+            },
+            {
+                'Start Date': '2016-02-01 00:00:00',
+                'End Date': '2016-03-01 00:00:00',
+                'Portfolio Manager ID': '4544232',
+                'Portfolio Manager Meter ID': 'Unknown',
+                'Meter Type': 'Electric - Grid',
+                'Usage/Quantity': '175697.3',
+                'Usage Units': 'kBtu (thousand Btu)'
+            }
+        ])
+
+    def test_parse_meter_preprocess_raw_pm_data_request_new(self):
+        with open(Path(__file__).resolve().parent / "data" / "example-pm-data-request-with-meters-new-format.xlsx") as meters_file:
+            parser = reader.MCMParser(meters_file, sheet_name='Monthly Usage')
+
+        raw_meter_data = MetersParser.preprocess_raw_pm_data_request(parser.data)
+        self.assertEqual(raw_meter_data, [
+            {
+                'Start Date': '2016-01-01 00:00:00',
+                'End Date': '2016-02-01 00:00:00',
+                'Portfolio Manager ID': '4544232',
+                'Portfolio Manager Meter ID': 'Unknown',
+                'Meter Type': 'Electric - Grid',
+                'Usage/Quantity': '85887.1',
+                'Usage Units': 'kBtu (thousand Btu)'
+            },
+            {
+                'Start Date': '2016-02-01 00:00:00',
+                'End Date': '2016-03-01 00:00:00',
+                'Portfolio Manager ID': '4544232',
+                'Portfolio Manager Meter ID': 'Unknown',
+                'Meter Type': 'Electric - Grid',
+                'Usage/Quantity': '175697.3',
+                'Usage Units': 'kBtu (thousand Btu)'
+            }
+        ])
 
     def test_parse_meter_details_splits_monthly_info_into_meter_data_and_readings_even_with_DST_changing(self):
         raw_meters = [

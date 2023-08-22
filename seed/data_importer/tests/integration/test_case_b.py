@@ -1,11 +1,12 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import logging
 import os.path as osp
+import pathlib
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -13,15 +14,15 @@ from seed.data_importer import tasks
 from seed.data_importer.tests.util import (
     FAKE_EXTRA_DATA,
     FAKE_MAPPINGS,
-    FAKE_ROW,
+    FAKE_ROW
 )
 from seed.models import (
+    ASSESSED_RAW,
+    DATA_STATE_MAPPING,
     Column,
     PropertyState,
     TaxLotState,
-    TaxLotView,
-    DATA_STATE_MAPPING,
-    ASSESSED_RAW,
+    TaxLotView
 )
 from seed.tests.util import DataMappingBaseTestCase
 
@@ -40,7 +41,7 @@ class TestCaseB(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), '..', 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 

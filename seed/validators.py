@@ -1,3 +1,7 @@
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 import re
 
 from django.core.exceptions import ValidationError
@@ -5,7 +9,7 @@ from django.utils.translation import gettext as _
 
 
 class PasswordBaseCharacterQuantityValidator(object):
-    TYPE = None
+    TYPE = ''
     RE = re.compile(r'')
 
     def __init__(self, quantity=1):

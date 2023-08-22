@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 
 Tests for serializers used by GreenAssessments/Energy Certifications
@@ -16,9 +15,7 @@ from collections import OrderedDict
 import mock
 
 from seed.landing.models import SEEDUser as User
-from seed.models import (
-    PropertyView
-)
+from seed.models import PropertyView
 from seed.models.auditlog import AUDIT_USER_EDIT
 from seed.serializers.certification import (
     GreenAssessmentPropertyReadOnlySerializer
@@ -27,10 +24,10 @@ from seed.serializers.properties import (
     PropertyAuditLogReadOnlySerializer,
     PropertyListSerializer,
     PropertyMinimalSerializer,
-    PropertyViewSerializer,
-    PropertyViewListSerializer,
     PropertyViewAsStateSerializer,
-    unflatten_values,
+    PropertyViewListSerializer,
+    PropertyViewSerializer,
+    unflatten_values
 )
 from seed.test_helpers.fake import (
     FakeCycleFactory,
@@ -167,12 +164,10 @@ class TestPropertySerializers(DeleteModelsTestCase):
         expected = [
             OrderedDict([
                 ('id', property1.id),
-                ('campus', False),
                 ('parent_property', None),
             ]),
             OrderedDict([
                 ('id', property2.id),
-                ('campus', False),
                 ('parent_property', None),
             ]),
         ]
@@ -401,7 +396,7 @@ class TestMisc(DeleteModelsTestCase):
     """Miscellaneous tests."""
 
     def test_unflatten_values(self):
-        """Test unflatten_values fucntion."""
+        """Test unflatten_values function."""
         test_dict = {
             'a': 1, 'b': 2, 'sub_a': 3,
             'sub__a': 4, 'sub__b': 5,

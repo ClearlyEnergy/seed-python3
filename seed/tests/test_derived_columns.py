@@ -1,24 +1,28 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from string import Template, ascii_letters, digits
 
 from django.core.exceptions import ValidationError
-
+from hypothesis import assume, example, given, settings
+from hypothesis import strategies as st
 from hypothesis.extra.django import TestCase
-from hypothesis import strategies as st, assume, given, example, settings
 
 from seed.landing.models import SEEDUser as User
-from seed.test_helpers.fake import FakeDerivedColumnFactory, FakeColumnFactory, FakePropertyStateFactory
 from seed.models.columns import Column
 from seed.models.derived_columns import (
-    ExpressionEvaluator,
     DerivedColumn,
     DerivedColumnParameter,
-    InvalidExpression,
+    ExpressionEvaluator,
+    InvalidExpression
+)
+from seed.test_helpers.fake import (
+    FakeColumnFactory,
+    FakeDerivedColumnFactory,
+    FakePropertyStateFactory
 )
 from seed.utils.organizations import create_organization
 
@@ -30,7 +34,7 @@ good_floats = st.floats(allow_nan=False, allow_infinity=False, width=32)
 
 @st.composite
 def pow_st(draw, base_st=good_floats, exponent_st=good_floats.filter(lambda x: abs(x) < 10)):
-    """Strategy for creating pythonic exponentiation, e.g. 1**2, 3**4, etc
+    """Strategy for creating pythonic exponentiation, e.g., 1**2, 3**4, etc
     Avoids divide by zero by default
 
     :param base_st: Strategy, should return valid exponent bases
@@ -109,7 +113,7 @@ def arithmetic_st(
 
 @st.composite
 def parameter_name_st(draw):
-    """Strategy for creating valid parameter names. e.g. _hello, test123, etc
+    """Strategy for creating valid parameter names. e.g., _hello, test123, etc
 
     :return: str
     """
@@ -172,10 +176,10 @@ class TestExpressionEvaluator(TestCase):
     looks like, and it runs our tests many times over different types of data it generates.
     This allows us to test cases we would have never though of and find edge cases.
 
-    We create data specifications (ie what the data should look like) with "strategies".
+    We create data specifications (i.e., what the data should look like) with "strategies".
     We have written custom strategies for generating different types of expressions above.
     They all end with the `_st` suffix.
-    We then tell hypothesis which strategy to use for a test (ie what the data input is) by using the
+    We then tell hypothesis which strategy to use for a test (i.e., what the data input is) by using the
     `@given` decorator.
     """
 
@@ -315,7 +319,7 @@ class TestDerivedColumns(TestCase):
 
         self.property_state_factory = FakePropertyStateFactory(organization=self.org)
 
-    def _derived_column_for_property_factory(self, expression, column_parameters):
+    def _derived_column_for_property_factory(self, expression, column_parameters, name=None, create_property_state=True):
         """Factory to create DerivedColumn, DerivedColumnParameters, and a PropertyState
         which can be used to evaluate the DerivedColumn expression.
 
@@ -339,7 +343,7 @@ class TestDerivedColumns(TestCase):
                 'derived_column_parameters': [DerivedColumnParameters]
             }
         """
-        derived_column = self.derived_col_factory.get_derived_column(expression)
+        derived_column = self.derived_col_factory.get_derived_column(expression=expression, name=name)
 
         # link the parameter columns to the derived column
         derived_column_parameters = []
@@ -365,7 +369,9 @@ class TestDerivedColumns(TestCase):
             else:
                 property_state_config[col.column_name] = param_value
 
-        property_state = self.property_state_factory.get_property_state(**property_state_config)
+        property_state = None
+        if create_property_state:
+            property_state = self.property_state_factory.get_property_state(**property_state_config)
 
         return {
             'property_state': property_state,
@@ -625,3 +631,57 @@ class TestDerivedColumns(TestCase):
 
         # -- Assert
         self.assertEqual(200, result)
+
+    def test_derived_column_evaluation_with_derived_column_as_source_column(self):
+        """
+        Test that a derived column can be evaluated when a derived column is used in its definition
+        """
+        # -- Setup
+        # expression which sums all the parameters
+        expression = '$a + 2'
+        derived_column_name = 'dc1'
+        column_parameters = {
+            'a': {
+                'source_column': self.col_factory('foo', is_extra_data=True),
+                'value': 1,
+            },
+        }
+
+        models = self._derived_column_for_property_factory(expression, column_parameters, name=derived_column_name)
+        derived_column = models['derived_column']
+        property_state = models['property_state']
+
+        self.assertEqual(derived_column.evaluate(property_state), 3)
+
+        column_with_derived_column = Column.objects.filter(derived_column=derived_column.id).first()
+        expression = '$b + 2'
+        derived_column_name_2 = 'dc2'
+        column_parameters = {
+            'b': {
+                'source_column': column_with_derived_column,
+                'value': None  # not necessary if property state is already created
+            },
+        }
+        models = self._derived_column_for_property_factory(expression, column_parameters, name=derived_column_name_2, create_property_state=False)
+        derived_column2 = models['derived_column']
+
+        # Derived Column 2 (defined by a different derived column) can be evaluated
+        self.assertEqual(derived_column2.evaluate(property_state), 5)
+
+    def test_derived_column_duplicate_name(self):
+        """Test that a derived column cannot be created with the same name as another column"""
+
+        expression = '$a + 2'
+        # gross_floor_area is already created and should fail
+        derived_column_name = 'gross_floor_area'
+        column_parameters = {
+            'a': {
+                'source_column': self.col_factory('foo', is_extra_data=True),
+                'value': 1,
+            },
+        }
+
+        with self.assertRaises(Exception) as exc:
+            self._derived_column_for_property_factory(expression, column_parameters, name=derived_column_name)
+        # validation errors return as a list of errors, so check the string representation of the list
+        self.assertEqual(str(exc.exception), "['Column name PropertyState.gross_floor_area already exists, must be unique']")

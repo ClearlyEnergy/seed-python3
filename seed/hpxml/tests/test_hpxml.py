@@ -1,10 +1,10 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
+import pathlib
 from os import path
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -33,8 +33,7 @@ class TestBuildingFiles(TestCase):
 
     def test_hpxml_constructor(self):
         filename = path.join(path.dirname(__file__), 'data', 'audit.xml')
-        file = open(filename, 'rb')
-        simple_uploaded_file = SimpleUploadedFile(file.name, file.read())
+        simple_uploaded_file = SimpleUploadedFile(filename, pathlib.Path(filename).read_bytes())
 
         bf = BuildingFile.objects.create(
             file=simple_uploaded_file,

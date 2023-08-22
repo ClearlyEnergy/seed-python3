@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.mapping', [])
   .controller('mapping_controller', [
@@ -37,6 +37,7 @@ angular.module('BE.seed.controller.mapping', [])
     'COLUMN_MAPPING_PROFILE_TYPE_NORMAL',
     'COLUMN_MAPPING_PROFILE_TYPE_BUILDINGSYNC_DEFAULT',
     'COLUMN_MAPPING_PROFILE_TYPE_BUILDINGSYNC_CUSTOM',
+    'derived_columns_payload',
     function (
       $scope,
       $state,
@@ -70,7 +71,8 @@ angular.module('BE.seed.controller.mapping', [])
       naturalSort,
       COLUMN_MAPPING_PROFILE_TYPE_NORMAL,
       COLUMN_MAPPING_PROFILE_TYPE_BUILDINGSYNC_DEFAULT,
-      COLUMN_MAPPING_PROFILE_TYPE_BUILDINGSYNC_CUSTOM
+      COLUMN_MAPPING_PROFILE_TYPE_BUILDINGSYNC_CUSTOM,
+      derived_columns_payload,
     ) {
       $scope.profiles = [
         {id: 0, mappings: [], name: '<None selected>'}
@@ -111,6 +113,7 @@ angular.module('BE.seed.controller.mapping', [])
             $scope.initialize_mappings();
             $scope.updateInventoryTypeDropdown();
             $scope.updateColDuplicateStatus();
+            $scope.updateDerivedColumnMatchStatus();
           }).catch(function () {
             $scope.dropdown_selected_profile = $scope.current_profile;
             return;
@@ -121,6 +124,7 @@ angular.module('BE.seed.controller.mapping', [])
           $scope.initialize_mappings();
           $scope.updateInventoryTypeDropdown();
           $scope.updateColDuplicateStatus();
+          $scope.updateDerivedColumnMatchStatus();
         }
       };
 
@@ -250,7 +254,7 @@ angular.module('BE.seed.controller.mapping', [])
       $scope.review_mappings = false;
       $scope.show_mapped_buildings = false;
 
-      var validCycle = _.find(cycles.cycles, {id: $scope.import_file.cycle});
+      const validCycle = _.find(cycles.cycles, {id: $scope.import_file.cycle});
       $scope.isValidCycle = Boolean(validCycle);
       $scope.cycleName = validCycle.name;
 
@@ -298,12 +302,26 @@ angular.module('BE.seed.controller.mapping', [])
         return col.suggestion_table_name === 'PropertyState' && Boolean(_.find(area_columns, {column_name: col.suggestion_column_name}));
       };
 
+      var ghg_columns = _.filter($scope.mappable_property_columns, {data_type: 'ghg'});
+      $scope.is_ghg_column = function (col) {
+        return col.suggestion_table_name == 'PropertyState' && Boolean(_.find(ghg_columns, {column_name: col.suggestion_column_name}))
+      };
+
+      var ghg_intensity_columns = _.filter($scope.mappable_property_columns, {data_type: 'ghg_intensity'});
+      $scope.is_ghg_intensity_column = function (col) {
+        return col.suggestion_table_name == 'PropertyState' && Boolean(_.find(ghg_intensity_columns, {column_name: col.suggestion_column_name}))
+      };
+
       var get_default_quantity_units = function (col) {
         // TODO - hook up to org preferences / last mapping in DB
         if ($scope.is_eui_column(col)) {
           return 'kBtu/ft**2/year';
         } else if ($scope.is_area_column(col)) {
           return 'ft**2';
+        } else if ($scope.is_ghg_column(col)) {
+          return 'MtCO2e/year';
+        } else if ($scope.is_ghg_intensity_column(col)) {
+          return 'kgCO2e/ft**2/year';
         }
         return null;
       };
@@ -316,6 +334,7 @@ angular.module('BE.seed.controller.mapping', [])
           }
         });
         $scope.updateColDuplicateStatus();
+        $scope.updateDerivedColumnMatchStatus();
       };
       $scope.updateInventoryTypeDropdown = function () {
         var chosenTypes = _.uniq(_.map($scope.mappings, 'suggestion_table_name'));
@@ -362,7 +381,10 @@ angular.module('BE.seed.controller.mapping', [])
 
         $scope.flag_mappings_change();
 
-        if (!checkingMultiple) $scope.updateColDuplicateStatus();
+        if (!checkingMultiple) {
+          $scope.updateColDuplicateStatus()
+          $scope.updateDerivedColumnMatchStatus()
+        };
       };
 
       $scope.updateColDuplicateStatus = function () {
@@ -393,6 +415,13 @@ angular.module('BE.seed.controller.mapping', [])
         $scope.duplicates_present = duplicates_present;
       };
 
+      // Verify there are not any suggested Column names that match an existing Derived Column name
+      $scope.updateDerivedColumnMatchStatus = function () {
+        const suggestions = $scope.mappings.map(col => col.suggestion)
+        const derived_col_names = derived_columns_payload.derived_columns.map(col => col.name)
+        $scope.derived_column_match = suggestions.some(name => derived_col_names.includes(name)) ? true : false
+      };
+
       var get_col_from_suggestion = function (name) {
 
         var suggestion = _.find($scope.current_profile.mappings, {from_field: name}) || {};
@@ -404,7 +433,8 @@ angular.module('BE.seed.controller.mapping', [])
           raw_data: _.map(first_five_rows_payload.first_five_rows, name),
           suggestion: suggestion.to_field,
           suggestion_column_name: suggestion.to_field,
-          suggestion_table_name: suggestion.to_table_name
+          suggestion_table_name: suggestion.to_table_name,
+          isOmitted: false,
         };
       };
 
@@ -456,6 +486,7 @@ angular.module('BE.seed.controller.mapping', [])
           if (changed) $scope.change(col, true);
         });
         $scope.updateColDuplicateStatus();
+        $scope.updateDerivedColumnMatchStatus();
       };
 
       /**
@@ -487,7 +518,7 @@ angular.module('BE.seed.controller.mapping', [])
        */
       $scope.get_mappings = function () {
         var mappings = [];
-        _.forEach($scope.mappings, function (col) {
+        _.forEach($scope.mappings.filter(m => !m.isOmitted), function (col) {
           mappings.push({
             from_field: col.name,
             from_units: col.from_units || null,
@@ -553,7 +584,7 @@ angular.module('BE.seed.controller.mapping', [])
         var property_mappings_found = _.find($scope.mappings, {suggestion_table_name: 'PropertyState'});
         if (!property_mappings_found) return true;
 
-        var intersections = _.intersectionWith(required_property_fields, $scope.mappings, function (required_field, raw_col) {
+        var intersections = _.intersectionWith(required_property_fields, $scope.mappings.filter(m => !m.isOmitted), function (required_field, raw_col) {
           return _.isMatch(required_field, {
             column_name: raw_col.suggestion_column_name,
             inventory_type: raw_col.suggestion_table_name
@@ -589,7 +620,7 @@ angular.module('BE.seed.controller.mapping', [])
        *   mappings' button.
        */
       $scope.empty_fields_present = function () {
-        return Boolean(_.find($scope.mappings, {suggestion: ''}));
+        return Boolean(_.find($scope.mappings.filter(m => !m.isOmitted), {suggestion: ''}));
       };
 
       /**
@@ -620,7 +651,8 @@ angular.module('BE.seed.controller.mapping', [])
           $scope.empty_units_present() ||
           !$scope.required_property_fields_present() ||
           !$scope.required_taxlot_fields_present() ||
-          suggestions_not_provided_yet();
+          suggestions_not_provided_yet() ||
+          $scope.derived_column_match;
       };
 
       /**
@@ -717,8 +749,8 @@ angular.module('BE.seed.controller.mapping', [])
 //                options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
                 options.cellFilter = 'date:\'yyyy-MM-dd\'';
                 options.filter = inventory_service.dateFilter();
-              } else if (col.data_type === 'area' || col.data_type === 'eui') {
-                options.cellFilter = 'number: ' + $scope.organization.display_significant_figures;
+              } else if (['area', 'eui', 'float', 'number'].includes(col.data_type)) {
+                options.cellFilter = 'number: ' + $scope.organization.display_decimal_places;
                 options.sortingAlgorithm = naturalSort;
               } else {
                 options.filter = inventory_service.combinedFilter();
@@ -863,6 +895,7 @@ angular.module('BE.seed.controller.mapping', [])
         }
 
         $scope.updateColDuplicateStatus();
+        $scope.updateDerivedColumnMatchStatus();
         $scope.updateInventoryTypeDropdown();
       };
       init();

@@ -1,18 +1,21 @@
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 import abc
 import functools
 import inspect
 import json
 import logging
 
-from seed.decorators import get_prog_key
-from seed.lib.progress_data.progress_data import ProgressData
-from seed.models import Analysis, AnalysisPropertyView, AnalysisMessage
-
+from celery import shared_task
 from django.db import transaction
 from django.db.utils import OperationalError
 from django.utils import timezone as tz
 
-from celery import shared_task
+from seed.decorators import get_prog_key
+from seed.lib.progress_data.progress_data import ProgressData
+from seed.models import Analysis, AnalysisMessage, AnalysisPropertyView
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +70,7 @@ def analysis_pipeline_task(expected_status):
 
     The benefit of this functionality is to
     1. guard tasks from starting when an analysis has already been stopped, deleted, etc.
-    2. handling some unhandled exceptions gracefully (e.g. a database error when someone else deletes the analysis)
+    2. handling some unhandled exceptions gracefully (e.g., a database error when someone else deletes the analysis)
 
     :param expected_status: int, one of Analysis.STATUS_TYPES
     :returns: function, a decorator
@@ -95,7 +98,7 @@ def analysis_pipeline_task(expected_status):
         @functools.wraps(func)
         def _run_task(*args, **kwargs):
             def _stop_task_chain(task_instance):
-                # stops the celery task chain (ie any child tasks)
+                # stops the celery task chain (i.e., any child tasks)
                 # see: https://github.com/celery/celery/issues/3550
                 task_instance.request.chain = task_instance.request.callbacks = None
 
@@ -239,14 +242,12 @@ def analysis_pipeline_task(expected_status):
 
 class AnalysisPipelineException(Exception):
     """An analysis pipeline specific exception"""
-    pass
 
 
 class StopAnalysisTaskChain(Exception):
     """Analysis pipeline tasks should raise this exception to stop the celery task
     chain.
     """
-    pass
 
 
 class AnalysisPipeline(abc.ABC):
@@ -254,6 +255,7 @@ class AnalysisPipeline(abc.ABC):
     AnalysisPipeline is an abstract class for defining workflows for preparing,
     running, and post processing analyses.
     """
+
     def __init__(self, analysis_id):
         self._analysis_id = analysis_id
 
@@ -262,11 +264,12 @@ class AnalysisPipeline(abc.ABC):
         """Factory method for constructing pipelines for a given analysis.
 
         :param analysis: Analysis
-        :returns: An implementation of AnalysisPipeline, e.g. BsyncrPipeline
+        :returns: An implementation of AnalysisPipeline, e.g., BsyncrPipeline
         """
         # import here to avoid circular dependencies
-        from seed.analysis_pipelines.bsyncr import BsyncrPipeline
         from seed.analysis_pipelines.better import BETTERPipeline
+        from seed.analysis_pipelines.bsyncr import BsyncrPipeline
+        from seed.analysis_pipelines.co2 import CO2Pipeline
         from seed.analysis_pipelines.eui import EUIPipeline
 
         if analysis.service == Analysis.BSYNCR:
@@ -275,6 +278,8 @@ class AnalysisPipeline(abc.ABC):
             return BETTERPipeline(analysis.id)
         elif analysis.service == Analysis.EUI:
             return EUIPipeline(analysis.id)
+        elif analysis.service == Analysis.CO2:
+            return CO2Pipeline(analysis.id)
         else:
             raise AnalysisPipelineException(f'Analysis service type is unknown/unhandled. Service ID "{analysis.service}"')
 
@@ -402,7 +407,6 @@ class AnalysisPipeline(abc.ABC):
                 progress_data.finish_with_success(status_message)
 
                 locked_analysis.status = Analysis.READY
-                locked_analysis.start_time = tz.now()
                 locked_analysis.save()
             else:
                 statuses = dict(Analysis.STATUS_TYPES)
@@ -415,7 +419,7 @@ class AnalysisPipeline(abc.ABC):
         """Sets the analysis status to RUNNING and saves the analysis start time.
         This method should be called once for an analysis. In addition, it should
         only be called by the pipeline once the analysis task has officially started
-        (ie a worker has picked up the actual work of the task).
+        (i.e., a worker has picked up the actual work of the task).
 
         Therefore, this should only be called in the context of a pipeline task.
 
@@ -451,7 +455,7 @@ class AnalysisPipeline(abc.ABC):
         """Sets the analysis status to COMPLETED and saves the analysis end time.
         This method should be called once for an analysis. In addition, it should
         only be called by the pipeline once the analysis task has officially ended
-        (ie all work for the analysis is finished).
+        (i.e., all work for the analysis is finished).
 
         Therefore, this should only be called in the context of a pipeline task.
 
@@ -492,7 +496,7 @@ class AnalysisPipeline(abc.ABC):
             analysis.status is Analysis.PENDING_CREATION
             # READY doesn't have progress data b/c it's waiting for the user to kick it off
             or analysis.status is Analysis.READY
-            # Terminal states (e.g. Failed, Stopped, Complete) don't have progress data
+            # Terminal states (e.g., Failed, Stopped, Complete) don't have progress data
             or analysis.in_terminal_state()
         ):
             return None
@@ -514,7 +518,7 @@ class AnalysisPipeline(abc.ABC):
     @abc.abstractmethod
     def _prepare_analysis(self, property_view_ids, start_analysis):
         """Abstract method which should do the work necessary for preparing
-        an analysis, e.g. creating input file(s)
+        an analysis, e.g., creating input file(s)
 
         :param property_view_ids: list[int]
         :param start_analysis: bool, if true, the pipeline should be started immediately
@@ -522,13 +526,11 @@ class AnalysisPipeline(abc.ABC):
             implementation to make sure this happens by calling `pipeline.start_analysis()`
         :returns: None
         """
-        pass
 
     @abc.abstractmethod
     def _start_analysis(self):
-        """Abstract method which should start the analysis, e.g. make HTTP requests
+        """Abstract method which should start the analysis, e.g., make HTTP requests
         to the analysis service.
 
         :returns: None
         """
-        pass

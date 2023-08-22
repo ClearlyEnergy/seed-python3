@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 // test Data Quality, labels, delete function and other misc items after data is loaded
 var EC = protractor.ExpectedConditions;
@@ -123,7 +123,7 @@ describe('When I do miscellaneous things', function () {
     browser.driver.navigate().refresh();
   }, 60000);
 
-  it('should refesh and rules are correctly saved', function () {
+  it('should refresh and rules are correctly saved', function () {
     expect(element.all(by.repeater('rule in ruleGroup')).first().$('.form-control.label.label-primary').isPresent()).toBe(true);
     $$('[ng-click="remove_label(rule)"]').first().click();
     expect(element.all(by.repeater('rule in ruleGroup')).first().$('.form-control.label.label-primary').isPresent()).toBe(false);
@@ -131,7 +131,7 @@ describe('When I do miscellaneous things', function () {
     browser.driver.navigate().refresh();
   }, 60000);
 
-  it('should refesh again and check rules', function () {
+  it('should refresh again and check rules', function () {
     expect(element.all(by.repeater('rule in ruleGroup')).first().$('.form-control.label.label-primary').isPresent()).toBe(false);
     $$('[ng-click="create_label(rule, $index)"]').first().click();
     $$('.btn.btn-sm.btn-default.action_link').get(2).click();
@@ -221,12 +221,12 @@ describe('When I do miscellaneous things', function () {
 
     //check labels -
     $('[ng-click="clear_labels()"]').click();
-    $('#tagsInput').click();
+    $('#tags-input').click();
     $$('.suggestion-item.selected').first().click();
 
     expect(rows.count()).toBe(3);
     $('[uib-btn-radio="\'and\'"]').click();
-    $('#tagsInput').click();
+    $('#tags-input').click();
     $$('.suggestion-item.selected').first().click();
 
     expect(rows.count()).toBe(2);

@@ -1,10 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 
 This provides a custom JSON rendering class for SEED.
@@ -17,7 +16,7 @@ format.
 
 Use of the custom class(es) will generate the correct format, setting 'status'
 based on the HTTP status code from the response, obviating the need to
-override View(Set) methods unnecessarily, if e.g. ModelViewSet is used.
+override View(Set) methods unnecessarily, if e.g., ModelViewSet is used.
 """
 from rest_framework import status
 from rest_framework.renderers import JSONRenderer

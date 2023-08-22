@@ -1,17 +1,16 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 import logging
 import math
 from datetime import datetime
 
-from django.contrib.postgres.fields import JSONField
 from django.core import serializers
-from django.db import IntegrityError
+from django.db import IntegrityError, models
 from past.builtins import basestring
 
 
@@ -74,8 +73,9 @@ def obj_to_dict(obj, include_m2m=True):
     response['id'] = response['pk'] = struct['pk']
     response['model'] = struct['model']
     # JSONField does not get serialized by `serialize`
+    # TODO: I think django can now serialize JSONFields
     for f in obj._meta.fields:
-        if isinstance(f, JSONField):
+        if isinstance(f, models.JSONField):
             e = getattr(obj, f.name)
             # PostgreSQL < 9.3 support -- this should never be run
             while isinstance(e, basestring):

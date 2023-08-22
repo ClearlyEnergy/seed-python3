@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 describe('controller: inventory_detail_controller', function () {
 
@@ -46,18 +46,27 @@ describe('controller: inventory_detail_controller', function () {
 
     var fake_inventory_payload = {
       property: {
-        campus: 'False',
         id: 4,
         organization: 24,
-        parent_property: ''
+        parent_property: '',
+        inventory_documents: [
+          {
+            "id": 1,
+            "file_type": "PDF",
+            "created": "2022-04-10T19:35:58.448094-07:00",
+            "file": "/media/inventory_documents/1-s2.0-S1364032115000672-main.pdf",
+            "filename": "1-s2.0-S1364032115000672-main.pdf",
+            "property": 4
+          }
+        ],
       },
       cycle: {
         created: '2016-08-02T16:38:22.925258Z',
-        end: '2011-01-01T07:59:59Z',
+        end: '2011-01-01',
         id: 1,
         name: '2010 Calendar Year',
         organization: 24,
-        start: '2010-01-01T08:00:00Z',
+        start: '2010-01-01',
         user: ''
       },
       taxlots: [{
@@ -257,7 +266,9 @@ describe('controller: inventory_detail_controller', function () {
       organization_payload: {
         organization: {
           id: 1,
-          display_significant_figures: 2,
+          display_decimal_places: 2,
+          property_display_field: 'address_line_1',
+          taxlot_display_field: 'address_line_1',
         },
       },
       analyses_payload: {
@@ -266,6 +277,10 @@ describe('controller: inventory_detail_controller', function () {
       users_payload: {
         users: []
       },
+      views_payload: {
+        status:	"success",
+        property_views: [],
+      }
     });
   }
 

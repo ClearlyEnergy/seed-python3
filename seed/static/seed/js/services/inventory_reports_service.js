@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.service.inventory_reports',
   []).factory('inventory_reports_service', [
@@ -78,7 +78,7 @@ angular.module('BE.seed.service.inventory_reports',
          "chart_data": [{
            "x": value for x var,
            "y": value for secondary grouping
-                (e.g. '1990-1999' for decade when getting data
+                (e.g., '1990-1999' for decade when getting data
                 where y_var = year_built),
          }, {
            ...

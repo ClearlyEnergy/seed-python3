@@ -1,8 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from builtins import str
 from functools import cmp_to_key
@@ -72,7 +72,7 @@ def best_match(s, categories, top_n=5):
             (
                 table_name,
                 category,
-                jellyfish.jaro_winkler(
+                jellyfish.jaro_winkler_similarity(
                     str(s.encode('ascii', 'replace').lower()),
                     str(category.encode('ascii', 'replace').lower())
                 )

@@ -1,9 +1,12 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author nicholas.long@nrel.gov
 """
+<<<<<<< HEAD
 from collections import OrderedDict
 from rest_framework import serializers
 
@@ -13,6 +16,11 @@ from seed.models import (
     #    PropertyMeasure,
 )
 from helix.models import HELIXPropertyMeasure as PropertyMeasure
+=======
+from rest_framework import serializers
+
+from seed.models import Measure, PropertyMeasure
+>>>>>>> seed-merge
 from seed.serializers.base import ChoiceField
 
 
@@ -23,9 +31,12 @@ class MeasureSerializer(serializers.ModelSerializer):
 
 
 class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
+<<<<<<< HEAD
     id = serializers.ReadOnlyField(source='measure.id')
     measure = serializers.PrimaryKeyRelatedField(queryset=Measure.objects.all())
     property_state = serializers.PrimaryKeyRelatedField(queryset=PropertyState.objects.all())
+=======
+>>>>>>> seed-merge
     measure_id = serializers.SerializerMethodField('measure_id_name')
     name = serializers.ReadOnlyField(source='measure.name')
     display_name = serializers.ReadOnlyField(source='measure.display_name')
@@ -34,6 +45,7 @@ class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
     implementation_status = ChoiceField(choices=PropertyMeasure.IMPLEMENTATION_TYPES)
     application_scale = ChoiceField(choices=PropertyMeasure.APPLICATION_SCALE_TYPES)
     category_affected = ChoiceField(choices=PropertyMeasure.CATEGORY_AFFECTED_TYPE)
+    scenario_id = serializers.SerializerMethodField('get_scenario_id')
 
     class Meta:
         model = PropertyMeasure
@@ -60,17 +72,22 @@ class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
             'cost_capital_replacement',
             'cost_residual_value',
             'useful_life',
+<<<<<<< HEAD
             'current_financing',
             'ownership',
             'electric',
             'installer',
             'reference_id',
             'source',
+=======
+            'scenario_id',
+>>>>>>> seed-merge
         )
 
     def measure_id_name(self, obj):
         return "{}.{}".format(obj.measure.category, obj.measure.name)
 
+<<<<<<< HEAD
     def create(self, validated_data):
         validated_data.pop('organization_id', None)
         property_measure = PropertyMeasure.objects.create(**validated_data)
@@ -124,3 +141,9 @@ class PropertyMeasureReadOnlySerializer(serializers.BaseSerializer):
             ('measure', measure),
             ('measurements', measurements)
         ))
+=======
+    def get_scenario_id(self, obj):
+        scenario = obj.scenario_set.first()
+        if scenario:
+            return scenario.id
+>>>>>>> seed-merge

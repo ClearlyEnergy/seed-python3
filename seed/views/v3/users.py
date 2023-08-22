@@ -1,39 +1,38 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import logging
 
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
-from django.core.exceptions import ObjectDoesNotExist
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.http import JsonResponse
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import viewsets, status, serializers
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.status import HTTP_400_BAD_REQUEST
 
 from seed.decorators import ajax_request_class
-from seed.landing.models import SEEDUser as User, SEEDUser
-from seed.lib.superperms.orgs.decorators import PERMS
-from seed.lib.superperms.orgs.decorators import has_perm_class
+from seed.landing.models import SEEDUser as User
+from seed.lib.superperms.orgs.decorators import PERMS, has_perm_class
 from seed.lib.superperms.orgs.models import (
-    ROLE_OWNER,
     ROLE_MEMBER,
+    ROLE_OWNER,
     ROLE_VIEWER,
     Organization,
-    OrganizationUser,
+    OrganizationUser
 )
 from seed.models.data_quality import Rule
-from seed.tasks import (
-    invite_to_seed,
+from seed.tasks import invite_to_seed
+from seed.utils.api import OrgMixin, api_endpoint_class
+from seed.utils.api_schema import (
+    AutoSchemaHelper,
+    swagger_auto_schema_org_query_param
 )
-from seed.utils.api import api_endpoint_class, OrgMixin
-from seed.utils.api_schema import AutoSchemaHelper, swagger_auto_schema_org_query_param
 from seed.utils.organizations import create_organization
-from rest_framework.status import HTTP_400_BAD_REQUEST
 
 _log = logging.getLogger(__name__)
 
@@ -175,10 +174,12 @@ class UserViewSet(viewsets.ViewSet, OrgMixin):
     )
     @api_endpoint_class
     @ajax_request_class
-    @has_perm_class('requires_owner')
+    @has_perm_class('requires_owner_or_superuser_without_org', False)
     def create(self, request):
         """
-        Creates a new SEED user.  One of 'organization_id' or 'org_name' is needed.
+        Creates a new SEED user.
+        Organization owners must specify the `organization_id` query param.
+        Superusers can add `org_name` to the body and create a new organization for the new user.
         Sends invitation email to the new user.
         """
         # WARNING: we aren't using the OrgMixin here to validate the organization
@@ -255,7 +256,7 @@ class UserViewSet(viewsets.ViewSet, OrgMixin):
         }
     )
     @ajax_request_class
-    @has_perm_class('requires_superuser')
+    @has_perm_class('requires_superuser', False)
     def list(self, request):
         """
         Retrieves all users' email addresses and IDs.
@@ -348,7 +349,7 @@ class UserViewSet(viewsets.ViewSet, OrgMixin):
     @ajax_request_class
     def retrieve(self, request, pk=None):
         """
-        Retrieves the a user's first_name, last_name, email
+        Retrieves user's first_name, last_name, email
         and api key if exists by user ID (pk).
         """
 
@@ -633,7 +634,7 @@ class UserViewSet(viewsets.ViewSet, OrgMixin):
         user.save()
         return {'status': 'success'}
 
-    @has_perm_class('requires_superuser')
+    @has_perm_class('requires_superuser', False)
     @ajax_request_class
     @action(detail=True, methods=['PUT'])
     def deactivate(self, request, pk=None):
@@ -642,7 +643,7 @@ class UserViewSet(viewsets.ViewSet, OrgMixin):
         """
         try:
             user_id = pk
-            user = SEEDUser.objects.get(
+            user = User.objects.get(
                 id=user_id
             )
             user.deactivate_user()

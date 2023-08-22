@@ -1,10 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from django.http import JsonResponse
 from rest_framework import status
@@ -12,17 +10,15 @@ from rest_framework.response import Response
 
 from seed.filters import ColumnListProfileFilterBackend
 from seed.models import (
-    ColumnListProfile,
-    Organization,
-    Column,
     VIEW_LIST,
     VIEW_LIST_INVENTORY_TYPE,
     VIEW_LIST_PROPERTY,
     VIEW_LOCATION_TYPES,
+    Column,
+    ColumnListProfile,
+    Organization
 )
-from seed.serializers.column_list_profiles import (
-    ColumnListProfileSerializer,
-)
+from seed.serializers.column_list_profiles import ColumnListProfileSerializer
 from seed.utils.api import OrgValidateMixin
 from seed.utils.viewsets import SEEDOrgCreateUpdateModelViewSet
 

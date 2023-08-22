@@ -1,19 +1,30 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
+import json
+import os.path as osp
+from datetime import date, datetime
 
+import pytz
+from django.core.files.uploadedfile import SimpleUploadedFile
+from mock import patch
+
+from config.settings.common import BASE_DIR
+from seed.data_importer.match import filter_duplicate_states, save_state_match
 from seed.data_importer.models import ImportFile
-
-from seed.data_importer.tasks import geocode_and_match_buildings_task
-from seed.data_importer.match import (
-    filter_duplicate_states,
-    save_state_match,
+from seed.data_importer.tasks import (
+    geocode_and_match_buildings_task,
+    map_data,
+    save_raw_data
 )
+from seed.lib.progress_data.progress_data import ProgressData
+from seed.lib.xml_mapping.mapper import default_buildingsync_profile_mappings
 from seed.models import (
     ASSESSED_RAW,
+    BUILDINGSYNC_RAW,
     DATA_STATE_DELETE,
     DATA_STATE_MAPPING,
     DATA_STATE_MATCHING,
@@ -21,18 +32,24 @@ from seed.models import (
     MERGE_STATE_NEW,
     MERGE_STATE_UNKNOWN,
     Column,
+    Cycle,
+    Measure,
+    Meter,
+    MeterReading,
     Property,
     PropertyAuditLog,
+    PropertyMeasure,
     PropertyState,
     PropertyView,
+    Scenario,
     TaxLot,
     TaxLotAuditLog,
     TaxLotState,
-    TaxLotView,
+    TaxLotView
 )
 from seed.test_helpers.fake import (
     FakePropertyStateFactory,
-    FakeTaxLotStateFactory,
+    FakeTaxLotStateFactory
 )
 from seed.tests.util import DataMappingBaseTestCase
 
@@ -850,7 +867,7 @@ class TestMatchingImportIntegration(DataMappingBaseTestCase):
         # Define matching values
         matching_jurisdiction_tax_lot_id = '11111'
         matching_address_line_1 = '123 Match Street'
-        matching_ulid = '86HJPCWQ+2VV-1-3-2-3'
+        matching_ubid = '86HJPCWQ+2VV-1-3-2-3'
         matching_custom_id_1 = 'MatchingID12345'
 
         # For first file, create taxlots with no duplicates or matches
@@ -868,7 +885,7 @@ class TestMatchingImportIntegration(DataMappingBaseTestCase):
         self.taxlot_state_factory.get_taxlot_state(**base_details_file_1)
         base_details_file_1['address_line_1'] = matching_address_line_1
         self.taxlot_state_factory.get_taxlot_state(**base_details_file_1)
-        base_details_file_1['ulid'] = matching_ulid
+        base_details_file_1['ubid'] = matching_ubid
         self.taxlot_state_factory.get_taxlot_state(**base_details_file_1)
         base_details_file_1['custom_id_1'] = matching_custom_id_1
         self.taxlot_state_factory.get_taxlot_state(**base_details_file_1)
@@ -908,7 +925,7 @@ class TestMatchingImportIntegration(DataMappingBaseTestCase):
         # (outcome: 2 additional -States, 2 new TaxLot/-View)
         base_details_file_2['custom_id_1'] = matching_custom_id_1
         tls_3 = self.taxlot_state_factory.get_taxlot_state(**base_details_file_2)
-        base_details_file_2['ulid'] = matching_ulid
+        base_details_file_2['ubid'] = matching_ubid
         tls_4 = self.taxlot_state_factory.get_taxlot_state(**base_details_file_2)
 
         # Create 3 taxlots - with 1 duplicate and 1 match within it's own file that will
@@ -1028,8 +1045,355 @@ class TestMatchingHelperMethods(DataMappingBaseTestCase):
             )
 
         props = self.import_file.find_unmatched_property_states()
-        uniq_state_ids, dup_state_count = filter_duplicate_states(props)
+        sub_progress_data = ProgressData(func_name='match_sub_progress', unique_id=123)
+        sub_progress_data.save()
+        uniq_state_ids, dup_state_count = filter_duplicate_states(props, sub_progress_data.key)
 
         # There should be 6 uniq states. 5 from the second call, and one of 'The Same Address'
         self.assertEqual(len(uniq_state_ids), 6)
         self.assertEqual(dup_state_count, 9)
+
+
+class TestBuildingSyncImportXml(DataMappingBaseTestCase):
+    def setUp(self):
+        self.maxDiff = None
+
+        filename = 'buildingsync_v2_0_bricr_workflow.xml'
+        filepath = osp.join(BASE_DIR, 'seed', 'building_sync', 'tests', 'data', filename)
+
+        import_file_source_type = BUILDINGSYNC_RAW
+        selfvars = self.set_up(import_file_source_type)
+        self.user, self.org, self.import_file_bsync, self.import_record, self.cycle = selfvars
+
+        self.import_file_bsync.file = SimpleUploadedFile(
+            name=filename,
+            content=open(filepath, 'rb').read(),
+            content_type="application/xml"
+        )
+        self.import_file_bsync.uploaded_filename = filename
+        self.import_file_bsync.save()
+
+        self.import_record_2, self.import_file_2 = self.create_import_file(
+            self.user, self.org, self.cycle
+        )
+
+        self.property_state_factory = FakePropertyStateFactory(organization=self.org)
+
+    def map_bsync_file(self):
+        with patch.object(ImportFile, 'cache_first_rows', return_value=None):
+            progress_info = save_raw_data(self.import_file_bsync.pk)
+        self.assertEqual('success', progress_info['status'], json.dumps(progress_info))
+        self.assertEqual(PropertyState.objects.filter(import_file=self.import_file_bsync).count(), 1)
+
+        # make the column mappings
+        self.fake_mappings = default_buildingsync_profile_mappings()
+        Column.create_mappings(self.fake_mappings, self.org, self.user, self.import_file_bsync.pk)
+
+        # map the data
+        progress_info = map_data(self.import_file_bsync.pk)
+        self.assertEqual('success', progress_info['status'])
+        # verify there were no errors with the files
+        self.assertEqual({}, progress_info.get('file_info', {}))
+
+    def test_match_buildingsync_works_when_no_existing_scenarios_or_meters(self):
+        """If a BuildingSync file is merged into an existing property WITHOUT scenarios and meters,
+        we expect the final property to have only the new scenarios and meters"""
+        # -- Setup
+        # make address_line_1 the only matching criteria
+        (
+            Column.objects.filter(is_matching_criteria=True)
+            .exclude(column_name='address_line_1')
+            .update(is_matching_criteria=False)
+        )
+        # this should be the address in the BSync file
+        ADDRESS_LINE_1 = '123 MAIN BLVD'
+        base_details = {
+            'address_line_1': ADDRESS_LINE_1,
+            'import_file_id': self.import_file_2.id,
+            'data_state': DATA_STATE_MAPPING,
+            'no_default_data': False,
+        }
+        # Create a property which will match with the BuildingSync file
+        self.property_state_factory.get_property_state(**base_details)
+        # set import_file mapping done so that matching can occur.
+        self.import_file_2.mapping_done = True
+        self.import_file_2.save()
+        geocode_and_match_buildings_task(self.import_file_2.id)
+
+        # Map the BuildingSync file which should match with the existing property
+        self.map_bsync_file()
+        ps_new = PropertyState.objects.filter(
+            address_line_1=ADDRESS_LINE_1,
+            import_file=self.import_file_bsync
+        )
+        self.assertEqual(len(ps_new), 1)
+
+        # -- Act
+        geocode_and_match_buildings_task(self.import_file_bsync.id)
+
+        # -- Assert
+        # we should end up with only one view b/c the bsync file was merged into the existing property
+        self.assertEqual(PropertyView.objects.count(), 1)
+        pv = PropertyView.objects.all().first()
+
+        # the bsync file's scenarios should end up on our property view
+        ps = pv.state
+        scenario = Scenario.objects.filter(property_state=ps)
+        self.assertEqual(scenario.count(), 3)
+
+        pms = PropertyMeasure.objects.filter(property_state=ps, recommended=False)
+        self.assertEqual(pms.count(), 1)
+        pms = PropertyMeasure.objects.filter(property_state=ps, recommended=True)
+        self.assertEqual(pms.count(), 70)
+
+        meters = Meter.objects.filter(scenario__in=scenario)
+        self.assertEqual(meters.count(), 6)
+
+    def test_match_buildingsync_works_when_there_are_existing_different_scenarios_and_meters(self):
+        """If a BuildingSync file is merged into an existing property with scenarios and meters
+        that differ from the ones in the file, we expect the final property to have only the new scenarios and meters"""
+        # -- Setup
+        # make address_line_1 the only matching criteria
+        (
+            Column.objects.filter(is_matching_criteria=True)
+            .exclude(column_name='address_line_1')
+            .update(is_matching_criteria=False)
+        )
+        # this should be the address in the BSync file
+        ADDRESS_LINE_1 = '123 MAIN BLVD'
+        base_details = {
+            'address_line_1': ADDRESS_LINE_1,
+            'import_file_id': self.import_file_2.id,
+            'data_state': DATA_STATE_MAPPING,
+            'no_default_data': False,
+        }
+        # Create a property which will match with the BuildingSync file
+        ps_orig = self.property_state_factory.get_property_state(**base_details)
+        # set import_file mapping done so that matching can occur.
+        self.import_file_2.mapping_done = True
+        self.import_file_2.save()
+        geocode_and_match_buildings_task(self.import_file_2.id)
+        # add scenario, measure, and meter
+        scenario = Scenario.objects.create(
+            name='My Original Scenario',
+            property_state_id=ps_orig.id,
+        )
+        PropertyMeasure.objects.create(
+            property_measure_name='My Original PropertyMeasure',
+            measure_id=Measure.objects.filter(organization=self.org).first().id,
+            property_state_id=ps_orig.id
+        )
+        meter = Meter.objects.create(
+            scenario_id=scenario.id,
+            source_id='My Original Meter',
+        )
+        MeterReading.objects.create(
+            start_time=datetime.now(tz=pytz.UTC),
+            end_time=datetime.now(tz=pytz.UTC),
+            reading=123,
+            meter_id=meter.id,
+            conversion_factor=1,
+        )
+
+        # Map the BuildingSync file which should match with the existing property
+        self.map_bsync_file()
+        ps_new = PropertyState.objects.filter(
+            address_line_1=ADDRESS_LINE_1,
+            import_file=self.import_file_bsync
+        )
+        self.assertEqual(len(ps_new), 1)
+
+        # -- Act
+        geocode_and_match_buildings_task(self.import_file_bsync.id)
+
+        # -- Assert
+        # we should end up with only one view b/c the bsync file was merged into the existing property
+        self.assertEqual(PropertyView.objects.count(), 1)
+        pv = PropertyView.objects.all().first()
+
+        num_bsync_scenarios = 3
+        ps = pv.state
+        scenario = Scenario.objects.filter(property_state=ps)
+        self.assertEqual(scenario.count(), num_bsync_scenarios)
+
+        num_bsync_measures = 71
+        pms = PropertyMeasure.objects.filter(property_state=ps)
+        self.assertEqual(pms.count(), num_bsync_measures)
+
+        num_bsync_meters = 6
+        meters = Meter.objects.filter(scenario__in=scenario)
+        self.assertEqual(meters.count(), num_bsync_meters)
+
+
+class TestMultiCycleImport(DataMappingBaseTestCase):
+
+    def setUp(self):
+        selfvars = self.set_up(ASSESSED_RAW)
+        self.user, self.org, self.import_file, self.import_record, self.cycle = selfvars
+
+        self.property_state_factory = FakePropertyStateFactory(organization=self.org)
+        self.taxlot_state_factory = FakeTaxLotStateFactory(organization=self.org)
+
+        # Create cycles
+        self.cycle2010_2014, _ = Cycle.objects.get_or_create(
+            name='Test Cycle 2010 to 2014',
+            organization=self.org,
+            start=date(2010, 1, 1),
+            end=date(2014, 12, 31),
+        )
+        self.cycle2018, _ = Cycle.objects.get_or_create(
+            name='Test Cycle 2018',
+            organization=self.org,
+            start=date(2018, 1, 1),
+            end=date(2018, 12, 31),
+        )
+        self.cycle2019, _ = Cycle.objects.get_or_create(
+            name='Test Cycle 2019',
+            organization=self.org,
+            start=date(2019, 1, 1),
+            end=date(2019, 12, 31),
+        )
+        self.cycle2020, _ = Cycle.objects.get_or_create(
+            name='Test Cycle 2020',
+            organization=self.org,
+            start=date(2020, 1, 1),
+            end=date(2020, 12, 31),
+        )
+        self.cycle2021, _ = Cycle.objects.get_or_create(
+            name='Test Cycle 2021',
+            organization=self.org,
+            start=date(2021, 1, 1),
+            end=date(2021, 12, 31),
+        )
+        self.cycle2022_april, _ = Cycle.objects.get_or_create(
+            name='Test Cycle 2022',
+            organization=self.org,
+            start=date(2022, 4, 1),
+            end=date(2023, 4, 1),
+        )
+        # Default cycle will be the first returned for an org (aka the most recent)
+        self.cycle_default, _ = Cycle.objects.get_or_create(
+            name='Default Cycle',
+            organization=self.org,
+            start=date(1999, 1, 1),
+            end=date(1999, 12, 31),
+        )
+
+        base_details = {'import_file_id': self.import_file.id}
+        # Properties for cycle 2010_2014
+        base_details['property_name'] = 'p2010_2014a'
+        base_details['year_ending'] = date(2012, 12, 12)
+        self.property_state_factory.get_property_state(**base_details)
+
+        base_details['property_name'] = 'p2010_2014b'
+        base_details['year_ending'] = date(2010, 10, 10)
+        self.property_state_factory.get_property_state(**base_details)
+
+        base_details['property_name'] = 'p2010_2014c'
+        base_details['year_ending'] = date(2014, 10, 15)
+        self.property_state_factory.get_property_state(**base_details)
+
+        # Properties for cycle 2018
+        base_details['property_name'] = 'p2018a'
+        base_details['year_ending'] = date(2018, 12, 31)
+        self.property_state_factory.get_property_state(**base_details)
+
+        base_details['property_name'] = 'p2018b'
+        base_details['year_ending'] = date(2018, 6, 15)
+        self.property_state_factory.get_property_state(**base_details)
+
+        # Properties for cycle 2019
+        base_details['property_name'] = 'p2019a'
+        base_details['year_ending'] = date(2019, 12, 31)
+        self.property_state_factory.get_property_state(**base_details)
+
+        base_details['property_name'] = 'p2019b'
+        base_details['year_ending'] = date(2019, 6, 15)
+        self.property_state_factory.get_property_state(**base_details)
+
+        # Properties for cycle 2020
+        base_details['property_name'] = 'p2020a'
+        base_details['year_ending'] = date(2020, 12, 31)
+        self.property_state_factory.get_property_state(**base_details)
+
+        base_details['property_name'] = 'p2020b'
+        base_details['year_ending'] = date(2020, 12, 30)
+        self.property_state_factory.get_property_state(**base_details)
+
+        # Properties for cycle 2021
+        base_details['property_name'] = 'p2021a'
+        base_details['year_ending'] = date(2021, 1, 1)
+        self.property_state_factory.get_property_state(**base_details)
+
+        base_details['property_name'] = 'p2021b'
+        base_details['year_ending'] = date(2021, 12, 31)
+        self.property_state_factory.get_property_state(**base_details)
+
+        # Properties for cycle 2022 april
+        base_details['property_name'] = 'p2022a'
+        base_details['year_ending'] = date(2022, 5, 1)
+        self.property_state_factory.get_property_state(**base_details)
+
+        base_details['property_name'] = 'p2022b'
+        base_details['year_ending'] = date(2023, 3, 1)
+        self.property_state_factory.get_property_state(**base_details)
+
+        # Properties with year_ending that do not match any cycles will be placed in default cycle
+        base_details['property_name'] = 'p_default_a'
+        base_details['year_ending'] = date(1990, 5, 25)
+        self.property_state_factory.get_property_state(**base_details)
+
+        base_details['property_name'] = 'p_default_b'
+        base_details['year_ending'] = date(2023, 4, 10)
+        self.property_state_factory.get_property_state(**base_details)
+
+        # Properties with missing year_ending will be placed in default cycle
+        base_details['property_name'] = 'p_default_c'
+        base_details.pop('year_ending')
+        self.property_state_factory.get_property_state(**base_details)
+
+        # Set multiple_cycle_upload to True to trigger MultiCycle import
+        self.import_file.cycle = self.cycle_default
+        self.import_file.multiple_cycle_upload = True
+        self.import_file.mapping_done = True
+        self.import_file.save()
+
+    def test_multi_cycle_import(self):
+        geocode_and_match_buildings_task(self.import_file.id)
+
+        def get_cycle(ps):
+            return ps.propertyview_set.first().cycle
+
+        p2010_2014a = PropertyState.objects.get(property_name='p2010_2014a')
+        p2010_2014b = PropertyState.objects.get(property_name='p2010_2014b')
+        p2010_2014c = PropertyState.objects.get(property_name='p2010_2014c')
+        p2018a = PropertyState.objects.get(property_name='p2018a')
+        p2018b = PropertyState.objects.get(property_name='p2018b')
+        p2019a = PropertyState.objects.get(property_name='p2019a')
+        p2019b = PropertyState.objects.get(property_name='p2019b')
+        p2020a = PropertyState.objects.get(property_name='p2020a')
+        p2020b = PropertyState.objects.get(property_name='p2020b')
+        p2021a = PropertyState.objects.get(property_name='p2021a')
+        p2021b = PropertyState.objects.get(property_name='p2021b')
+        p2022a = PropertyState.objects.get(property_name='p2022a')
+        p2022b = PropertyState.objects.get(property_name='p2022b')
+        p_default_a = PropertyState.objects.get(property_name='p_default_a')
+        p_default_b = PropertyState.objects.get(property_name='p_default_b')
+        p_default_c = PropertyState.objects.get(property_name='p_default_c')
+
+        self.assertEqual(get_cycle(p2010_2014a), self.cycle2010_2014)
+        self.assertEqual(get_cycle(p2010_2014b), self.cycle2010_2014)
+        self.assertEqual(get_cycle(p2010_2014c), self.cycle2010_2014)
+        self.assertEqual(get_cycle(p2018a), self.cycle2018)
+        self.assertEqual(get_cycle(p2018b), self.cycle2018)
+        self.assertEqual(get_cycle(p2019a), self.cycle2019)
+        self.assertEqual(get_cycle(p2019b), self.cycle2019)
+        self.assertEqual(get_cycle(p2020a), self.cycle2020)
+        self.assertEqual(get_cycle(p2020b), self.cycle2020)
+        self.assertEqual(get_cycle(p2021a), self.cycle2021)
+        self.assertEqual(get_cycle(p2021b), self.cycle2021)
+        self.assertEqual(get_cycle(p2022a), self.cycle2022_april)
+        self.assertEqual(get_cycle(p2022b), self.cycle2022_april)
+        self.assertEqual(get_cycle(p_default_a), self.cycle_default)
+        self.assertEqual(get_cycle(p_default_b), self.cycle_default)
+        self.assertEqual(get_cycle(p_default_c), self.cycle_default)

@@ -1,27 +1,34 @@
 # !/usr/bin/env python
 # encoding: utf-8
-
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 from django.db.models import Q
-
-from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import JSONParser
+from rest_framework.renderers import JSONRenderer
 
 from seed.data_importer.meters_parser import MetersParser
 from seed.data_importer.utils import (
     kbtu_thermal_conversion_factors,
-    usage_point_id,
+    usage_point_id
 )
 from seed.decorators import ajax_request_class
 from seed.lib.mcm import reader
-from seed.models import (
-    Meter,
-    ImportFile,
-    PropertyView,
-)
+from seed.models import ImportFile, Meter, PropertyView
+from seed.serializers.meters import MeterSerializer
 from seed.utils.meters import PropertyMeterReadingsExporter
+from seed.utils.viewsets import SEEDOrgCreateUpdateModelViewSet
 
 
-class MeterViewSet(viewsets.ViewSet):
+class MeterViewSetV2(SEEDOrgCreateUpdateModelViewSet):
+    serializer_class = MeterSerializer
+    renderer_classes = (JSONRenderer,)
+    pagination_class = None
+    model = Meter
+    parser_classes = (JSONParser,)
+    orgfilter = 'property__organization'
 
     @ajax_request_class
     @action(detail=False, methods=['POST'])
@@ -77,24 +84,18 @@ class MeterViewSet(viewsets.ViewSet):
         property_view = PropertyView.objects.get(pk=property_view_id)
         property_id = property_view.property.id
         scenario_ids = [s.id for s in property_view.state.scenarios.all()]
-        energy_types = dict(Meter.ENERGY_TYPES)
 
         res = []
         for meter in Meter.objects.filter(Q(property_id=property_id) | Q(scenario_id__in=scenario_ids)):
             if meter.source == meter.GREENBUTTON:
-                source = 'GB'
                 source_id = usage_point_id(meter.source_id)
-            elif meter.source == meter.BUILDINGSYNC:
-                source = 'BS'
-                source_id = meter.source_id
             else:
-                source = 'PM'
                 source_id = meter.source_id
 
             res.append({
                 'id': meter.id,
-                'type': energy_types[meter.type],
-                'source': source,
+                'type': meter.get_type_display(),
+                'source': meter.get_source_display(),
                 'source_id': source_id,
                 'scenario_id': meter.scenario.id if meter.scenario is not None else None,
                 'scenario_name': meter.scenario.name if meter.scenario is not None else None

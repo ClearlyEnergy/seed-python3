@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.inventory_detail', [])
   .controller('inventory_detail_controller', [
@@ -15,6 +15,7 @@ angular.module('BE.seed.controller.inventory_detail', [])
     '$location',
     '$window',
     '$q',
+    'uiGridConstants',
     'Notification',
     'urls',
     'spinner_utility',
@@ -24,7 +25,10 @@ angular.module('BE.seed.controller.inventory_detail', [])
     'pairing_service',
     'certification_service',
     'derived_columns_service',
+    'organization_service',
+    'dataset_service',
     'inventory_payload',
+    'views_payload',
     'analyses_payload',
     'users_payload',
     'columns',
@@ -33,6 +37,11 @@ angular.module('BE.seed.controller.inventory_detail', [])
     'current_profile',
     'labels_payload',
     'organization_payload',
+    'audit_template_service',
+    'cycle_service',
+    'simple_modal_service',
+    'property_measure_service',
+    'scenario_service',
     function (
       $http,
       $state,
@@ -45,6 +54,7 @@ angular.module('BE.seed.controller.inventory_detail', [])
       $location,
       $window,
       $q,
+      uiGridConstants,
       Notification,
       urls,
       spinner_utility,
@@ -54,7 +64,10 @@ angular.module('BE.seed.controller.inventory_detail', [])
       pairing_service,
       certification_service,
       derived_columns_service,
+      organization_service,
+      dataset_service,
       inventory_payload,
+      views_payload,
       analyses_payload,
       users_payload,
       columns,
@@ -62,12 +75,20 @@ angular.module('BE.seed.controller.inventory_detail', [])
       profiles,
       current_profile,
       labels_payload,
-      organization_payload
+      organization_payload,
+      audit_template_service,
+      cycle_service,
+      simple_modal_service,
+      property_measure_service,
+      scenario_service,
     ) {
       $scope.inventory_type = $stateParams.inventory_type;
       $scope.organization = organization_payload.organization;
       // WARNING: $scope.org is used by "child" controller - analysis_details_controller
-      $scope.org = {'id': organization_payload.organization.id};
+      $scope.org = {id: organization_payload.organization.id};
+      $scope.static_url = urls.static_url;
+      $scope.show_at_scenario_actions = true
+
 
       // Detail Column List Profile
       $scope.profiles = profiles;
@@ -78,16 +99,52 @@ angular.module('BE.seed.controller.inventory_detail', [])
         related: $scope.inventory_type === 'properties' ? inventory_payload.taxlots : inventory_payload.properties
       };
       $scope.cycle = inventory_payload.cycle;
+      $scope.cycles = [$scope.cycle]
+
+      views_payload = $scope.inventory_type === 'properties' ? views_payload.property_views: views_payload.taxlot_views
+      $scope.views = views_payload.map(
+        ({id, cycle}) => {
+          return {
+            view_id: id,
+            cycle_name: cycle.name,
+          }
+        }
+      ).sort((a,b) => a.cycle_name.localeCompare(b.cycle_name))
+      $scope.selected_view = $scope.views.find(({view_id}) => view_id == $scope.inventory.view_id)
+
+      $scope.changeView = function() {
+        window.location.href = '/app/#/' + $scope.inventory_type + '/' + $scope.selected_view.view_id;
+      }
+
       $scope.labels = _.filter(labels_payload, function (label) {
         return !_.isEmpty(label.is_applied);
       });
+      $scope.audit_template_building_id = inventory_payload.state.audit_template_building_id;
 
       /** See service for structure of returned payload */
       $scope.historical_items = inventory_payload.history;
       $scope.item_state = inventory_payload.state;
+      $scope.inventory_docs = $scope.inventory_type == 'properties' ? inventory_payload.property.inventory_documents : null;
+
+      $scope.order_historical_items_with_scenarios = () => {
+        $scope.historical_items_with_scenarios = $scope.historical_items ? $scope.historical_items.filter(item => !_.isEmpty(item.state.scenarios)) : []
+        $scope.historical_items_with_scenarios.sort((a,b) => {
+          let dateA = a.state.extra_data.audit_date ? new Date(a.state.extra_data.audit_date) : 1
+          let dateB = b.state.extra_data.audit_date ? new Date(b.state.extra_data.audit_date) : 1
+          return dateB - dateA
+        })
+      }
+      $scope.order_historical_items_with_scenarios()
+      $scope.format_epoch = (epoch) => moment(epoch).format('YYYY-MM-DD');
 
       // stores derived column values -- updated later once we fetch the data
       $scope.item_derived_values = {};
+
+      $scope.inventory_display_name = organization_service.get_inventory_display_value(
+        $scope.organization,
+        $scope.inventory_type === 'properties' ? 'property' : 'taxlot',
+        $scope.item_state
+      );
 
       // item_parent is the property or the tax lot instead of the PropertyState / TaxLotState
       if ($scope.inventory_type === 'properties') {
@@ -96,18 +153,19 @@ angular.module('BE.seed.controller.inventory_detail', [])
         $scope.item_parent = inventory_payload.taxlot;
       }
 
-      // Detail Column List Profile
-      $scope.profiles = profiles;
-      $scope.currentProfile = current_profile;
-
-      $scope.analysis = analyses_payload.analyses.sort(function(a, b) {
-        let key_a = new Date(a.end_time);
-        let key_b = new Date(b.end_time);
-        if (key_a > key_b) return -1;
-        if (key_a < key_b) return 1;
-        return 0;
-      })[0];
+      if (analyses_payload.analyses) {
+        $scope.analysis = analyses_payload.analyses.sort(function (a, b) {
+          let key_a = new Date(a.end_time);
+          let key_b = new Date(b.end_time);
+          if (key_a > key_b) return -1;
+          if (key_a < key_b) return 1;
+          return 0;
+        })[0];
+      }
       $scope.users = users_payload.users;
+
+      // handle popovers cleared on scrolling
+      [document.getElementsByClassName('ui-view-container')[0], document.getElementById('pin')].forEach(el => {if (el) el.onscroll = document.body.click;})
 
       // Flag columns whose values have changed between imports and edits.
       var historical_states = _.map($scope.historical_items, 'state');
@@ -137,16 +195,6 @@ angular.module('BE.seed.controller.inventory_detail', [])
           if (foundCol) $scope.columns.push(historical_changes_check(foundCol));
         });
 
-        // add derived columns
-        _.forEach($scope.currentProfile.derived_columns, function (col) {
-          const foundCol = _.find(derived_columns_payload.derived_columns, {id: col.id})
-          if (foundCol) {
-            foundCol.displayName = foundCol.name
-            foundCol.column_name = foundCol.name
-            foundCol.is_derived_column = true
-            $scope.columns.push(foundCol)
-          }
-        })
       } else {
         // No profiles exist
         $scope.columns = _.reject(columns, 'is_extra_data');
@@ -173,8 +221,8 @@ angular.module('BE.seed.controller.inventory_detail', [])
             data: function () {
               return {
                 columns: profile_formatted_columns(),
-                derived_columns: [],
-              }
+                derived_columns: []
+              };
             },
             profile_location: _.constant('Detail View Profile'),
             inventory_type: function () {
@@ -238,14 +286,42 @@ angular.module('BE.seed.controller.inventory_detail', [])
         });
       }
 
+      $scope.open_doc_upload_modal = function () {
+        $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/document_upload_modal.html',
+          controller: 'document_upload_modal_controller',
+          resolve: {
+            organization_id: function () {
+              return $scope.organization.id;
+            },
+            view_id: function () {
+              return $scope.inventory.view_id;
+            }
+          }
+        });
+      };
+
+      $scope.confirm_delete = function (file) {
+        var modalInstance = $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/delete_document_modal.html',
+          controller: 'delete_document_modal_controller',
+          resolve: {
+            view_id: function () {
+              return $scope.inventory.view_id;
+            },
+            file: file
+          }
+        });
+
+        modalInstance.result.finally(function () {
+          init();
+        });
+      };
+
+
       $scope.isDisabledField = function (name) {
         return _.includes([
-          'analysis_end_time',
-          'analysis_start_time',
-          'analysis_state',
-          'analysis_state_message',
           'geocoding_confidence',
-          'campus',
           'created',
           'updated'
         ], name);
@@ -332,7 +408,7 @@ angular.module('BE.seed.controller.inventory_detail', [])
        * is_valid_key: checks to see if the key or attribute should be excluded
        *   from being copied from parent to master building
        *
-       *    TODO Update these for v2...I've removed keys that were obviously old (e.g. canonical)
+       *    TODO Update these for v2...I've removed keys that were obviously old (e.g., canonical)
        */
       $scope.is_valid_data_column_key = function (key) {
         var known_invalid_keys = [
@@ -508,19 +584,39 @@ angular.module('BE.seed.controller.inventory_detail', [])
           // Do nothing
         });
       };
+      $scope.open_ubid_admin_modal = function () {
+        $uibModal.open({
+          backdrop: 'static',
+          templateUrl: urls.static_url + 'seed/partials/ubid_admin_modal.html',
+          controller: 'ubid_admin_modal_controller',
+          resolve: {
+            property_view_id: function () {
+              return $scope.inventory_type === 'properties' ? $scope.inventory.view_id : null;
+            },
+            taxlot_view_id: function () {
+              return $scope.inventory_type === 'taxlots' ? $scope.inventory.view_id : null;
+            },
+            inventory_payload: ['$state', '$stateParams', 'inventory_service', function ($state, $stateParams, inventory_service) {
+              return $scope.inventory_type === 'properties' ? inventory_service.get_property($scope.inventory.view_id) : inventory_service.get_taxlot($scope.inventory.view_id);
+            }],
+          }
+        });
+      };
 
       $scope.open_analyses_modal = function () {
-        var modalInstance = $uibModal.open({
+        const modalInstance = $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/inventory_detail_analyses_modal.html',
           controller: 'inventory_detail_analyses_modal_controller',
           resolve: {
             inventory_ids: function () {
               return [$scope.inventory.view_id];
-            }
-            // meters: ['$stateParams', 'user_service', 'meter_service', function ($stateParams, user_service, meter_service) {
-            // var organization_id = user_service.get_organization().id;
-            // return meter_service.get_meters($stateParams.view_id, organization_id);
-          // }],
+            },
+            current_cycle: _.constant($scope.cycle),
+            cycles: function () {
+              return cycle_service.get_cycles().then(function (result) {
+                return result.cycles;
+              });
+            },
           }
         });
       };
@@ -547,6 +643,21 @@ angular.module('BE.seed.controller.inventory_detail', [])
             inventory_type: $scope.inventory_type,
             view_id: result.view_id
           });
+        });
+      };
+
+      $scope.open_data_upload_audit_template_modal = function () {
+        $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/data_upload_audit_template_modal.html',
+          controller: 'data_upload_audit_template_modal_controller',
+          resolve: {
+            audit_template_building_id: () => $scope.audit_template_building_id,
+            organization: () => $scope.organization,
+            cycle_id: () => $scope.cycle.id,
+            upload_from_file: () => $scope.uploaderfunc,
+            view_id: () => $stateParams.view_id
+          },
+          backdrop: 'static',
         });
       };
 
@@ -624,6 +735,15 @@ angular.module('BE.seed.controller.inventory_detail', [])
         $state.go('inventory_detail', {
           inventory_type: $scope.inventory_type,
           view_id: view_id
+        });
+      };
+
+      $scope.update_salesforce = function () {
+        inventory_service.update_salesforce([$scope.inventory.view_id]).then(function (result) {
+          $state.reload();
+          Notification.success({message: 'Salesforce Update Successful!', delay: 5000});
+        }).catch( function (result) {
+            Notification.error({message: 'Error updating Salesforce: ' + result.data.message, delay: 15000, closeOnClick: true});
         });
       };
 
@@ -736,45 +856,85 @@ angular.module('BE.seed.controller.inventory_detail', [])
       $scope.displayValue = function (dataType, value) {
         if (dataType === 'datetime') {
           return $filter('date')(value, 'yyyy-MM-dd h:mm a');
-        } else if (dataType === 'eui' || dataType === 'area') {
-          return $filter('number')(value, $scope.organization.display_significant_figures);
+        } else if (['area', 'eui', 'float', 'number'].includes(dataType)) {
+          return $filter('number')(value, $scope.organization.display_decimal_places);
         }
         return value;
       };
 
-      $scope.inventory_display_name = function (property_type) {
-        let error = '';
-        let field = property_type == 'property' ? $scope.organization.property_display_field : $scope.organization.taxlot_display_field;
-        if (!(field in $scope.item_state)) {
-          error = field + ' does not exist';
-          field = 'address_line_1';
-        }
-        if (!$scope.item_state[field]) {
-          error += (error == '' ? '' : ' and default ') + field + ' is blank';
-        }
-        $scope.inventory_name = $scope.item_state[field] ? $scope.item_state[field] : '(' + error + ') <i class="glyphicon glyphicon-question-sign" title="This can be changed from the organization settings page."></i>';
-      };
-
       // evaluate all derived columns and store the results
       var evaluate_derived_columns = function () {
-        const visible_derived_columns = $scope.columns.filter(col => col.is_derived_column)
-        const all_evaluation_results = visible_derived_columns.map(col => {
+        const visible_columns_with_derived_columns = $scope.columns.filter(col => col.derived_column);
+        const derived_column_ids = visible_columns_with_derived_columns.map(col => col.derived_column);
+        const attatched_derived_columns = derived_columns_payload.derived_columns.filter(col => derived_column_ids.includes(col.id))
+        column_name_lookup = {}
+        visible_columns_with_derived_columns.forEach(col => (column_name_lookup[col.column_name] = col.name))
+
+        const all_evaluation_results = attatched_derived_columns.map(col => {
           return derived_columns_service.evaluate($scope.organization.id, col.id, $scope.cycle.id, [$scope.item_parent.id])
             .then(res => {
               return {
                 derived_column_id: col.id,
-                value: res.results[0].value
-              }
-            })
-        })
+                value: _.round(res.results[0].value, $scope.organization.display_decimal_places)
+              };
+            });
+        });
 
         $q.all(all_evaluation_results).then(results => {
           results.forEach(result => {
-            $scope.item_derived_values[result.derived_column_id] = result.value
-          })
-        })
+            col_id = $scope.columns.find(col => col.derived_column == result.derived_column_id).id
+            $scope.item_derived_values[col_id] = result.value;
+          });
+        });
+      };
+
+      $scope.delete_scenario = (scenario_id, scenario_name) => {
+        property_view_id = $stateParams.view_id
+
+        const modalOptions = {
+          type: 'default',
+          okButtonText: 'Yes',
+          cancelButtonText: 'Cancel',
+          headerText: 'Are you sure?',
+          bodyText: `You're about to permanently delete scenario "${scenario_name}". Would you like to continue?`
+        };
+        //user confirmed, delete it
+        simple_modal_service.showModal(modalOptions).then(() => {
+          scenario_service.delete_scenario($scope.org.id, property_view_id, scenario_id)
+            .then(() => {
+              Notification.success(`Deleted "${scenario_name}"`);
+              // location.reload();
+              // Prevent page from reloading, retain user's scoll location
+              let promise;
+              if ($stateParams.inventory_type === 'properties') promise = inventory_service.get_property(property_view_id);
+              else if ($stateParams.inventory_type === 'taxlots') promise = inventory_service.get_taxlot(property_view_id);
+              promise.then(data => {
+                $scope.historical_items = data.history;
+                $scope.historical_items_with_scenarios = $scope.historical_items ? $scope.historical_items.filter(item => !_.isEmpty(item.state.scenarios)) : [];
+                $scope.order_historical_items_with_scenarios();
+              })
+            })
+            .catch(err => {
+              $log.error(err);
+              Notification.error(`Error attempting to delete "${scenario_name}". Please refresh the page and try again.`);
+            });
+        });
+      };
+
+      $scope.getStatusOfMeasures = (scenario) => {
+        const statusCount = scenario.measures.reduce((acc, measure) => {
+          let status = measure.implementation_status
+          if (!acc[status]) {
+            acc[status] = 0
+          }
+          acc[status]++
+          return acc
+        }, {})
+
+        return statusCount
       }
 
+<<<<<<< HEAD
       /**
        * open up modal to confirm delete of green assessment, refresh page
        */
@@ -877,20 +1037,126 @@ angular.module('BE.seed.controller.inventory_detail', [])
           $scope.format_date_values($scope.item_state, inventory_service.property_state_date_columns);
         } else if ($scope.inventory_type === 'taxlots') {
           $scope.format_date_values($scope.item_state, inventory_service.taxlot_state_date_columns);
+=======
+      const setMeasureGridOptions = () => {
+        if (!$scope.historical_items) {
+          return
+>>>>>>> seed-merge
         }
 
-        evaluate_derived_columns();
-      };
+        $scope.measureGridOptionsByScenarioId = {}
+        $scope.gridApiByScenarioId = {}
 
-      init();
+        const at_scenarios = $scope.historical_items.filter(item => !_.isEmpty(item.state.scenarios)).map(item => item.state.scenarios)
+        const scenarios = [].concat(...at_scenarios)
+        scenarios.forEach(scenario => {
+          const scenario_id = scenario.id
+          const measureGridOptions = {
+            data: scenario.measures.map(measure => {
+              return {
+                "category": measure.category,
+                "name": measure.display_name,
+                "recommended": measure.recommended,
+                "status": measure.implementation_status,
+                "category_affected": measure.category_affected,
+                "cost_installation": measure.cost_installation,
+                "cost_material": measure.cost_material,
+                "cost_residual_value": measure.cost_residual_value,
+                "cost_total_first": measure.cost_total_first,
+                "cost_capital_replacement": measure.cost_capital_replacement,
+                "description": measure.description,
+                "useful_life": measure.useful_life,
+                "id": measure.id,
+                "scenario_id": scenario_id
+              }
+            }),
+            columnDefs: [
+              {field: "category"},
+              {field: "name"},
+              {field: "recommended"},
+              {field: "status"},
+              {field: "category_affected"},
+              {field: "cost_installation"},
+              {field: "cost_material"},
+              {field: "cost_residual_value"},
+              {field: "cost_total_first"},
+              {field: "cost_capital_replacement"},
+              {field: "description"},
+              {field: "useful_life"},
+              {field: "id", visible: false},
+              {field: "scenario_id", visible: false}
 
-      $scope.toggle_freeze = function () {
-        var table_div = document.getElementById('pin');
-        if (table_div.className === 'section_content_container table-xscroll-unfrozen') {
-          table_div.className = 'section_content_container table-xscroll-frozen';
-        } else {
-          table_div.className = 'section_content_container table-xscroll-unfrozen';
+            ],
+            enableColumnMenus: false,
+            enableHorizontalScrollbar: uiGridConstants.scrollbars.WHEN_NEEDED,
+            enableVerticalScrollbar: scenario.measures.length <= 10 ? uiGridConstants.scrollbars.NEVER : uiGridConstants.scrollbars.WHEN_NEEDED,
+            minRowsToShow: Math.min(scenario.measures.length, 10),
+            rowHeight:40,
+            onRegisterApi: function (gridApi) {
+              $scope.gridApiByScenarioId[scenario.id] = gridApi;
+            }
+          }
+          $scope.measureGridOptionsByScenarioId[scenario.id] = measureGridOptions;
+        })
+      }
+      $scope.resizeGridByScenarioId = (scenarioId) => {
+        gridApi = $scope.gridApiByScenarioId[scenarioId]
+        setTimeout(gridApi.core.handleWindowResize, 50);
+      }
+
+      $scope.formatMeasureStatuses = (scenario) => {
+        statuses = scenario.measures.reduce((acc, measure) => {
+          const status = measure.implementation_status
+          if (!acc[status]){
+            acc[status] = 0
+          }
+          acc[status] ++
+          return acc
+        }, {})
+        return statuses
+      }
+
+      $scope.accordionsCollapsed = true
+      $scope.collapseAccordions = (collapseAll) => {
+        $scope.accordionsCollapsed = collapseAll
+        const action = collapseAll ? 'hide' : 'show'
+        $('.event-collapse').collapse(action)
+        $('.scenario-collapse').collapse(action)
+
+        // Without resizing ui-grids will appear empty
+        if (action == 'show') {
+          const scenarios = $scope.historical_items_with_scenarios.map(item => item.state.scenarios).flat()
+          scenarios.forEach(scenario => $scope.resizeGridByScenarioId(scenario.id))
         }
-      };
+      }
 
-    }]);
+        /**
+         *   init: sets default state of inventory detail page,
+         *   sets the field arrays for each section, performs
+         *   some date string manipulation for better display rendering,
+         *   and gets all the extra_data fields
+         *
+         */
+        var init = function () {
+          if ($scope.inventory_type === 'properties') {
+            $scope.format_date_values($scope.item_state, inventory_service.property_state_date_columns);
+          } else if ($scope.inventory_type === 'taxlots') {
+            $scope.format_date_values($scope.item_state, inventory_service.taxlot_state_date_columns);
+          }
+
+          evaluate_derived_columns();
+          setMeasureGridOptions()
+        };
+
+        init();
+
+        $scope.toggle_freeze = function () {
+          var table_div = document.getElementById('pin');
+          if (table_div.className === 'section_content_container table-xscroll-unfrozen') {
+            table_div.className = 'section_content_container table-xscroll-frozen';
+          } else {
+            table_div.className = 'section_content_container table-xscroll-unfrozen';
+          }
+        };
+
+  }]);

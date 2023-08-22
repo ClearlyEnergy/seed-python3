@@ -1,24 +1,22 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import base64
-import datetime
 import json
 import os
+import pathlib
 import time
+from datetime import date
 from unittest import skip
 
-from django.urls import reverse_lazy, reverse
 from django.test import TestCase
-from django.utils import timezone
+from django.urls import reverse, reverse_lazy
 
 from seed.landing.models import SEEDUser as User
-from seed.models import (
-    Cycle,
-)
+from seed.models import Cycle
 from seed.utils.api import get_api_endpoints
 from seed.utils.organizations import create_organization
 
@@ -65,8 +63,8 @@ class TestApi(TestCase):
         self.cycle, _ = Cycle.objects.get_or_create(
             name='Test Hack Cycle 2015',
             organization=self.org,
-            start=datetime.datetime(2015, 1, 1, tzinfo=timezone.get_current_timezone()),
-            end=datetime.datetime(2015, 12, 31, tzinfo=timezone.get_current_timezone()),
+            start=date(2015, 1, 1),
+            end=date(2015, 12, 31),
         )
         auth_string = base64.urlsafe_b64encode(bytes(
             '{}:{}'.format(self.user.username, self.user.api_key), 'utf-8'
@@ -147,8 +145,11 @@ class TestApi(TestCase):
         self.assertEqual(r['organizations'][0]['cycles'], [
             {
                 'name': str(date.today().year - 1) + ' Calendar Year',
+<<<<<<< HEAD
                 'num_certifications': 0,
                 'num_measures': 0,
+=======
+>>>>>>> seed-merge
                 'num_properties': 0,
                 'num_taxlots': 0,
                 'cycle_id': self.default_cycle.pk,
@@ -354,7 +355,7 @@ class TestApi(TestCase):
         fsysparams = {
             'import_record': data_set_id,
             'source_type': 'Assessed Raw',
-            'file': open(raw_building_file, 'rb')
+            'file': pathlib.Path(raw_building_file).read_bytes()
         }
 
         # upload data and check response

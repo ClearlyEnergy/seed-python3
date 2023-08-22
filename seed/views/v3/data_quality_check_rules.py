@@ -1,21 +1,14 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import logging
 
 from django.utils.decorators import method_decorator
-
-from drf_yasg.utils import swagger_auto_schema, no_body
-
-from rest_framework import viewsets
+from drf_yasg.utils import no_body, swagger_auto_schema
 from rest_framework.decorators import action
-from rest_framework.mixins import (
-    ListModelMixin,
-    DestroyModelMixin,
-    CreateModelMixin,
-)
 
 from seed.decorators import ajax_request_class
 from seed.lib.superperms.orgs.decorators import has_perm_class
@@ -24,7 +17,7 @@ from seed.models.data_quality import DataQualityCheck, Rule
 from seed.serializers.rules import RuleSerializer
 from seed.utils.api import api_endpoint_class
 from seed.utils.api_schema import AutoSchemaHelper
-from seed.utils.viewsets import UpdateWithoutPatchModelMixin
+from seed.utils.viewsets import ModelViewSetWithoutPatch
 
 _log = logging.getLogger(__name__)
 
@@ -43,6 +36,10 @@ nested_org_id_path_field = AutoSchemaHelper.base_field(
     decorator=swagger_auto_schema(manual_parameters=[nested_org_id_path_field])
 )
 @method_decorator(
+    name='retrieve',
+    decorator=swagger_auto_schema(manual_parameters=[nested_org_id_path_field])
+)
+@method_decorator(
     name='update',
     decorator=swagger_auto_schema(manual_parameters=[nested_org_id_path_field])
 )
@@ -54,17 +51,17 @@ nested_org_id_path_field = AutoSchemaHelper.base_field(
     name='create',
     decorator=swagger_auto_schema(manual_parameters=[nested_org_id_path_field])
 )
-class DataQualityCheckRuleViewSet(viewsets.GenericViewSet, ListModelMixin, UpdateWithoutPatchModelMixin, DestroyModelMixin, CreateModelMixin):
+class DataQualityCheckRuleViewSet(ModelViewSetWithoutPatch):
     serializer_class = RuleSerializer
     model = Rule
     pagination_class = None
     permission_classes = (SEEDOrgPermissions,)
 
-    # allow nested_organization_id to be used for authorization (ie in has_perm_class)
+    # allow nested_organization_id to be used for authorization (i.e., in has_perm_class)
     authz_org_id_kwarg = 'nested_organization_id'
 
     def get_queryset(self):
-        # Handle the anonymous case (e.g. Swagger page load)
+        # Handle the anonymous case (e.g., Swagger page load)
         if not self.kwargs:
             return Rule.objects.none()
 
@@ -87,7 +84,7 @@ class DataQualityCheckRuleViewSet(viewsets.GenericViewSet, ListModelMixin, Updat
     @action(detail=False, methods=['PUT'])
     def reset(self, request, nested_organization_id=None):
         """
-        Resets an organization's data data_quality rules
+        Resets an organization's data_quality rules
         """
         # TODO: Refactor to get all the rules for a DataQualityCheck object directly.
         # At that point, nested_organization_id should be changed to data_quality_check_id

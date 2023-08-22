@@ -1,24 +1,20 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import logging
+from random import randint
 
 from celery import shared_task
-
-from django.contrib.postgres.aggregates.general import ArrayAgg
 from django.contrib.auth.decorators import permission_required
+from django.contrib.postgres.aggregates.general import ArrayAgg
 from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
-
-from random import randint
-
-from rest_framework import status
-from rest_framework import viewsets, serializers
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 
 from seed import tasks
@@ -27,9 +23,10 @@ from seed.landing.models import SEEDUser as User
 from seed.lib.progress_data.progress_data import ProgressData
 from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.lib.superperms.orgs.models import (
-    ROLE_OWNER,
     ROLE_MEMBER,
+    ROLE_OWNER,
     ROLE_VIEWER,
+<<<<<<< HEAD
     #    Organization,
     OrganizationUser,
 )
@@ -43,14 +40,23 @@ from seed.models.certification import GreenAssessmentProperty, GreenAssessment, 
 from seed.models import Cycle, PropertyView, TaxLotView, Column, Measure, PropertyMeasure
 # Helix end add
 # from seed.models import Cycle, PropertyView, TaxLotView, Column
+=======
+    Organization,
+    OrganizationUser
+)
+from seed.models import Column, Cycle, PropertyView, TaxLotView
+>>>>>>> seed-merge
 from seed.tasks import invite_to_organization
 from seed.utils.api import api_endpoint_class
-from seed.utils.match import (
-    whole_org_match_merge_link,
-    matching_criteria_column_names,
-)
-from seed.utils.organizations import create_organization, create_suborganization
 from seed.utils.cache import get_cache_raw, set_cache_raw
+from seed.utils.match import (
+    matching_criteria_column_names,
+    whole_org_match_merge_link
+)
+from seed.utils.organizations import (
+    create_organization,
+    create_suborganization
+)
 
 
 def _dict_org(request, organizations):
@@ -108,7 +114,7 @@ def _dict_org(request, organizations):
             'parent_id': o.parent_id,
             'display_units_eui': o.display_units_eui,
             'display_units_area': o.display_units_area,
-            'display_significant_figures': o.display_significant_figures,
+            'display_decimal_places': o.display_decimal_places,
             'cycles': cycles,
             'created': o.created.strftime('%Y-%m-%d') if o.created else '',
             'mapquest_api_key': o.mapquest_api_key or '',
@@ -619,7 +625,7 @@ class OrganizationViewSet(viewsets.ViewSet):
         org = Organization.objects.get(pk=pk)
         user = User.objects.get(pk=body['user_id'])
 
-        _orguser, status = org.add_member(user)
+        created = org.add_member(user)
 
         if settings.FORCE_SSL_PROTOCOL:
             protocol = 'https'
@@ -627,7 +633,7 @@ class OrganizationViewSet(viewsets.ViewSet):
             protocol = request.scheme
 
         # Send an email if a new user has been added to the organization
-        if status:
+        if created:
             try:
                 domain = request.get_host()
             except Exception:
@@ -778,12 +784,12 @@ class OrganizationViewSet(viewsets.ViewSet):
         else:
             warn_bad_pint_spec('area', desired_display_units_area)
 
-        desired_display_significant_figures = posted_org.get('display_significant_figures')
-        if isinstance(desired_display_significant_figures, int) and desired_display_significant_figures >= 0:  # noqa
-            org.display_significant_figures = desired_display_significant_figures
-        elif desired_display_significant_figures is not None:
+        desired_display_decimal_places = posted_org.get('display_decimal_places')
+        if isinstance(desired_display_decimal_places, int) and desired_display_decimal_places >= 0:
+            org.display_decimal_places = desired_display_decimal_places
+        elif desired_display_decimal_places is not None:
             _log.warn("got bad sig figs {0} for org {1}".format(
-                desired_display_significant_figures, org.name))
+                desired_display_decimal_places, org.name))
 
         desired_display_meter_units = posted_org.get('display_meter_units')
         if desired_display_meter_units:
