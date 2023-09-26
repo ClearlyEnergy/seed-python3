@@ -11,6 +11,9 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgid "\"Your building's latitude and longitude is {{latitude}}, {{longitude}}!\""
+msgstr "\"Your building's latitude and longitude is {{latitude}}, {{longitude}}!\""
+
 msgid "# Of Files"
 msgstr "# Of Files"
 
@@ -22,6 +25,9 @@ msgstr "# of Records"
 
 msgid "(field must contain this text)"
 msgstr "(field must contain this text)"
+
+msgid "(from table below)"
+msgstr "(from table below)"
 
 msgid "(no address 1)"
 msgstr "(no address 1)"
@@ -38,11 +44,20 @@ msgstr "(no minimum)"
 msgid "A 'Remove' button is shown for tags that are already applied to one or more properties in the current selection"
 msgstr "A 'Remove' button is shown for tags that are already applied to one or more properties in the current selection"
 
+msgid "A Custom Report allows you to look at aggregated data across your inventories and cycles.  This is useful to see how specific metrics change over time. doesn't exist"
+msgstr "A Custom Report allows you to look at aggregated data across your inventories and cycles.  This is useful to see how specific metrics change over time. doesn't exist"
+
+msgid "A Custom Report allows you to look at aggregated data across your inventories and cycles. This is useful to see how specific metrics change over time."
+msgstr "A Custom Report allows you to look at aggregated data across your inventories and cycles. This is useful to see how specific metrics change over time."
+
 msgid "A list of your imported headers."
 msgstr "A list of your imported headers."
 
 msgid "A preview of your concatenated data will appear in the box below."
 msgstr "A preview of your concatenated data will appear in the box below."
+
+msgid "ACCESS_LEVEL_FILENAME_UPLOADED"
+msgstr "Access Level Instances File has been uploaded"
 
 msgid "ADD_FILES_TO"
 msgstr "Add files to {dataset_name}."
@@ -53,6 +68,15 @@ msgstr "Add or remove labels from {num, plural, one{1 selected property} other{#
 msgid "ADD_REMOVE_LABELS_FROM_TAXLOTS"
 msgstr "Add or remove labels from {num, plural, one{1 selected tax lot} other{# selected tax lots}}"
 
+msgid "AH_FILE_TYPES_SUPPORTED"
+msgstr "File types supported: .csv, .xls, and .xlsx."
+
+msgid "ALSO_DELETE_ANALYSES"
+msgstr "Also delete {num,plural, one{1 analysis} other{# analyses}}."
+
+msgid "ALSO_DELETE_BATCH_ANALYSES"
+msgstr "Also delete {num,plural, one{1 associated batch analysis} other{# associated batch analyses}}."
+
 msgid "AND"
 msgstr "AND"
 
@@ -61,6 +85,16 @@ msgstr "API Documentation"
 
 msgid "API Key"
 msgstr "API Key"
+
+msgid "AT_EMAIL_TEXT"
+msgstr "Use the email associated with your account from <a href=\"{link}/\" target=\"_blank\" rel=\"noopener noreferrer\">Building Energy Score website</a>."
+
+msgid "AT_PASS_TEXT"
+msgstr "Use the password associated with your account from <a href=\"{link}/\" target=\"_blank\" rel=\"noopener noreferrer\">Building Energy Score website</a>."
+
+#. Helper text for the Audit Template token in organization settings.
+msgid "AT_TOKEN_TEXT"
+msgstr "Please refer to the <a href=\"{link}/reports/api/\" target=\"_blank\" rel=\"noopener noreferrer\">Audit Template documentation</a> to learn how to get an API key. Note, do not prefix the token with \"Token \", only include the token itself."
 
 msgid "About"
 msgstr "About"
@@ -86,6 +120,15 @@ msgstr "Actions"
 msgid "Active"
 msgstr "Active"
 
+msgid "Actual > Target"
+msgstr "Actual > Target"
+
+msgid "Actual Column"
+msgstr "Actual Column"
+
+msgid "Actual Field"
+msgstr "Actual Field"
+
 msgid "Add"
 msgstr "Add"
 
@@ -97,6 +140,9 @@ msgstr "Add Data Files"
 
 msgid "Add Label"
 msgstr "Add Label"
+
+msgid "Add Mapping"
+msgstr "Add Mapping"
 
 msgid "Add Shared Properties"
 msgstr "Add Shared Properties"
@@ -113,14 +159,14 @@ msgstr "Add another file"
 msgid "Add compliance information"
 msgstr "Add compliance information"
 
-msgid "Add compliance information."
-msgstr "Add compliance information."
-
 msgid "Add files to"
 msgstr "Add files to"
 
 msgid "Add more data files"
 msgstr "Add more data files"
+
+msgid "Add program information."
+msgstr "Add program information."
 
 msgid "Add user"
 msgstr "Add user"
@@ -136,6 +182,9 @@ msgstr "Add/Remove Labels"
 
 msgid "Add/Remove a user to an organization"
 msgstr "Add/Remove a user to an organization"
+
+msgid "Add/Update UBID"
+msgstr "Add/Update UBID"
 
 msgid "Adding buildings to project"
 msgstr "Adding buildings to project"
@@ -158,11 +207,17 @@ msgstr "Address Line 2 (Tax Lot)"
 msgid "Admin"
 msgstr "Admin"
 
+msgid "An Audit Template organization token, user email and password are required"
+msgstr "An Audit Template organization token, user email and password are required"
+
 msgid "An error occurred while processing the file. Please ensure that your file meets the required specifications."
 msgstr "An error occurred while processing the file. Please ensure that your file meets the required specifications."
 
 msgid "Analyses"
-msgstr "Analyses"
+msgstr "Analyses (beta)"
+
+msgid "Analysis"
+msgstr "Analysis (beta)"
 
 msgid "Analysis Name"
 msgstr "Analysis Name"
@@ -191,6 +246,9 @@ msgstr "Are you sure you want to delete the data file"
 msgid "Are you sure you want to delete the data set"
 msgstr "Are you sure you want to delete the data set"
 
+msgid "Are you sure you want to delete the filter group"
+msgstr "Are you sure you want to delete the filter group"
+
 msgid "Are you sure you want to unmerge these properties and then merge with the selected properties?"
 msgstr "Are you sure you want to unmerge these properties and then merge with the selected properties?"
 
@@ -212,6 +270,18 @@ msgstr "Associated Tax Lot ID"
 msgid "Associated Tax Lot IDs"
 msgstr "Associated Tax Lot IDs"
 
+msgid "Audit Template Building ID"
+msgstr "Audit Template Building ID"
+
+msgid "Audit Template Email"
+msgstr "Audit Template Email"
+
+msgid "Audit Template Organization Token"
+msgstr "Audit Template Organization Token"
+
+msgid "Audit Template Password"
+msgstr "Audit Template Password"
+
 #: seed/models/models.py:136
 msgid "Auditing"
 msgstr "Auditing"
@@ -221,6 +291,9 @@ msgstr "Auto Matching"
 
 msgid "BEFORE_GEOCODING"
 msgstr "Before geocoding"
+
+msgid "BETTER_TOKEN_TEXT"
+msgstr "Please refer to the <a href=\"{link}/docs/api/\" target=\"_blank\" rel=\"noopener noreferrer\">BETTER documentation</a> to learn how to get an API key. Note, do not prefix the token with \"Token \", only include the token itself. BETTER host is configured to be"
 
 msgid "BUILDING ENERGY DATA EXCHANGE SPECIFICATION (BEDES)"
 msgstr "BUILDING ENERGY DATA EXCHANGE SPECIFICATION (BEDES)"
@@ -267,11 +340,17 @@ msgstr "Building Filters"
 msgid "Buildings"
 msgstr "Buildings"
 
+msgid "By clicking the Log In button you accept the NREL Data Terms."
+msgstr "By clicking the Log In button you accept the NREL Data Terms."
+
 msgid "COLUMN_NAME_DUPLICATE_ERROR"
 msgstr "Error: New column name cannot match previous name."
 
 msgid "COLUMN_NAME_EXISTS_WARNING"
 msgstr "Warning: Column name already exists."
+
+msgid "COL_CHANGE_DESCRIPTION"
+msgstr "Provides a description of the column to assist in remembering the meaning of the column. This defaults to the display name if available, otherwise the column name is utilized."
 
 msgid "COL_CHANGE_DISPLAY"
 msgstr "Change the display name (that appears throughout the program) of a column. This is user-defined and can be any value (?)"
@@ -327,6 +406,9 @@ msgstr "Are you sure you want to delete the profile"
 msgid "CONFIRM_AND_START_MATCHING"
 msgstr "Confirm mappings &amp; start matching"
 
+msgid "CONTINUE"
+msgstr "Continue"
+
 msgid "CONTINUE_QUESTION"
 msgstr "Are you sure you want to continue?"
 
@@ -335,6 +417,9 @@ msgstr "Created label {label_name}"
 
 msgid "CREATED_NEW_CYCLE"
 msgstr "Created new Cycle {cycle_name}"
+
+msgid "CREATE_DATA_LOGGER"
+msgstr "Create a Data Logger"
 
 msgid "CURRENTLY_GEOCODING"
 msgstr "Currently geocoding"
@@ -372,11 +457,17 @@ msgstr "Change my password"
 msgid "Changed By"
 msgstr "Changed By"
 
+msgid "Chart Legend"
+msgstr "Chart Legend"
+
 msgid "Choose Existing Organization:"
 msgstr "Choose Existing Organization:"
 
 msgid "Choose the year ending month for report period."
 msgstr "Choose the year ending month for report period."
+
+msgid "City"
+msgstr "City"
 
 msgid "City (Property)"
 msgstr "City (Property)"
@@ -401,6 +492,12 @@ msgstr "Close Preview"
 
 msgid "Collapse Tabs"
 msgstr "Collapse Tabs"
+
+msgid "Column"
+msgstr "Column"
+
+msgid "Column Description"
+msgstr "Column Description"
 
 msgid "Column List Profile"
 msgstr "Column List Profile"
@@ -429,6 +526,12 @@ msgstr "ComStock Mapping"
 msgid "Commercial"
 msgstr "Commercial"
 
+msgid "Compare UBIDs"
+msgstr "Compare UBIDs"
+
+msgid "Comparing UBIDs Complete"
+msgstr "Comparing UBIDs Complete"
+
 msgid "Complete"
 msgstr "Complete"
 
@@ -437,6 +540,18 @@ msgstr "Compliance"
 
 msgid "Compliance Information"
 msgstr "Compliance Information"
+
+msgid "Compliance Label"
+msgstr "Compliance Label"
+
+msgid "Compliance Period"
+msgstr "Compliance Period"
+
+msgid "Compliance Period (years)"
+msgstr "Compliance Period (years)"
+
+msgid "Compliant"
+msgstr "Compliant"
 
 msgid "Concatenate Headers (Columns of Data)"
 msgstr "Concatenate Headers (Columns of Data)"
@@ -464,8 +579,20 @@ msgstr "Confirm delete"
 msgid "Confirm new password"
 msgstr "Confirm new password"
 
+msgid "Connection"
+msgstr "Connection"
+
 msgid "Contact"
 msgstr "Contact"
+
+msgid "Contact Account Name Column"
+msgstr "Contact Account Name Column"
+
+msgid "Contact Benchmark Field"
+msgstr "Contact Benchmark Field"
+
+msgid "Contacts and Accounts"
+msgstr "Contacts and Accounts"
 
 msgid "Continue to data mapping"
 msgstr "Continue to data mapping"
@@ -497,6 +624,9 @@ msgstr "Create Cycle"
 msgid "Create Data Set"
 msgstr "Create Data Set"
 
+msgid "Create Filter Group"
+msgstr "Create Filter Group"
+
 msgid "Create New Sub-Organization"
 msgstr "Create New Sub-Organization"
 
@@ -505,6 +635,9 @@ msgstr "Create Profile"
 
 msgid "Create Project"
 msgstr "Create Project"
+
+msgid "Create UBID"
+msgstr "Create UBID"
 
 #: seed/landing/templates/landing/signup.html:29
 msgid "Create Your Account"
@@ -518,6 +651,9 @@ msgstr "Create a New Project"
 
 msgid "Create a New Sub-Organization"
 msgstr "Create a New Sub-Organization"
+
+msgid "Create a Program to get started!"
+msgstr "Create a Program to get started!"
 
 msgid "Create a new rule"
 msgstr "Create a new rule"
@@ -565,6 +701,9 @@ msgstr "Cross-Cycles"
 msgid "Current Column Mapping Profile"
 msgstr "Current Column Mapping Profile"
 
+msgid "Current Filters"
+msgstr "Current Filters"
+
 msgid "Current Name"
 msgstr "Current Name"
 
@@ -579,6 +718,12 @@ msgstr "Custom ID 1 (Property)"
 
 msgid "Custom ID 1 (Tax Lot)"
 msgstr "Custom ID 1 (Tax Lot)"
+
+msgid "Custom Reports"
+msgstr "Custom Reports"
+
+msgid "Custom emails can be sent to Building Owners using the templates defined below. The email will be sent to the SEED record's Owner Email address and is currently not configurable. The email 'from' address is the same as the server email address which is also used to email users their account information."
+msgstr "Custom emails can be sent to Building Owners using the templates defined below. The email will be sent to the SEED record's Owner Email address and is currently not configurable. The email 'from' address is the same as the server email address which is also used to email users their account information."
 
 msgid "Cycle"
 msgstr "Cycle"
@@ -595,14 +740,23 @@ msgstr "Cycle:"
 msgid "Cycles"
 msgstr "Cycles"
 
+msgid "Cycles to Include in Compliance Period"
+msgstr "Cycles to Include in Compliance Period"
+
 msgid "DATASET_FILENAME_UPLOADED_TO"
 msgstr "<strong>{dataset_filename}</strong> has been uploaded to <strong>{dataset_name}</strong>, under cycle <strong>{cycle_name}</strong>."
+
+msgid "DATASET_FILENAME_UPLOADED_TO_MULTIPLE_CYCLE"
+msgstr "<strong>{dataset_filename}</strong> has been uploaded to <strong>{dataset_name}</strong>, under multiple cycles. The default cycle is <strong>{cycle_name}</strong>."
 
 msgid "DATASET_NAME_ALREADY_EXISTS"
 msgstr "The data set <strong>name \"{dataset_name}\" already exists</strong>. Please select a new one."
 
 msgid "DATA_FILE_HEADER_DUP_WARNING"
 msgstr "Please review Date File Headers.  Duplicate or empty values are not allowed."
+
+msgid "DATA_LOGGERS"
+msgstr "Data Loggers"
 
 msgid "DATA_MAPPING_AND_VALIDATION"
 msgstr "Data Mapping and Validation ({filename})"
@@ -627,6 +781,15 @@ msgstr "If you'd like to geocode your data using the MapQuest service, please pr
 
 msgid "Data"
 msgstr "Data"
+
+msgid "Data Administrator Account Name Column"
+msgstr "Data Administrator Account Name Column"
+
+msgid "Data Administrator Contact Field"
+msgstr "Data Administrator Contact Field"
+
+msgid "Data Administrator Contact Settings"
+msgstr "Data Administrator Contact Settings"
 
 msgid "Data File Header"
 msgstr "Data File Header"
@@ -688,6 +851,18 @@ msgstr "Deadline"
 msgid "Deadline:"
 msgstr "Deadline:"
 
+msgid "Decode UBID"
+msgstr "Decode UBID"
+
+msgid "Decode UBID for Selected"
+msgstr "Decode UBID for Selected"
+
+msgid "Default Contact Account Name"
+msgstr "Default Contact Account Name"
+
+msgid "Default Data Administrator Account Name"
+msgstr "Default Data Administrator Account Name"
+
 msgid "Default Display Fields"
 msgstr "Default Display Fields"
 
@@ -696,6 +871,9 @@ msgstr "Delete"
 
 msgid "Delete All Mappings"
 msgstr "Delete All Mappings"
+
+msgid "Delete Indication Label After Successful Salesforce Update"
+msgstr "Delete Indication Label After Successful Salesforce Update"
 
 msgid "Delete Organization"
 msgstr "Delete Organization"
@@ -715,6 +893,9 @@ msgstr "Delete your Data File"
 msgid "Delete your Data Set"
 msgstr "Delete your Data Set"
 
+msgid "Delete your Filter Group"
+msgstr "Delete your Filter Group"
+
 msgid "Delete your Inventory"
 msgstr "Delete your Inventory"
 
@@ -723,6 +904,9 @@ msgstr "Delete your Profile"
 
 msgid "Deleting in progress..."
 msgstr "Deleting in progress..."
+
+msgid "Derived Columns"
+msgstr "Derived Columns"
 
 #: seed/landing/models.py:48
 msgid "Designates whether the user can log into this admin site."
@@ -753,11 +937,17 @@ msgstr "Dismiss"
 msgid "Display Name"
 msgstr "Display Name"
 
+msgid "Distance to Target"
+msgstr "Distance to Target"
+
 msgid "District"
 msgstr "District"
 
 msgid "Documentation"
 msgstr "Documentation"
+
+msgid "Domain"
+msgstr "Domain"
 
 msgid "Done"
 msgstr "Done"
@@ -816,6 +1006,9 @@ msgstr "Edit"
 msgid "Edit Name"
 msgstr "Edit Name"
 
+msgid "Edit UBIDs"
+msgstr "Edit UBIDs"
+
 #: seed/landing/forms.py:13
 msgid "Email"
 msgstr "Email"
@@ -827,17 +1020,29 @@ msgstr "Email Address"
 msgid "Email Address:"
 msgstr "Email Address:"
 
+msgid "Email Templates"
+msgstr "Email Templates"
+
+msgid "Emission Metric"
+msgstr "Emission Metric"
+
 msgid "Enable ComStock Functionality"
 msgstr "Enable ComStock Functionality"
 
 msgid "Enable Geocoding"
 msgstr "Enable Geocoding"
 
+msgid "Enable Salesforce Integration"
+msgstr "Enable Salesforce Integration"
+
 msgid "Energy"
 msgstr "Energy"
 
 msgid "Energy Alerts"
 msgstr "Energy Alerts"
+
+msgid "Energy Metric"
+msgstr "Energy Metric"
 
 msgid "Energy data file"
 msgstr "Energy data file"
@@ -957,6 +1162,18 @@ msgstr "File Source:"
 msgid "Files (Main State Only)"
 msgstr "Files (Main State Only)"
 
+msgid "Filter By Label"
+msgstr "Filter By Label"
+
+msgid "Filter Group"
+msgstr "Filter Group"
+
+msgid "Filter Group Name"
+msgstr "Filter Group Name"
+
+msgid "Filter Groups"
+msgstr "Filter Groups"
+
 msgid "Filter by label"
 msgstr "Filter by label"
 
@@ -1065,6 +1282,9 @@ msgstr "GJ/m²/year"
 msgid "GREENBUTTON_CONTENTS_TITLE"
 msgstr "Confirm GreenButton File Contents"
 
+msgid "Generate Token"
+msgstr "Generate Token"
+
 msgid "Geocode"
 msgstr "Geocode"
 
@@ -1099,6 +1319,9 @@ msgstr "Getting Started Guide"
 msgid "Go to Detail Page"
 msgstr "Go to Detail Page"
 
+msgid "Go to Meters"
+msgstr "Go to Meters"
+
 msgid "Go to Notes"
 msgstr "Go to Notes"
 
@@ -1114,6 +1337,12 @@ msgstr "HOW TO MANUALLY MATCH YOUR PROPERTIES AND TAX LOTS:"
 msgid "HOW_SYSTEM_AUTO_MATCHES_EXPLANATION"
 msgstr "Your source data file(s) are presented in the table on the left. All properties/tax lots where a possible data match exists are presented in a table on the right. The system attempts to auto-match records using shared unique IDs like: PM Property ID, Jurisdiction Tax Lot ID, and Custom IDs as well as Address information. Where the system believes a match exists between a record in your source file and an existing record it will auto-check the 'match' <i class=\"fa fa-check-square-o\"></i> checkbox &mdash; effectively making a match between these records."
 
+msgid "HTTP Error! Status Code: 404. The requested URL was not found."
+msgstr "HTTP Error! Status Code: 404. The requested URL was not found."
+
+msgid "HTTP Error! Status Code: 500. Internal Server Error."
+msgstr "HTTP Error! Status Code: 500. Internal Server Error."
+
 #: seed/templates/seed/account_create_email.html:2
 msgid "Hello %(first_name)s, "
 msgstr "Hello %(first_name)s, "
@@ -1123,6 +1352,9 @@ msgstr "Highlights of SEED Platform™"
 
 msgid "Home Energy Score ID"
 msgstr "Home Energy Score ID"
+
+msgid "Hour"
+msgstr "Hour"
 
 msgid "ID"
 msgstr "ID"
@@ -1144,6 +1376,12 @@ msgstr "This action will kick off a match and merge round for the resulting reco
 
 msgid "INTERNAL"
 msgstr "INTERNAL"
+
+msgid "INVALID_CSV_EXTENSION_ALERT"
+msgstr "<strong>Sorry!</strong> SEED doesn't currently support that file format. Only <strong>.csv</strong> files are supported."
+
+msgid "INVALID_DOC_FILE_EXTENSION_ALERT"
+msgstr "Invalid document type selected. Accepted file types are .dxf, .pdf, .idf, and .osm"
 
 msgid "INVALID_EXTENSION_ALERT"
 msgstr "<strong>Sorry!</strong> SEED doesn't currently support that file format. Only <strong>.csv</strong>, <strong>.xls</strong>, <strong>.xlsx</strong>, and <strong>.xml</strong> files are supported."
@@ -1175,8 +1413,14 @@ msgstr "Ignored property duplicates within the import file"
 msgid "Ignored tax lot duplicates within the import file"
 msgstr "Ignored tax lot duplicates within the import file"
 
+msgid "Import Access Level Instances"
+msgstr "Import Access Level Instances"
+
 msgid "Import Portfolio Manager Data"
 msgstr "Import Portfolio Manager Data"
+
+msgid "Import from Audit Template"
+msgstr "Import from Audit Template"
 
 msgid "In addition, you need to specify where the field should be associated with Tax Lot data or Property data. This will affect how the data is matched and merged, as well as how it is displayed in the Inventory view."
 msgstr "In addition, you need to specify where the field should be associated with Tax Lot data or Property data. This will affect how the data is matched and merged, as well as how it is displayed in the Inventory view."
@@ -1191,14 +1435,23 @@ msgstr "Include CSV Label Header"
 msgid "Include Notes"
 msgstr "Include Notes"
 
+msgid "Indication Label"
+msgstr "Indication Label"
+
 msgid "Ineligible"
 msgstr "Ineligible"
+
+msgid "Insights"
+msgstr "Insights"
 
 msgid "Integer"
 msgstr "Integer"
 
 msgid "Interval"
 msgstr "Interval"
+
+msgid "Invalid UBID"
+msgstr "Invalid UBID"
 
 msgid "Inventory"
 msgstr "Inventory"
@@ -1224,6 +1477,9 @@ msgstr "Invite an Owner"
 msgid "It is necessary to map your field names to SEED field names. You can select from the list that appears as you start to type, which is based on the Building Energy Data Exchange Specification (BEDES), or you can type in your own name, as well as typing in the field name from the original datafile."
 msgstr "It is necessary to map your field names to SEED field names. You can select from the list that appears as you start to type, which is based on the Building Energy Data Exchange Specification (BEDES), or you can type in your own name, as well as typing in the field name from the original datafile."
 
+msgid "JACCARD_EXPLANATION"
+msgstr "The comparison relies on the Jaccard Index, which ranges from 0.0 (no overlap) to 1.0 (perfect match)."
+
 msgid "Jurisdiction Property ID"
 msgstr "Jurisdiction Property ID"
 
@@ -1240,7 +1496,7 @@ msgid "LIST_GUIDANCE_PROPERTIES"
 msgstr "Select columns from the list below to make them appear in your Property List table. Drag the rows to change the order in which they appear. Pin the rows for them to be left-pinned in the list view."
 
 msgid "LIST_GUIDANCE_PROPERTIES_NO_PIN"
-msgstr "Select columns from the list below to make th  em appear in your Properties Detail table. Drag the rows to change the order in which they appear."
+msgstr "Select columns from the list below to make them appear in your Properties Detail table. Drag the rows to change the order in which they appear."
 
 msgid "LIST_GUIDANCE_TAXLOTS"
 msgstr "Select columns from the list below to make them appear in your Tax Lot List table. Drag the rows to change the order in which they appear. Pin the rows for them to be left-pinned in the list view."
@@ -1275,11 +1531,17 @@ msgstr "Last Name"
 msgid "Last Name:"
 msgstr "Last Name:"
 
+msgid "Last Salesforce Update"
+msgstr "Last Salesforce Update"
+
 msgid "Last name is required."
 msgstr "Last name is required."
 
 msgid "Latitude"
 msgstr "Latitude"
+
+msgid "Left Axis"
+msgstr "Left Axis"
 
 msgid "Left Half"
 msgstr "Left Half"
@@ -1305,6 +1567,9 @@ msgstr "Log in"
 #: seed/landing/templates/landing/home.html:16
 msgid "Log in to SEED Platform"
 msgstr "Log in to SEED Platform"
+
+msgid "Logging Email"
+msgstr "Logging Email"
 
 msgid "Logout"
 msgstr "Logout"
@@ -1376,6 +1641,9 @@ msgstr "<strong>Note:</strong> only the first sheet of multi-sheet Excel files w
 msgid "Main"
 msgstr "Main"
 
+msgid "Main Contact Settings"
+msgstr "Main Contact Settings"
+
 msgid "Maintenance"
 msgstr "Maintenance"
 
@@ -1408,6 +1676,9 @@ msgstr "Map SEED fields to imported file fields"
 
 msgid "Map Your Data"
 msgstr "Map Your Data"
+
+msgid "Map features are provided by"
+msgstr "Map features are provided by"
 
 msgid "MapQuest API Key"
 msgstr "MapQuest API Key"
@@ -1491,6 +1762,9 @@ msgstr "Member Role"
 msgid "Members"
 msgstr "Members"
 
+msgid "Merge"
+msgstr "Merge"
+
 msgid "Merge Protection"
 msgstr "Merge Protection"
 
@@ -1527,6 +1801,24 @@ msgstr "Meter Data"
 msgid "Meters"
 msgstr "Meters"
 
+msgid "Metric"
+msgstr "Metric"
+
+msgid "Metric Actual Column"
+msgstr "Metric Actual Column"
+
+msgid "Metric Name"
+msgstr "Metric Name"
+
+msgid "Metric Target Column"
+msgstr "Metric Target Column"
+
+msgid "Metric Type"
+msgstr "Metric Type"
+
+msgid "Metric Type Settings"
+msgstr "Metric Type Settings"
+
 msgid "Min"
 msgstr "Min"
 
@@ -1538,6 +1830,9 @@ msgstr "Minimum"
 
 msgid "Minimum Sq Ft"
 msgstr "Minimum Sq Ft"
+
+msgid "Minute"
+msgstr "Minute"
 
 msgid "Modifying Data Quality Rules"
 msgstr "Modifying Data Quality Rules"
@@ -1554,8 +1849,14 @@ msgstr "Move/copy buildings to another project"
 msgid "NEW_COLUMN_REPLACE_DATA_WARNING"
 msgstr "A new column will be created, and/or existing data can be replaced."
 
+msgid "NON_UNIQUE_DATA_LOGGER_DISPLAY_NAME"
+msgstr "Display name must be unique."
+
 msgid "NOT_GEOCODED_PREVIOUSLY"
 msgstr "Not geocoded previously"
+
+msgid "NO_DATA_LOGGER_DISPLAY_NAME"
+msgstr "Please enter a display name."
 
 msgid "NO_MAPQUEST_API_KEY_FOR_ORG"
 msgstr "There is no MapQuest API key associated to your organization."
@@ -1585,7 +1886,7 @@ msgid "National Renewable Energy Laboratory"
 msgstr "National Renewable Energy Laboratory"
 
 msgid "New Analysis"
-msgstr "New Analysis"
+msgstr "New Analysis (beta)"
 
 msgid "New Note"
 msgstr "New Note"
@@ -1610,20 +1911,41 @@ msgstr "Next"
 msgid "No"
 msgstr "No"
 
+msgid "No Custom Reports Selected"
+msgstr "No Custom Reports Selected"
+
 msgid "No Data"
 msgstr "No Data"
+
+msgid "No UBIDs For Property"
+msgstr "No UBIDs For Property"
+
+msgid "No UBIDs For Tax Lot"
+msgstr "No UBIDs For Tax Lot"
 
 msgid "No action was taken"
 msgstr "No action was taken"
 
+msgid "No filters added."
+msgstr "No filters added."
+
 msgid "No labels available. Add a label above to get started."
 msgstr "No labels available. Add a label above to get started."
+
+msgid "No program created"
+msgstr "No program created"
+
+msgid "No program selected"
+msgstr "No program selected"
 
 msgid "No warnings/errors"
 msgstr "No warnings/errors"
 
 msgid "None"
 msgstr "None"
+
+msgid "Not Compliant"
+msgstr "Not Compliant"
 
 msgid "Not Null"
 msgstr "Not Null"
@@ -1633,6 +1955,9 @@ msgstr "Not all inventory items were successfully deleted"
 
 msgid "Note:"
 msgstr "Note:"
+
+msgid "Note:  Meters are labeled with the following format:  \"Type - Source - Source ID\""
+msgstr "Note:  Meters are labeled with the following format:  \"Type - Source - Source ID\""
 
 msgid "Note: Parent organization members are not automatically made members of sub-organizations."
 msgstr "Note: Parent organization members are not automatically made members of sub-organizations."
@@ -1655,6 +1980,9 @@ msgstr "Number of Properties"
 
 msgid "Number of Tax Lots"
 msgstr "Number of Tax Lots"
+
+msgid "Number of decimal places to display"
+msgstr "Number of decimal places to display"
 
 msgid "OK_TO_DELETE_NUM_PROPERTIES_AND_TAXLOTS"
 msgstr "Are you sure you want to delete {num_properties,plural, one{<strong>1</strong> property} other{<strong>#</strong> properties}} and {num_taxlots,plural,one{<strong>1</strong> tax lot} other{<strong>#</strong> tax lots}}?"
@@ -1695,6 +2023,9 @@ msgstr "Organization Name:"
 
 msgid "Organization Owner(s)"
 msgstr "Organization Owner(s)"
+
+msgid "Organization Settings"
+msgstr "Organization Settings"
 
 msgid "Organizations"
 msgstr "Organizations"
@@ -1832,6 +2163,9 @@ msgstr "Please go to the following page and setup your account:"
 msgid "Please join the SEED-Platform Dev forum where you can connect with other developers."
 msgstr "Please join the SEED-Platform Dev forum where you can connect with other developers."
 
+msgid "Please review SEED column names or the column names of the file being imported. Column names that match an existing Derived Column name are not allowed."
+msgstr "Please review SEED column names or the column names of the file being imported. Column names that match an existing Derived Column name are not allowed."
+
 msgid "Please review SEED column names or the column names of the file being imported. Duplicate values are not allowed in either case."
 msgstr "Please review SEED column names or the column names of the file being imported. Duplicate values are not allowed in either case."
 
@@ -1847,6 +2181,9 @@ msgstr "Please wait while your data is loaded..."
 msgid "Populate SEED Headers with best known matches"
 msgstr "Populate SEED Headers with best known matches"
 
+msgid "Postal Code"
+msgstr "Postal Code"
+
 msgid "Postal Code (Property)"
 msgstr "Postal Code (Property)"
 
@@ -1855,6 +2192,9 @@ msgstr "Postal Code (Tax Lot)"
 
 msgid "Potential Matches from Source"
 msgstr "Potential Matches from Source"
+
+msgid "Preferred"
+msgstr "Preferred"
 
 msgid "Preparing your inventory for deletion"
 msgstr "Preparing your inventory for deletion"
@@ -1882,6 +2222,24 @@ msgstr "Profile Information"
 
 msgid "Profile Name"
 msgstr "Profile Name"
+
+msgid "Program"
+msgstr "Program"
+
+msgid "Program Definition"
+msgstr "Program Definition"
+
+msgid "Program Metric"
+msgstr "Program Metric"
+
+msgid "Program Metric Configuration"
+msgstr "Program Metric Configuration"
+
+msgid "Program Overview"
+msgstr "Program Overview"
+
+msgid "Program Setup"
+msgstr "Program Setup"
 
 #: seed/models/models.py:239
 msgid "Project"
@@ -1911,6 +2269,9 @@ msgstr "Properties"
 msgid "Properties List"
 msgstr "Properties List"
 
+msgid "Properties List (legacy)"
+msgstr "Properties List (legacy)"
+
 msgid "Properties with Data"
 msgstr "Properties with Data"
 
@@ -1929,17 +2290,17 @@ msgstr "Property Count"
 msgid "Property Detail"
 msgstr "Property Detail"
 
-msgid "Property Detail Notes"
-msgstr "Property Detail Notes"
-
 msgid "Property Detail Settings"
 msgstr "Property Detail Settings"
 
-msgid "Property Detail View Display Field"
-msgstr "Property Detail View Display Field"
+msgid "Property Display Field"
+msgstr "Property Display Field"
 
 msgid "Property Footprint"
 msgstr "Property Footprint"
+
+msgid "Property Insights"
+msgstr "Property Insights"
 
 msgid "Property Name"
 msgstr "Property Name"
@@ -1989,6 +2350,12 @@ msgstr "Recognize Empty"
 msgid "Record from Source"
 msgstr "Record from Source"
 
+msgid "Refresh Metadata"
+msgstr "Refresh Metadata"
+
+msgid "Refresh Metadata of Selected Properties and Tax Lots"
+msgstr "Refresh Metadata of Selected Properties and Tax Lots"
+
 #: src/django-tos-master/tos/templates/tos/tos_check.html:18
 msgid "Reject"
 msgstr "Reject"
@@ -2026,8 +2393,14 @@ msgstr "Removing buildings from project"
 msgid "Rename"
 msgstr "Rename"
 
+msgid "Rename Filter Group"
+msgstr "Rename Filter Group"
+
 msgid "Rename Profile"
 msgstr "Rename Profile"
+
+msgid "Rename your Filter Group"
+msgstr "Rename your Filter Group"
 
 msgid "Rename your Profile"
 msgstr "Rename your Profile"
@@ -2066,6 +2439,9 @@ msgstr "Restore Default Rules"
 msgid "Retro Commissioning"
 msgstr "Retro Commissioning"
 
+msgid "Retry"
+msgstr "Retry"
+
 msgid "Review Changes"
 msgstr "Review Changes"
 
@@ -2074,6 +2450,9 @@ msgstr "Review Mapped Data"
 
 msgid "Review matches"
 msgstr "Review matches"
+
+msgid "Right Axis"
+msgstr "Right Axis"
 
 msgid "Right Half"
 msgstr "Right Half"
@@ -2099,6 +2478,9 @@ msgstr "Row 5"
 msgid "Rules for a single field must have the same Data Type. Note that some Data Types are not available to certain Condition Checks."
 msgstr "Rules for a single field must have the same Data Type. Note that some Data Types are not available to certain Condition Checks."
 
+msgid "Run Analysis"
+msgstr "Run Analysis (beta)"
+
 msgid "Run Author"
 msgstr "Run Author"
 
@@ -2114,6 +2496,9 @@ msgstr "Run Id"
 msgid "Run Status"
 msgstr "Run Status"
 
+msgid "SEED Field Name"
+msgstr "SEED Field Name"
+
 msgid "SEED Header"
 msgstr "SEED Header"
 
@@ -2125,6 +2510,9 @@ msgstr "SEED Platform"
 msgid "SEED Platform™"
 msgstr "SEED Platform™"
 
+msgid "SEED Unique Benchmark ID Fieldname"
+msgstr "SEED Unique Benchmark ID Fieldname"
+
 msgid "SEED doesn't currently support that file format"
 msgstr "SEED doesn't currently support that file format"
 
@@ -2135,8 +2523,125 @@ msgstr "SEED is easy, flexible, and cost effective software designed to help org
 msgid "SELECT_DATA_SET_TITLE"
 msgstr "Select Data Set"
 
+msgid "SELECT_DOC_UPLOAD_TITLE"
+msgstr "Select a document to upload"
+
 msgid "SELECT_THE_TYPE_OF_FILE_TO_ADD_TO_DATASET"
 msgstr "Select the type of file(s) you would like to add to {dataset_name}."
+
+msgid "SENSORS"
+msgstr "Sensors"
+
+msgid "SENSOR_CONTENTS_TITLE"
+msgstr "Confirm File Contents"
+
+msgid "SENSOR_READINGS"
+msgstr "Sensor Readings"
+
+msgid "SENSOR_READING_COUNTS_TITLE"
+msgstr "Sensor Reading Counts"
+
+msgid "SF_ACCOUNT_NAME_FIELDNAME_TEXT"
+msgstr "Select the SEED field that holds the account name for the contact record to be created in Salesforce. Ex: 'Organization'"
+
+msgid "SF_ACCOUNT_RECORD_TYPE_TEXT"
+msgstr "If your Salesforce instance has multiple account types, provide the Record Type ID of the type of account to use when accounts are automatically created from SEED"
+
+msgid "SF_BENCHMARK_CONTACT_FIELDNAME_TEXT"
+msgstr "If your Salesforce Benchmark Record stores a Salesforce Contact relation, provide the Salesforce field name here, ex: Contact_Name__c"
+
+msgid "SF_BENCHMARK_ID_FIELDNAME_TEXT"
+msgstr "Fieldname of the Salesforce field that is used to uniquely identify Benchmark records. Example: 'Salesforce_Benchmark_ID__c'"
+
+msgid "SF_COMPLIANCE_LABEL_TEXT"
+msgstr "Label used to designate that a SEED property is in compliance. Example: 'Complied'"
+
+msgid "SF_CONFIGURATION_TEXT"
+msgstr "Configure a few parameters needed for data transfer to Salesforce"
+
+msgid "SF_CONNECTION_TEXT"
+msgstr "Enter your Salesforce instance details and ensure your connection is successful"
+
+msgid "SF_CONTACTS_AND_ACCOUNTS_TEXT"
+msgstr "Configure the contact information used for benchmark status notifications in Salesforce. When configured, this functionality will create or update contact records in Salesforce and link them to the Benchmark object"
+
+msgid "SF_CONTACT_EMAIL_FIELDNAME_TEXT"
+msgstr "Select the SEED field that holds the contact email for the benchmark record. Ex: 'Email'"
+
+msgid "SF_CONTACT_HEADER_TEXT"
+msgstr "The following fields will be used to retrieve or create a main contact to associate with the Benchmark object in Salesforce. Leave blank if your instance does not use this functionality."
+
+msgid "SF_CONTACT_NAME_FIELDNAME_TEXT"
+msgstr "Select the SEED field that holds the contact name for the benchmark record. Ex: 'On Behalf Of'"
+
+msgid "SF_CONTACT_RECORD_TYPE_TEXT"
+msgstr "If your Salesforce instance has multiple contact types, provide the Record Type ID of the type to use when contacts are automatically created from SEED"
+
+msgid "SF_CYCLE_FIELDNAME_TEXT"
+msgstr "If your Salesforce Benchmark Record stores cycle name, please enter the name of the salesforce field here, ex: Cycle__c"
+
+msgid "SF_DATA_ADMIN_ACCOUNT_NAME_FIELDNAME_TEXT"
+msgstr "Select the SEED field that holds the account name for the data administrator contact record to be created in Salesforce. Ex: 'Organization'"
+
+msgid "SF_DATA_ADMIN_CONTACT_FIELDNAME_TEXT"
+msgstr "If your Salesforce Benchmark Record stores a Salesforce Contact relation for a Property Data Administrator, provide the Salesforce field name here, ex: Property_Data_Administrator__c"
+
+msgid "SF_DATA_ADMIN_EMAIL_FIELDNAME_TEXT"
+msgstr "Select the SEED field that holds the property data administrator's email for the benchmark record. Ex: 'Property Data Administrator - Email'"
+
+msgid "SF_DATA_ADMIN_HEADER_TEXT"
+msgstr "The following fields will be used to retrieve or create a property data administrator contact to associate with the Benchmark object in Salesforce. Leave blank if your instance does not use this functionality."
+
+msgid "SF_DATA_ADMIN_NAME_FIELDNAME_TEXT"
+msgstr "Select the SEED field that holds the property data administrator's name for the benchmark record. Ex: 'Property Data Administrator'"
+
+msgid "SF_DEFAULT_ACCOUNT_NAME_TEXT"
+msgstr "Provide a default account name for Salesforce to use when there is no valid data in the Contact Account Name Column specified above.  Leave this field blank to report an error and abort sync instead when the Contact Account Name Column is blank."
+
+msgid "SF_DEFAULT_DATA_ADMIN_ACCOUNT_NAME_TEXT"
+msgstr "Provide a default account name for Salesforce to use when there is no valid data in the Data Administrator Account Name Column specified above.  Leave this field blank to report an error and abort sync instead when the Data Administrator Account Name Column is blank."
+
+msgid "SF_DELETE_LABEL_AFTER_SYNC_TEXT"
+msgstr "Check this checkbox to automatically remove the Indication Label from properties that were successfully updated in Salesforce in order to prevent future automatic updates."
+
+msgid "SF_DOMAIN_TEXT"
+msgstr "If your Salesforce instance is a sandbox, set this field to the value 'test'; otherwise leave blank."
+
+msgid "SF_INDICATION_LABEL_TEXT"
+msgstr "Label used to designate that a SEED property should be updated in Salesforce. Example: 'Add to Salesforce'"
+
+msgid "SF_INTEGRATION_TEXT"
+msgstr "Check this checkbox if you would like to sync data between SEED and a Salesforce instance"
+
+msgid "SF_LABELS_FIELDNAME_TEXT"
+msgstr "If your Salesforce Benchmark Record stores a string of all SEED labels applied, please enter the name of the Salesforce field here, ex: SEED_Labels__c"
+
+msgid "SF_LOGGING_EMAIL_TEXT"
+msgstr "Enter the e-mail address to use when reporting errors during the Salesforce updating process"
+
+msgid "SF_MAPPINGS_TEXT"
+msgstr "Map your Salesforce Benchmark Object's fields to columns in SEED. Use the Object Manager in Salesforce to retrieve the field names (not the field labels), ex: Cycle__c (not Cycle). These fields will only be sent to Salesforce when a property has the compliant label applied."
+
+msgid "SF_SCHEDULED_UPDATE_TEXT"
+msgstr "If you would like to automatically update Salesforce on a daily basis, configure the fields below"
+
+msgid "SF_SECURITY_TOKEN_TEXT"
+msgstr "Security token set in Salesforce"
+
+msgid "SF_SEED_BENCHMARK_ID_FIELDNAME_TEXT"
+msgstr "Fieldname of the SEED field that is used to uniquely identify Benchmark records. Example: 'Salesforce Benchmark ID'"
+
+msgid "SF_STATUS_FIELDNAME_TEXT"
+msgstr "If your Salesforce Benchmark Record stores a Status Label value (ex: violation or compliant), please enter the name of the salesforce field here, ex: Status__c"
+
+msgid "SF_UPDATE_HOUR_TEXT"
+msgstr "Enter the hour when the update should be run daily (0-23)"
+
+msgid "SF_UPDATE_MINUTE_TEXT"
+msgstr "Enter the minute after the hour when the update should be run daily (0-59)"
+
+msgid "SF_VIOLATION_LABEL_TEXT"
+msgstr "Label used to designate that a SEED property has a violation.  Example: 'Violation - Insufficient Data'"
 
 msgid "SHARE DATA WITH"
 msgstr "SHARE DATA WITH"
@@ -2174,6 +2679,30 @@ msgstr "Please verify before continuing."
 msgid "SUGGEST_UPDATE_GEOCODE_COLS"
 msgstr "Update the geocoding column settings in your organization's column settings page."
 
+msgid "Salesforce"
+msgstr "Salesforce"
+
+msgid "Salesforce Account Object Record Type"
+msgstr "Salesforce Account Object Record Type"
+
+msgid "Salesforce Connection Parameters"
+msgstr "Salesforce Connection Parameters"
+
+msgid "Salesforce Contact Object Record Type"
+msgstr "Salesforce Contact Object Record Type"
+
+msgid "Salesforce Field Mappings"
+msgstr "Salesforce Field Mappings"
+
+msgid "Salesforce Field Name"
+msgstr "Salesforce Field Name"
+
+msgid "Salesforce Instance URL"
+msgstr "Salesforce URL"
+
+msgid "Salesforce Unique Benchmark ID Fieldname"
+msgstr "Salesforce Unique Benchmark ID Fieldname"
+
 msgid "Save"
 msgstr "Save"
 
@@ -2188,6 +2717,9 @@ msgstr "Save Mappings"
 
 msgid "Save Settings"
 msgstr "Save Settings"
+
+msgid "Scheduled Daily Update"
+msgstr "Scheduled Daily Update"
 
 msgid "Search column name"
 msgstr "Search column name"
@@ -2204,13 +2736,31 @@ msgstr "Search table name"
 msgid "Security"
 msgstr "Security"
 
+msgid "Security Token"
+msgstr "Security Token"
+
 #: seed/models/columns.py:688 seed/models/models.py:195
 #: seed/models/models.py:256 seed/models/projects.py:42
 msgid "SeedOrg"
 msgstr "SeedOrg"
 
+msgid "Select All"
+msgstr "Select All"
+
 msgid "Select All Columns"
 msgstr "Select All Columns"
+
+msgid "Select None"
+msgstr "Select None"
+
+msgid "Select a Custom Report to get started!"
+msgstr "Select a Custom Report to get started!"
+
+msgid "Select a Program to get started!"
+msgstr "Select a Program to get started!"
+
+msgid "Select a column to show data on this axis.  Only columns with one of these data types will be listed:"
+msgstr "Select a column to show data on this axis.  Only columns with one of these data types will be listed:"
 
 msgid "Select columns from the list below to make them appear in your Buildings List table."
 msgstr "Select columns from the list below to make them appear in your Buildings List table."
@@ -2224,20 +2774,38 @@ msgstr "Select columns from the list below to make them appear in your Tax Lots 
 msgid "Select columns from the lists below to make them appear on the left or right halves of your Matching List table. Drag the rows to change the order in which they appear."
 msgstr "Select columns from the lists below to make them appear on the left or right halves of your Matching List table. Drag the rows to change the order in which they appear."
 
+msgid "Select one or more filter groups to load your inventory."
+msgstr "Select one or more filter groups to load your inventory."
+
 msgid "Select the type of file(s) you would like to add to"
 msgstr "Select the type of file(s) you would like to add to"
 
 msgid "Select which columns to include in the list:"
 msgstr "Select which columns to include in the list:"
 
+msgid "Selected Properties"
+msgstr "Selected Properties"
+
+msgid "Selected Taxlots"
+msgstr "Selected Taxlots"
+
 msgid "Selecting Fields to Share"
 msgstr "Selecting Fields to Share"
+
+msgid "Selections:"
+msgstr "Selections:"
 
 msgid "Send Invite"
 msgstr "Send Invite"
 
 msgid "Sends the reset password email to all users."
 msgstr "Sends the reset password email to all users"
+
+msgid "Sensors"
+msgstr "Sensors"
+
+msgid "Set UBID Threshold"
+msgstr "Set UBID Threshold"
 
 msgid "Set a Query Threshold"
 msgstr "Set a Query Threshold"
@@ -2295,9 +2863,6 @@ msgstr "Show/Hide Columns"
 msgid "Signature"
 msgstr "Signature"
 
-msgid "Significant figures for EUIs and areas"
-msgstr "Significant figures for EUIs and areas"
-
 msgid "Site EUI"
 msgstr "Site EUI"
 
@@ -2316,6 +2881,9 @@ msgstr "Snapshot projects are useful when you want to freeze the building data a
 msgid "Sorry!"
 msgstr "Sorry!"
 
+msgid "Sorting By (in order)"
+msgstr "Sorting By (in order)"
+
 msgid "Source EUI"
 msgstr "Source EUI"
 
@@ -2327,6 +2895,9 @@ msgstr "Source Energy Use Intensity"
 
 msgid "Space Alerts"
 msgstr "Space Alerts"
+
+msgid "State"
+msgstr "State"
 
 msgid "State (Property)"
 msgstr "State (Property)"
@@ -2361,6 +2932,12 @@ msgstr "Success!"
 msgid "Successful upload!"
 msgstr "Successful upload!"
 
+msgid "Successfully Uploaded"
+msgstr "Successfully Uploaded"
+
+msgid "Summary (Beta)"
+msgstr "Summary (Beta)"
+
 msgid "Switch Profiles"
 msgstr "Switch Profiles"
 
@@ -2375,6 +2952,21 @@ msgstr "Please type <strong>{org}</strong> to confirm."
 
 msgid "Table Name"
 msgstr "Table Name"
+
+msgid "Target <= Actual for Compliance"
+msgstr "Target <= Actual for Compliance"
+
+msgid "Target > Actual"
+msgstr "Target > Actual"
+
+msgid "Target >= Actual for Compliance"
+msgstr "Target >= Actual for Compliance"
+
+msgid "Target Column"
+msgstr "Target Column"
+
+msgid "Target Field"
+msgstr "Target Field"
 
 msgid "Tax Lot"
 msgstr "Tax Lot"
@@ -2400,8 +2992,8 @@ msgstr "Tax Lots"
 msgid "Tax Lots List"
 msgstr "Tax Lots List"
 
-msgid "Taxlot Detail View Display Field"
-msgstr "Taxlot Detail View Display Field"
+msgid "Taxlot Display Field"
+msgstr "Taxlot Display Field"
 
 #: src/django-tos-master/tos/models.py:43
 #: src/django-tos-master/tos/models.py:44
@@ -2412,6 +3004,9 @@ msgstr "Terms of Service"
 #: src/django-tos-master/tos/templates/tos/tos_check.html:6
 msgid "Terms of Service as of %(tos.created|date:\"SHORT_DATE_FORMAT\")s"
 msgstr "Terms of Service as of %(tos.created|date:\"SHORT_DATE_FORMAT\")s"
+
+msgid "Test Connection"
+msgstr "Test Connection"
 
 msgid "Text"
 msgstr "Text"
@@ -2452,11 +3047,19 @@ msgstr "The SEED team"
 msgid "The Standard Energy Efficiency Data (SEED)™ Platform is a software application that helps organizations easily manage data on the energy performance of large groups of buildings. Users can combine data from multiple sources, clean and validate it, and share the information with others. The software application provides an easy, flexible, and cost-effective method to improve the quality and availability of data to help demonstrate the economic and environmental benefits of energy efficiency, to implement programs, and to target investment activity."
 msgstr "The Standard Energy Efficiency Data (SEED)™ Platform is a software application that helps organizations easily manage data on the energy performance of large groups of buildings. Users can combine data from multiple sources, clean and validate it, and share the information with others. The software application provides an easy, flexible, and cost-effective method to improve the quality and availability of data to help demonstrate the economic and environmental benefits of energy efficiency, to implement programs, and to target investment activity."
 
+msgid "The UBID Threshold defines the minimum Jaccard Index value required for a UBID Comparison to be considered acceptable. When the threshold is satisfied, the incoming property can be merged with the existing property."
+msgstr "The UBID Threshold defines the minimum Jaccard Index value required for a UBID Comparison to be considered acceptable. When the threshold is satisfied, the incoming property can be merged with the existing property."
+
+msgid "The comparison relies on the Jaccard Index, which ranges from 0.0 (no match) to 1.0 (perfect match)."
+msgstr "The comparison relies on the Jaccard Index, which ranges from 0.0 (no overlap) to 1.0 (perfect match)."
+
+msgid "The email supports brace templating to pull in data from the SEED property record. For example, the snippet below will replace the latitude and longitude from the SEED record. Other fields can be added, but make sure to use the SEED field name not the display name."
+msgstr "The email supports brace templating to pull in data from the SEED property record. For example, the snippet below will replace the latitude and longitude from the SEED record. Other fields can be added, but make sure to use the SEED field name not the display name."
+
 msgid "The following actions have destructive effects, please read all warnings after clicking an option."
 msgstr "The following actions have destructive effects, please read all warnings after clicking an option."
 
-msgid ""
-"The following is a list of the fields we use to match up properties/tax lots between different imported files. The more data you have in these four fields the better our"
+msgid "The following is a list of the fields we use to match up properties/tax lots between different imported files. The more data you have in these four fields the better our"
 "                            system will auto-match your records."
 msgstr "The following is a list of the fields we use to match up properties/tax lots between different imported files. The more data you have in these four fields the better our\n                            system will auto-match your records."
 
@@ -2466,6 +3069,9 @@ msgstr "The following is a list of the fields we use to match up properties/tax 
 #: seed/landing/templates/landing/signup.html:41
 msgid "The invite link was invalid, possibly because it has already been used.  Please request a new invitation."
 msgstr "The invite link was invalid, possibly because it has already been used.  Please request a new invitation."
+
+msgid "The overall metric can be made up of an energy metric, an emission metric, or both. At least one type of metric is required and if two are defined, then both metrics must be met for compliance."
+msgstr "The overall metric can be made up of an energy metric, an emission metric, or both. At least one type of metric is required and if two are defined, then both metrics must be met for compliance."
 
 #: seed/landing/templates/landing/password_reset_confirm.html:41
 msgid "The password link was invalid, possibly because it has already been used.  Please request a new password reset."
@@ -2494,10 +3100,13 @@ msgid "This password must contain at least %(quantity)d %(type)s characters."
 msgstr "This password must contain at least %(quantity)d %(type)s characters."
 
 msgid "This will reset your visible columns and column order to only columns that contain data. Are you sure you want to continue?"
-msgstr "This will reset your visible columns and column order to only columns that contain data. Are you sure you want to continue?"
+msgstr "This will reset your visible columns and column order to only non-derived columns that contain data. Are you sure you want to continue?"
 
 msgid "Time Period"
 msgstr "Time Period"
+
+msgid "Timeline"
+msgstr "Timeline"
 
 msgid "To Date"
 msgstr "To Date"
@@ -2516,11 +3125,32 @@ msgstr "To set up your account, enter your password twice in the form below."
 msgid "Toggle Dropdown"
 msgstr "Toggle Dropdown"
 
+msgid "Toggle Hexbins"
+msgstr "Toggle Hexbins"
+
+msgid "Toggle Points"
+msgstr "Toggle Points"
+
+msgid "Toggle Property UBID Bounding Boxes"
+msgstr "Toggle Property UBID Bounding Boxes"
+
+msgid "Toggle Property UBID Centroids"
+msgstr "Toggle Property UBID Centroids"
+
+msgid "Toggle Taxlot UBID Bounding Boxes"
+msgstr "Toggle Taxlot UBID Bounding Boxes"
+
+msgid "Toggle Taxlot UBID Centroids"
+msgstr "Toggle Taxlot UBID Centroids"
+
 msgid "Total Properties"
 msgstr "Total Properties"
 
 msgid "Total rows in the import file"
 msgstr "Total rows in the import file"
+
+msgid "Two UBIDs are required for comparison. Click Custom UBIDs to continue."
+msgstr "Two UBIDs are required for comparison. Click Custom UBIDs to continue."
 
 msgid "Type"
 msgstr "Type"
@@ -2531,8 +3161,7 @@ msgstr "Type of Submittal"
 msgid "Type of Submittal:"
 msgstr "Type of Submittal:"
 
-msgid ""
-"U.S."
+msgid "U.S."
 "                        Department of Energy"
 msgstr "U.S. Department of Energy"
 
@@ -2542,8 +3171,26 @@ msgstr "U.S. Department of Energy"
 msgid "UBID"
 msgstr "UBID"
 
+msgid "UBID Threshold"
+msgstr "UBID Threshold"
+
+msgid "UBID Threshold must be between 0.0 and 1.0"
+msgstr "UBID Threshold must be between 0.0 and 1.0"
+
+msgid "UBID already exists"
+msgstr "UBID already exists"
+
+msgid "UBID comparison result:"
+msgstr "UBID comparison result:"
+
+msgid "UBID thresholds are between 0.0 and 1.0"
+msgstr "UBID thresholds are between 0.0 and 1.0"
+
 msgid "UPDATE_MANUALLY_GEOCODED_INSTRUCTIONS"
 msgstr "If the properties have been manually geocoded, then they will not be updated. To update geocoding, remove the lat/long."
+
+msgid "UPLOADING_DOCUMENT_TITLE"
+msgstr "Uploading Document..."
 
 msgid "UPLOADING_FILE_TITLE"
 msgstr "Uploading File"
@@ -2551,8 +3198,20 @@ msgstr "Uploading File"
 msgid "UPLOADING_PROGRESS"
 msgstr "Uploading <strong>{dataset_filename}</strong> to cycle <strong>{cycle_name}</strong>"
 
+msgid "UPLOADING_PROGRESS_MULTIPLE_CYCLE"
+msgstr "Uploading <strong>{dataset_filename}</strong> to multiple cycles. Default cycle is <strong>{cycle_name}</strong>"
+
+msgid "UPLOADING_PROGRESS_NO_CYCLE"
+msgstr "Uploading <strong>{dataset_filename}</strong>"
+
 msgid "UPLOAD_COMPLETE_TITLE"
 msgstr "Upload Complete"
+
+msgid "UPLOAD_DATA_LOGGER_BUTTON"
+msgstr "Create Data Logger"
+
+msgid "UPLOAD_DOC_ACCEPTED_FILE_TYPES"
+msgstr "Accepted File Types: .dxf, .pdf, .idf, and .osm"
 
 msgid "UPLOAD_FILE"
 msgstr "Upload File"
@@ -2567,11 +3226,23 @@ msgstr "Upload Incomplete"
 msgid "UPLOAD_PM_READINGS_MODAL_TITLE"
 msgstr "Upload Portfolio Manager Meter Readings"
 
+msgid "UPLOAD_SENSORS_BUTTON"
+msgstr "Upload Sensors"
+
+msgid "UPLOAD_SENSOR_BUTTON"
+msgstr "Upload Sensor"
+
+msgid "UPLOAD_SENSOR_READINGS_BUTTON"
+msgstr "Upload Sensor Readings"
+
 msgid "USING_DEFAULT_UNITS_WARNING"
 msgstr "For columns with unit settings, default units will be used for conversions."
 
 msgid "Units"
 msgstr "Units"
+
+msgid "Unknown"
+msgstr "Unknown"
 
 msgid "Until last date of"
 msgstr "Until last date of"
@@ -2582,11 +3253,23 @@ msgstr "Update Charts"
 msgid "Update Filters"
 msgstr "Update Filters"
 
+msgid "Update Salesforce"
+msgstr "Update Salesforce"
+
+msgid "Update UBID"
+msgstr "Update UBID"
+
 msgid "Update with BuildingSync"
 msgstr "Update with BuildingSync"
 
 msgid "Updated"
 msgstr "Updated"
+
+msgid "Upload Access Level Instances"
+msgstr "Upload Access Level Instances"
+
+msgid "Upload Audit Template XML"
+msgstr "Upload Audit Template XML"
 
 msgid "Upload BuildingSync Data"
 msgstr "Upload BuildingSync Data"
@@ -2667,6 +3350,9 @@ msgstr "Valid"
 msgid "Version"
 msgstr "Version"
 
+msgid "View Compliance Tracking"
+msgstr "View Compliance Tracking"
+
 msgid "View Project"
 msgstr "View Project"
 
@@ -2679,11 +3365,20 @@ msgstr "View by Tax Lot"
 msgid "View my properties"
 msgstr "View my properties"
 
+msgid "View/Hide Terms"
+msgstr "View/Hide Terms"
+
 msgid "Viewer"
 msgstr "Viewer"
 
+msgid "Violation Label"
+msgstr "Violation Label"
+
 msgid "Visit the BETTER website to run a portfolio analysis"
 msgstr "Visit the BETTER website to run a portfolio analysis"
+
+msgid "Visualization Settings"
+msgstr "Visualization Settings"
 
 msgid "WHEN_YOU_CLICK_MAP_YOUR_DATA"
 msgstr "When you click the <span class=\"label label-primary\">Map Your Data</span> button, the program will show a grid with the new field names as the column headings and your data in the rows. In that view, you can still come back to the initial mapping screen and change the field mapping."
@@ -2722,14 +3417,32 @@ msgstr "Welcome to SEED Platform™"
 msgid "Welcome to SEED!"
 msgstr "Welcome to SEED!"
 
+msgid "What is a Custom Report?"
+msgstr "What is a Custom Report?"
+
 msgid "What type of file would you like to upload?"
 msgstr "What type of file would you like to upload?"
+
+msgid "When checked, properties/taxlots will be matched to existing cycles based on the 'year_ending' column or the default cycle if there is no match"
+msgstr "When checked, properties/taxlots will be matched to existing cycles based on the 'year_ending' column or the default cycle if there is no match"
 
 msgid "Where would you like to move these buildings?"
 msgstr "Where would you like to move these buildings?"
 
 msgid "X Axis"
 msgstr "X Axis"
+
+msgid "X Axis Column Selections:"
+msgstr "X Axis Column Selections:"
+
+msgid "X Axis Column Types for Plotting:"
+msgstr "X Axis Column Types for Plotting:"
+
+msgid "X-Axis Columns"
+msgstr "X-Axis Columns"
+
+msgid "X-Axis Field Options"
+msgstr "X-Axis Field Options"
 
 #. Using this string to test if the translation machinery is escaping/sanitizing correctly.
 msgid "XSS_TEST"
@@ -2779,6 +3492,9 @@ msgstr "Yes, Delete Sub-Organization"
 
 msgid "Yes, Delete User"
 msgstr "Yes, Delete User"
+
+msgid "Yes, Remove Filter Group"
+msgstr "Yes, Remove Filter Group"
 
 msgid "You can review and edit each individual match by clicking one of the linked IDs in the table. This will open a new table that shows the source data for the individual record you are attempting to match. Underneath this record is a searchable list of all potential existing matches. Use this table to explore all your records and to select single or multiple records to match your source data to."
 msgstr "You can review and edit each individual match by clicking one of the linked IDs in the table. This will open a new table that shows the source data for the individual record you are attempting to match. Underneath this record is a searchable list of all potential existing matches. Use this table to explore all your records and to select single or multiple records to match your source data to."
@@ -2932,6 +3648,12 @@ msgstr "date joined"
 msgid "deadline_date"
 msgstr "deadline_date"
 
+msgid "default"
+msgstr "default"
+
+msgid "default_cycle"
+msgstr "Default Cycle"
+
 #: seed/models/projects.py:47
 msgid "description"
 msgstr "description"
@@ -3064,6 +3786,9 @@ msgstr "saving data"
 
 msgid "saving energy data"
 msgstr "saving energy data"
+
+msgid "selected"
+msgstr "selected"
 
 #: seed/landing/models.py:60
 msgid "shows shared buildings within search results"

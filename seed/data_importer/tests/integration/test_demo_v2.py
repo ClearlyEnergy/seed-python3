@@ -1,36 +1,34 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-import datetime
 import logging
 import os.path as osp
+import pathlib
+from datetime import date
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils import timezone
 
 from seed.data_importer import tasks
 from seed.data_importer.models import ImportFile, ImportRecord
 from seed.data_importer.tests.util import (
     FAKE_EXTRA_DATA,
     FAKE_MAPPINGS,
-    FAKE_ROW,
+    FAKE_ROW
 )
 from seed.landing.models import SEEDUser as User
 from seed.models import (
-    Column,
-    PropertyView,
-    TaxLotState,
-    TaxLotView,
+    ASSESSED_RAW,
     DATA_STATE_IMPORT,
     DATA_STATE_MAPPING,
-    ASSESSED_RAW,
-)
-from seed.models import (
+    Column,
     Cycle,
     PropertyState,
+    PropertyView,
+    TaxLotState,
+    TaxLotView
 )
 from seed.tests.util import DataMappingBaseTestCase
 from seed.utils.organizations import create_organization
@@ -51,8 +49,8 @@ class TestDemoV2(DataMappingBaseTestCase):
         cycle, _ = Cycle.objects.get_or_create(
             name='Test Hack Cycle 2015',
             organization=org,
-            start=datetime.datetime(2015, 1, 1, tzinfo=timezone.get_current_timezone()),
-            end=datetime.datetime(2015, 12, 31, tzinfo=timezone.get_current_timezone()),
+            start=date(2015, 1, 1),
+            end=date(2015, 12, 31),
         )
 
         import_record_1 = ImportRecord.objects.create(
@@ -98,14 +96,14 @@ class TestDemoV2(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), '..', 'data', tax_lot_filename)
         self.import_file_tax_lot.file = SimpleUploadedFile(
             name=tax_lot_filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file_tax_lot.save()
 
         filepath = osp.join(osp.dirname(__file__), '..', 'data', property_filename)
         self.import_file_property.file = SimpleUploadedFile(
             name=property_filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file_property.save()
 

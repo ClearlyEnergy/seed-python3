@@ -1,3 +1,7 @@
+/**
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
+ */
 angular.module('BE.seed.service.label', [])
   .factory('label_service', [
     '$http',
@@ -36,7 +40,7 @@ angular.module('BE.seed.service.label', [])
        id {integer}            The id of the label.
        name {string}           The text that appears in the label.
        text {string}           Same as name, needed for ngTagsInput control.
-       color {string}          The text description of the label's color (e.g. 'blue').
+       color {string}          The text description of the label's color (e.g., 'blue').
        label {string}          The css class, usually in bootstrap, used to generate
        the color style (poorly named, needs refactoring).
        is_applied {boolean}    If a search object was passed in, this boolean
@@ -57,11 +61,12 @@ angular.module('BE.seed.service.label', [])
       // Passing no arguments will return all labels, but no information about what properties/taxlots they're applied to
       // Passing an inventory type will return all labels and the corresponding inventory type they're applied to
       // Passing an inventory type and filter_ids will return all labels but limited to only the selected properties/taxlots
-      function get_labels (inventory_type, filter_ids) {
-        return get_labels_for_org(user_service.get_organization().id, inventory_type, filter_ids);
+      // Passing cycle_id will restrict is_applied ids to only those in the specified cycle
+      function get_labels (inventory_type, filter_ids, cycle_id) {
+        return get_labels_for_org(user_service.get_organization().id, inventory_type, filter_ids, cycle_id);
       }
 
-      function get_labels_for_org (org_id, inventory_type, filter_ids) {
+      function get_labels_for_org (org_id, inventory_type, filter_ids, cycle_id) {
         var params = {
           organization_id: org_id
         };
@@ -81,7 +86,10 @@ angular.module('BE.seed.service.label', [])
         }
 
         return $http.post(`/api/v3/${endpoint}/`, body, {
-          params: params
+          params: {
+            ...params,
+            cycle_id
+          }
         }).then(map_labels);
       }
 

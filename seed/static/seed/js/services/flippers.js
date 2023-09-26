@@ -1,6 +1,11 @@
-// see seed/ogbs/flipper.py ... usage and philosophy pretty much the same
-// bit minimum-useable right now .. just want this to squawk after it goes stale so as not to
-// forget about it.
+/**
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
+ *
+ * see seed/ogbs/flipper.py ... usage and philosophy pretty much the same
+ * bit minimum-usable right now .. just want this to squawk after it goes stale so as not to
+ * forget about it.
+ */
 angular.module('BE.seed.service.flippers', [])
   .factory('flippers', ['$log', function ($log) {
 
@@ -24,7 +29,7 @@ angular.module('BE.seed.service.flippers', [])
     };
 
     var log_stale_flipper = function (flipper) {
-      // TODO throw someplace more useful; raven? sentry?
+      // TODO throw someplace more useful; sentry?
       $log.warn('Flipper \'' + flipper.label + '\' is stale; tell ' + flipper.owner + ' to tidy up.');
     };
 

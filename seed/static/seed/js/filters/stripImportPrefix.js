@@ -1,14 +1,13 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
- */
-/**
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
+ *
  * filter 'stripImportPrefix' for custom parsing of building
  * ontology items like year built
  */
 angular.module('stripImportPrefix', []).filter('stripImportPrefix', function () {
   /** ids are sometime prefixed by the Import Record id.
-   * e.g. import 28 would prefix all assessor data ids with 'IMP28-' and
+   * e.g., import 28 would prefix all assessor data ids with 'IMP28-' and
    *      stripImportPrefix would strip out the 'IMP28-'s from the html and only
    *      display the ids.
    *

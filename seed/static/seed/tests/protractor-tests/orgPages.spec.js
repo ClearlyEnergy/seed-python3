@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 // test new orgs and sub orgs
 var EC = protractor.ExpectedConditions;
@@ -41,7 +41,7 @@ describe('When I visit the accounts page', function () {
       expect($('.page_title').getText()).toEqual(browser.params.testOrg.childRename);
     });
   });
-  it('should go back to orgranizations', function () {
+  it('should go back to organizations', function () {
     $('[ui-sref="organizations"]').click();
     expect($('.page_title').getText()).toEqual('Organizations');
   });
@@ -248,6 +248,4 @@ describe('When I visit the the parent org', function () {
     $$('[ng-click="save_settings()"]').first().click();
     browser.wait(EC.presenceOf($('.fa-check')), 10000);
   }, 60000);
-
 });
-

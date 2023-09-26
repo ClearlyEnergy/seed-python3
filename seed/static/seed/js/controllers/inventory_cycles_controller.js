@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.inventory_cycles', [])
   .controller('inventory_cycles_controller', [
@@ -178,8 +178,8 @@ angular.module('BE.seed.controller.inventory_cycles', [])
           if (col.data_type === 'datetime') {
             options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
             options.filter = inventory_service.dateFilter();
-          } else if (col.data_type === 'eui' || col.data_type === 'area') {
-            options.cellFilter = 'number: ' + $scope.organization.display_significant_figures;
+          } else if (['area', 'eui', 'float', 'number'].includes(col.data_type)) {
+            options.cellFilter = 'number: ' + $scope.organization.display_decimal_places;
             options.filter = inventory_service.combinedFilter();
           } else {
             options.filter = inventory_service.combinedFilter();

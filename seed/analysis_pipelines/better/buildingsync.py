@@ -1,12 +1,14 @@
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 from lxml import etree
 from lxml.builder import ElementMaker
+from quantityfield.units import ureg
 
 from seed.analysis_pipelines.pipeline import AnalysisPipelineException
 from seed.building_sync.mappings import BUILDINGSYNC_URI, NAMESPACES
 from seed.models import Meter
-
-from quantityfield.units import ureg
-
 
 # PREMISES_ID_NAME is the name of the custom ID used within a BuildingSync document
 # to link it to SEED's AnalysisPropertyViews
@@ -32,10 +34,11 @@ BETTER_TO_BSYNC_PROPERTY_TYPE = {
     'Other': 'Other'
 }
 
-# maps SEED Meter types to BuildignSync ResourceUse types
+# maps SEED Meter types to BuildingSync ResourceUse types
 # NOTE: this is semi-redundant with to_energy_type dict in building_sync/mappings.py
 SEED_TO_BSYNC_RESOURCE_TYPE = {
     Meter.ELECTRICITY_GRID: 'Electricity',
+    Meter.ELECTRICITY_UNKNOWN: 'Electricity',
     Meter.NATURAL_GAS: 'Natural gas',
     Meter.DIESEL: 'Diesel',
     Meter.PROPANE: 'Propane',
@@ -54,13 +57,14 @@ SEED_TO_BSYNC_RESOURCE_TYPE = {
 }
 
 
-def _build_better_input(analysis_property_view, meters):
+def _build_better_input(analysis_property_view, meters_and_readings):
     """Constructs a BuildingSync document to be used as input for a BETTER analysis.
     The function returns a tuple, the first value being the XML document as a byte
     string. The second value is a list of error messages.
 
     :param analysis_property_view: AnalysisPropertyView
-    :param meter: Meter
+    :param meters_and_readings: list[dict], list of dictionaries of the
+        of the form {'meter_type': <Meter.type>, 'readings': list[SimpleMeterReading]}
     :returns: tuple(bytes, list[str])
     """
     errors = []
@@ -74,24 +78,11 @@ def _build_better_input(analysis_property_view, meters):
         errors.append("BETTER analysis requires the property's state.")
     if property_state.gross_floor_area is None:
         errors.append("BETTER analysis requires the property's gross floor area.")
-    if property_state.property_type is None:
-        errors.append("BETTER analysis requires the property's type (office, retail, etc).")
-    if property_state.property_type not in BETTER_TO_BSYNC_PROPERTY_TYPE:
+    if property_state.property_type is None or property_state.property_type not in BETTER_TO_BSYNC_PROPERTY_TYPE:
         errors.append(
             f"BETTER analysis requires the property's type must be one of the following: {', '.join(BETTER_TO_BSYNC_PROPERTY_TYPE.keys())}")
-
-    valid_meters_and_readings = []
-    for meter in meters:
-        readings = meter.meter_readings.filter(reading__gte=1.0).order_by('start_time')
-        if readings.count() >= 12:
-            valid_meters_and_readings.append({
-                'meter': meter,
-                'readings': readings,
-            })
-    if len(valid_meters_and_readings) == 0:
-        errors.append(
-            'BETTER analysis requires at least one meter with 12 consecutive readings with values >= 1.0'
-        )
+    if property_state.postal_code is None:
+        errors.append("BETTER analysis requires the property's postal code.")
 
     if errors:
         return None, errors
@@ -181,12 +172,12 @@ def _build_better_input(analysis_property_view, meters):
                                         *[
                                             E.ResourceUse(
                                                 {'ID': f'ResourceUse-{meter_idx:03}'},
-                                                E.EnergyResource(SEED_TO_BSYNC_RESOURCE_TYPE[meter_and_readings['meter'].type]),
+                                                E.EnergyResource(SEED_TO_BSYNC_RESOURCE_TYPE[meter_and_readings['meter_type']]),
                                                 # SEED stores all meter readings as kBtu
                                                 E.ResourceUnits('kBtu'),
                                                 E.EndUse('All end uses')
                                             )
-                                            for meter_idx, meter_and_readings in enumerate(valid_meters_and_readings)
+                                            for meter_idx, meter_and_readings in enumerate(meters_and_readings)
                                         ]
                                     ),
                                     E.TimeSeriesData(
@@ -200,7 +191,7 @@ def _build_better_input(analysis_property_view, meters):
                                                 E.IntervalReading(str(reading.reading)),
                                                 E.ResourceUseID({'IDref': f'ResourceUse-{meter_idx:03}'}),
                                             )
-                                            for meter_idx, meter_and_readings in enumerate(valid_meters_and_readings) \
+                                            for meter_idx, meter_and_readings in enumerate(meters_and_readings) \
                                             for reading_idx, reading in enumerate(meter_and_readings['readings'])
                                         ]
                                     ),
@@ -227,5 +218,5 @@ def _parse_analysis_property_view_id(filepath):
 
     if len(analysis_property_view_id_elem) != 1:
         raise AnalysisPipelineException(
-            f'Expected BuildlingSync file to have exactly one "{PREMISES_ID_NAME}" PremisesIdentifier')
+            f'Expected BuildingSync file to have exactly one "{PREMISES_ID_NAME}" PremisesIdentifier')
     return int(analysis_property_view_id_elem[0].text)

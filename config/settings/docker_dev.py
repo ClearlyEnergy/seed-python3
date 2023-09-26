@@ -1,16 +1,21 @@
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author nicholas.long@nrel.gov
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 
-File contains settings needed to run SEED with docker
+:author nicholas.long@nrel.gov
+:description File contains settings needed to run SEED with docker
 """
 from __future__ import absolute_import
+
+# use importlib module to find the local_untracked file rather than a hard-coded path
+import importlib
 import os
 import sys
 
-from config.settings.common import *  # noqa
-
 from celery.utils import LOG_LEVELS
+from kombu import Exchange, Queue
+
+from config.settings.common import *  # noqa
 
 # override MEDIA_URL (requires nginx which dev stack doesn't use)
 MEDIA_URL = '/media/'
@@ -38,33 +43,26 @@ COMPRESS_OFFLINE = compress
 ALLOWED_HOSTS = ['*']
 
 # LBNL's BETTER tool host
-BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better-lbnl-development.herokuapp.com')
+# BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better.lbl.gov')
+BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better-lbnl-staging.herokuapp.com')
+# BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better-lbnl-development.herokuapp.com')
+
+# Audit Template Production Host
+AUDIT_TEMPLATE_HOST = os.environ.get('AUDIT_TEMPLATE_HOST', 'https://api.labworks.org')
 
 # PostgreSQL DB config
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': POSTGRES_DB,
-        'USER': POSTGRES_USER,
-        'PASSWORD': POSTGRES_PASSWORD,
+        'NAME': POSTGRES_DB, # noqa F405
+        'USER': POSTGRES_USER, # noqa F405
+        'PASSWORD': POSTGRES_PASSWORD, # noqa F405
         'HOST': "db-postgres",
-        'PORT': POSTGRES_PORT,
+        'PORT': POSTGRES_PORT, # noqa F405
     }
 }
 
 if SEED_TESTING:
-    INSTALLED_APPS += (
-        "django_nose",
-    )
-    TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
-    NOSE_PLUGINS = [
-        'nose_exclude.NoseExclude',
-    ]
-    NOSE_ARGS = [
-        '--nocapture',
-        # '--nologcapture',
-    ]
-
     CELERY_BROKER_BACKEND = 'memory'
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
@@ -77,7 +75,7 @@ else:
     CACHES = {
         'default': {
             'BACKEND': 'redis_cache.cache.RedisCache',
-            'LOCATION': "db-redis:6379",
+            'LOCATION': os.environ.get('REDIS_HOST', 'db-redis:6379'),
             'OPTIONS': {
                 'DB': 1
             },
@@ -126,11 +124,18 @@ LOGGING = {
     },
 }
 
-# use importlib module to find the local_untracked file rather than a hard-coded path
-import importlib
 
 local_untracked_spec = importlib.util.find_spec('config.settings.local_untracked')
 if local_untracked_spec is None:
     print("Unable to find the local_untracked in config/settings/local_untracked.py; Continuing with base settings...")
 else:
     from config.settings.local_untracked import *  # noqa
+
+# salesforce testing
+if 'SF_INSTANCE' not in vars():
+    # use env vars
+    SF_INSTANCE = os.environ.get('SF_INSTANCE', '')
+    SF_USERNAME = os.environ.get('SF_USERNAME', '')
+    SF_PASSWORD = os.environ.get('SF_PASSWORD', '')
+    SF_DOMAIN = os.environ.get('SF_DOMAIN', '')
+    SF_SECURITY_TOKEN = os.environ.get('SF_SECURITY_TOKEN', '')

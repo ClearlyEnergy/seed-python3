@@ -1,20 +1,24 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2020, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from django.conf import settings
 from django.forms.models import model_to_dict
-
-from seed.serializers.postoffice import PostOfficeSerializer, PostOfficeEmailSerializer
-from seed.utils.viewsets import SEEDOrgModelViewSet
-from seed.models import PropertyState, TaxLotState
-from seed.models import PostOfficeEmail, PostOfficeEmailTemplate
 from post_office import mail
+
+from seed.models import (
+    PostOfficeEmail,
+    PostOfficeEmailTemplate,
+    PropertyState,
+    TaxLotState
+)
+from seed.serializers.postoffice import (
+    PostOfficeEmailSerializer,
+    PostOfficeSerializer
+)
+from seed.utils.viewsets import SEEDOrgModelViewSet
 
 
 class PostOfficeViewSet(SEEDOrgModelViewSet):

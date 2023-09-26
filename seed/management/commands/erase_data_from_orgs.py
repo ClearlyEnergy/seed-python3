@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from __future__ import unicode_literals
 
 import collections
 import logging
 
+from _localtools import logging_info
 from django.core.management.base import BaseCommand
 
-from _localtools import logging_info
-from seed.models import PropertyState
-from seed.models import TaxLotState
+from seed.models import PropertyState, TaxLotState
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -24,7 +23,7 @@ class Command(BaseCommand):
         return
 
     def handle(self, *args, **options):
-        logging_info("RUN create_m2m_relatinships_organization with args={},kwds={}".format(args, options))
+        logging_info("RUN create_m2m_relationships_organization with args={},kwds={}".format(args, options))
         if options['organization']:
             core_organization = list(map(int, options['organization'].split(",")))
         else:
@@ -35,7 +34,7 @@ class Command(BaseCommand):
         for org in core_organization:
             delete_data_from_org(org)
 
-        logging_info("END create_m2m_relatinships_organization")
+        logging_info("END create_m2m_relationships_organization")
         return
 
 

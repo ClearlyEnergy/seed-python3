@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.inventory_map', [])
   .controller('inventory_map_controller', [
@@ -11,6 +11,8 @@ angular.module('BE.seed.controller.inventory_map', [])
     '$uibModal',
     'cycles',
     'inventory_service',
+    'user_service',
+    'organization_service',
     'labels',
     'urls',
     function (
@@ -21,6 +23,8 @@ angular.module('BE.seed.controller.inventory_map', [])
       $uibModal,
       cycles,
       inventory_service,
+      user_service,
+      organization_service,
       labels,
       urls
     ) {
@@ -29,6 +33,16 @@ angular.module('BE.seed.controller.inventory_map', [])
       $scope.data = [];
       $scope.geocoded_data = [];
       $scope.ungeocoded_data = [];
+
+      // find organization's property/taxlot default type to display in popup
+      const org_id = user_service.get_organization().id;
+      organization_service.get_organization(org_id).then(function (data) {
+        if ($scope.inventory_type == 'properties') {
+          $scope.default_field = data.organization.property_display_field;
+        } else {
+          $scope.default_field = data.organization.taxlot_display_field;
+        }
+      });
 
       var lastCycleId = inventory_service.get_last_cycle();
       $scope.cycle = {
@@ -111,9 +125,7 @@ angular.module('BE.seed.controller.inventory_map', [])
 
         // Map
         var base_layer = new ol.layer.Tile({
-          source: new ol.source.Stamen({
-            layer: 'terrain'
-          }),
+          source: new ol.source.OSM(),
           zIndex: $scope.layers.base_layer.zIndex // Note: This is used for layer toggling.
         });
 
@@ -175,7 +187,7 @@ angular.module('BE.seed.controller.inventory_map', [])
           return new ol.source.Vector({features: features});
         };
 
-        // Define taxlot ULID bounding box
+        // Define taxlot UBID bounding box
         var taxlotBB = function (taxlot) {
           var format = new ol.format.WKT();
 
@@ -187,7 +199,7 @@ angular.module('BE.seed.controller.inventory_map', [])
           return feature;
         };
 
-        // Define taxlot ULID centroid box
+        // Define taxlot UBID centroid box
         var taxlotCentroid = function (taxlot) {
           var format = new ol.format.WKT();
 
@@ -270,7 +282,7 @@ angular.module('BE.seed.controller.inventory_map', [])
           });
         };
 
-        // style for taxlot ulid bounding and centroid boxes
+        // style for taxlot ubid bounding and centroid boxes
         var taxlotStyle = function (/*feature*/) {
           return new ol.style.Style({
             stroke: new ol.style.Stroke({
@@ -445,8 +457,8 @@ angular.module('BE.seed.controller.inventory_map', [])
 
         var showPointInfo = function (point) {
           var pop_info = point.getProperties();
-          var address_line_1_key = _.find(_.keys(pop_info), function (key) {
-            return _.startsWith(key, 'address_line_1');
+          var default_display_key = _.find(_.keys(pop_info), function (key) {
+            return _.startsWith(key, $scope.default_field);
           });
 
           var coordinates = point.getGeometry().getCoordinates();
@@ -456,7 +468,7 @@ angular.module('BE.seed.controller.inventory_map', [])
             placement: 'top',
             html: true,
             selector: true,
-            content: pop_info[address_line_1_key] + detailPageIcon(pop_info)
+            content: pop_info[default_display_key] + detailPageIcon(pop_info)
           });
 
           $(popup_element).popover('show');
@@ -620,5 +632,11 @@ angular.module('BE.seed.controller.inventory_map', [])
           $scope.cycle.selected_cycle = cycle;
           refreshUsingCycle();
         };
+
+        // Map attribution moved to /about page
+        ['.ol-attribution', '.ol-rotate'].forEach(className => {
+          const element = $scope.map.getViewport().querySelector(className);
+          element && (element.style.display = 'none');
+        })
       });
     }]);

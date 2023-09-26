@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author: Fable Turas fable@raintechpdx.com
 
 This provides a custom DRF ModelViewSet for rendering SEED API views with the
@@ -12,16 +11,22 @@ necessary decorator and organization queryset mixins added, inheriting from
 DRF's ModelViewSet and setting SEED relevant defaults to renderer_classes,
 parser_classes, authentication_classes, and pagination_classes attributes.
 """
+from typing import Any
 
-# Imports from Django
-from rest_framework.authentication import SessionAuthentication
-from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.mixins import (
     CreateModelMixin,
     DestroyModelMixin,
-    UpdateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    UpdateModelMixin
+)
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.viewsets import (
+    GenericViewSet,
+    ModelViewSet,
+    ReadOnlyModelViewSet
 )
 
 # Local Imports
@@ -56,7 +61,18 @@ class UpdateWithoutPatchModelMixin(object):
         return UpdateModelMixin.perform_update(self, serializer)
 
 
-class SEEDOrgModelViewSet(DecoratorMixin(drf_api_endpoint), OrgQuerySetMixin, ModelViewSet):
+class ModelViewSetWithoutPatch(CreateModelMixin,
+                               RetrieveModelMixin,
+                               UpdateWithoutPatchModelMixin,
+                               DestroyModelMixin,
+                               ListModelMixin,
+                               GenericViewSet):
+    """
+    Replacement for ModelViewSet that excludes patch.
+    """
+
+
+class SEEDOrgModelViewSet(DecoratorMixin(drf_api_endpoint), OrgQuerySetMixin, ModelViewSet):  # type: ignore[misc]
     """Viewset class customized with SEED standard attributes.
 
     Attributes:
@@ -66,12 +82,12 @@ class SEEDOrgModelViewSet(DecoratorMixin(drf_api_endpoint), OrgQuerySetMixin, Mo
             SessionAuthentication and SEEDAuthentication.
     """
     renderer_classes = RENDERER_CLASSES
-    parser_classes = PARSER_CLASSES
+    parser_classes: 'tuple[Any, ...]' = PARSER_CLASSES
     authentication_classes = AUTHENTICATION_CLASSES
     permission_classes = PERMISSIONS_CLASSES
 
 
-class SEEDOrgReadOnlyModelViewSet(DecoratorMixin(drf_api_endpoint), OrgQuerySetMixin,
+class SEEDOrgReadOnlyModelViewSet(DecoratorMixin(drf_api_endpoint), OrgQuerySetMixin,  # type: ignore[misc]
                                   ReadOnlyModelViewSet):
     """Viewset class customized with SEED standard attributes.
 
@@ -82,7 +98,7 @@ class SEEDOrgReadOnlyModelViewSet(DecoratorMixin(drf_api_endpoint), OrgQuerySetM
             SessionAuthentication and SEEDAuthentication.
     """
     renderer_classes = RENDERER_CLASSES
-    parser_classes = PARSER_CLASSES
+    parser_classes: 'tuple[Any, ...]' = PARSER_CLASSES
     authentication_classes = AUTHENTICATION_CLASSES
     permission_classes = PERMISSIONS_CLASSES
 
@@ -99,7 +115,6 @@ class SEEDOrgCreateUpdateModelViewSet(OrgCreateUpdateMixin, SEEDOrgModelViewSet)
     should instead extend SEEDOrgModelViewset and create perform_create
     and/or perform_update overrides appropriate to the model's needs.
     """
-    pass
 
 
 class SEEDOrgNoPatchOrOrgCreateModelViewSet(SEEDOrgReadOnlyModelViewSet,
@@ -109,4 +124,9 @@ class SEEDOrgNoPatchOrOrgCreateModelViewSet(SEEDOrgReadOnlyModelViewSet,
     """Extends SEEDOrgReadOnlyModelViewSet to include update (without patch),
     create, and destroy actions.
     """
-    pass
+
+
+class SEEDOrgNoPatchNoCreateModelViewSet(SEEDOrgReadOnlyModelViewSet, DestroyModelMixin, UpdateWithoutPatchModelMixin):
+    """
+    Extends SEEDOrgReadOnlyModelViewSet to include update (without patch), and destroy actions
+    """

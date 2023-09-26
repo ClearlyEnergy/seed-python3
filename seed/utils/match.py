@@ -1,17 +1,16 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 from celery import shared_task
-
 from django.contrib.postgres.aggregates.general import ArrayAgg
 from django.db import transaction
 from django.db.models import Subquery
 from django.db.models.aggregates import Count
 
+from seed.lib.progress_data.progress_data import ProgressData
 from seed.models import (
     Column,
     Cycle,
@@ -20,7 +19,7 @@ from seed.models import (
     PropertyView,
     TaxLot,
     TaxLotState,
-    TaxLotView,
+    TaxLotView
 )
 from seed.utils.merge import merge_states_with_views
 from seed.utils.properties import properties_across_cycles
@@ -103,8 +102,9 @@ def _merge_matches_across_cycles(matching_views, org_id, given_state_id, StateCl
         if given_state_id in ordered_ids:
             # If the given -State ID is included, give it precedence and
             # capture resulting merged_state ID to be returned
-            ordered_ids.remove(given_state_id)
-            ordered_ids.append(given_state_id)
+            # (disabled with https://github.com/SEED-platform/seed/issues/2624)
+            # ordered_ids.remove(given_state_id)
+            # ordered_ids.append(given_state_id)
             merged_state = merge_states_with_views(ordered_ids, org_id, 'System Match', StateClass)
             target_state_id = merged_state.id
         else:
@@ -122,7 +122,7 @@ def _link_matches(matching_views, org_id, view, ViewClass):
 
     Given a QS of matching -Views, the following cases are handled:
     1. No matches found - check for pre-existing links and, if necessary,
-    diassociate the given -View
+    disassociate the given -View
     2. All matches are linked already - use the currently existing linking ID to
     link the given -View
     3. All matches are NOT linked already - use new canonical record to link the
@@ -145,7 +145,7 @@ def _link_matches(matching_views, org_id, view, ViewClass):
         values_list(canonical_id_col, flat=True)
 
     if unique_canonical_ids.exists() is False:
-        # If no matches found - check for past links and diassociate if necessary
+        # If no matches found - check for past links and disassociate if necessary
         canonical_id_dict = {canonical_id_col: getattr(view, canonical_id_col)}
         previous_links = ViewClass.objects.filter(**canonical_id_dict).exclude(id=view.id)
         if previous_links.exists():
@@ -366,7 +366,7 @@ def whole_org_match_merge_link(org_id, state_class_name, proposed_columns=[]):
             values_list(canonical_id_col, flat=True).\
             filter(use_count=1)
 
-        # Ignoring -Views associated to -States with empty matching critieria, group by columns
+        # Ignoring -Views associated to -States with empty matching criteria, group by columns
         link_groups = org_views.\
             exclude(**state_appended_empty_matching_criteria).\
             values(*state_appended_col_names).\
@@ -429,3 +429,14 @@ def whole_org_match_merge_link(org_id, state_class_name, proposed_columns=[]):
             transaction.set_rollback(True)
 
     return summary
+
+
+def update_sub_progress_total(total, sub_progress_key=None, finish=False):
+    if sub_progress_key:
+        sub_progress_data = ProgressData.from_key(sub_progress_key)
+        if finish:
+            sub_progress_data.finish_with_success()
+        sub_progress_data.delete()
+        sub_progress_data.total = total
+        sub_progress_data.save()
+        return sub_progress_data

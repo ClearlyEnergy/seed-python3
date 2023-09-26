@@ -1,26 +1,24 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import copy
 import csv
 import logging
 import os.path
 from collections import OrderedDict
+from datetime import datetime
+from typing import Any, Callable, Literal, Optional
 
 from django.apps import apps
-from django.db import IntegrityError
 from django.core.exceptions import ValidationError
-from django.db import (
-    models,
-    transaction,
-)
+from django.db import IntegrityError, models, transaction
 from django.db.models import Q
 from django.db.models.signals import pre_save, post_save
 from django.utils.translation import gettext_lazy as _
+from past.builtins import basestring
 
 from seed.lib.superperms.orgs.models import Organization as SuperOrganization
 from seed.models.column_mappings import ColumnMapping
@@ -33,6 +31,10 @@ INVENTORY_DISPLAY = {
     'TaxLot': 'Tax Lot',
 }
 _log = logging.getLogger(__name__)
+
+
+class ColumnCastException(Exception):
+    pass
 
 
 class Column(models.Model):
@@ -77,6 +79,10 @@ class Column(models.Model):
         ('PropertyState', 'source_eui'),
         ('PropertyState', 'source_eui_modeled'),
         ('PropertyState', 'source_eui_weather_normalized'),
+        ('PropertyState', 'total_ghg_emissions'),
+        ('PropertyState', 'total_marginal_ghg_emissions'),
+        ('PropertyState', 'total_ghg_emissions_intensity'),
+        ('PropertyState', 'total_marginal_ghg_emissions_intensity'),
     ]
 
     COLUMN_MERGE_FAVOR_NEW = 0
@@ -94,7 +100,6 @@ class Column(models.Model):
 
     # These are the columns that are removed when looking to see if the records are the same
     COLUMN_EXCLUDE_FIELDS = [
-        'analysis_state',
         'bounding_box',
         'centroid',
         'created',
@@ -109,51 +114,60 @@ class Column(models.Model):
         'updated',
     ] + EXCLUDED_COLUMN_RETURN_FIELDS
 
+    # These are columns that you cannot rename fields to
     EXCLUDED_RENAME_TO_FIELDS = [
         'lot_number',
         'latitude',
         'longitude',
         'year_built',
         'property_footprint',
-        'campus',
         'created',
         'updated',
     ] + COLUMN_EXCLUDE_FIELDS
 
+    # These are column names that you can't rename at all
     EXCLUDED_RENAME_FROM_FIELDS = [
-        'campus',
         'lot_number',
         'year_built',
         'property_footprint',
         'taxlot_footprint',
     ] + COLUMN_EXCLUDE_FIELDS
 
-    # These are fields that should not be mapped to, ever.
+    # These are fields that should not be mapped to, ever. AKA Protected column fields
+    # for either PropertyState or TaxLotState. They will not be shown in the mapping
+    # suggestions.
     EXCLUDED_MAPPING_FIELDS = [
         'created',
         'extra_data',
         'lot_number',
         'normalized_address',
+<<<<<<< HEAD
         'organization',
+=======
+        'geocoded_address',
+        'geocoded_postal_code',
+        'geocoded_side_of_street',
+        'geocoded_country',
+        'geocoded_state',
+        'geocoded_county',
+        'geocoded_city',
+        'geocoded_neighborhood',
+>>>>>>> seed_branch
         'updated',
     ]
 
-    # These are columns that should not be offered as suggestions during mapping
+    # These are columns that should not be offered as suggestions during mapping for
+    # properties and tax lots
     UNMAPPABLE_PROPERTY_FIELDS = [
-        'analysis_end_time',
-        'analysis_start_time',
-        'analysis_state',
-        'analysis_state_message',
-        'campus',
         'created',
         'geocoding_confidence',
         'lot_number',
-        'updated'
+        'updated',
     ]
     UNMAPPABLE_TAXLOT_FIELDS = [
         'created',
         'geocoding_confidence',
-        'updated'
+        'updated',
     ]
 
     INTERNAL_TYPE_TO_DATA_TYPE = {
@@ -169,47 +183,76 @@ class Column(models.Model):
         'PointField': 'geometry',
     }
 
+    DATA_TYPE_PARSERS: dict[str, Callable] = {
+        'number': lambda v: float(v.replace(',', '') if isinstance(v, basestring) else v),
+        'float': lambda v: float(v.replace(',', '') if isinstance(v, basestring) else v),
+        'integer': lambda v: int(v.replace(',', '') if isinstance(v, basestring) else v),
+        'string': str,
+        'geometry': str,
+        'datetime': datetime.fromisoformat,
+        'date': lambda v: datetime.fromisoformat(v).date(),
+        'boolean': lambda v: v.lower() == 'true',
+        'area': lambda v: float(v.replace(',', '') if isinstance(v, basestring) else v),
+        'eui': lambda v: float(v.replace(',', '') if isinstance(v, basestring) else v),
+        'ghg_intensity': lambda v: float(v.replace(',', '') if isinstance(v, basestring) else v),
+        'ghg': lambda v: float(v.replace(',', '') if isinstance(v, basestring) else v),
+    }
+
     # These are the default columns (also known as the fields in the database)
     DATABASE_COLUMNS = [
         {
             'column_name': 'pm_property_id',
             'table_name': 'PropertyState',
             'display_name': 'PM Property ID',
+            'column_description': 'PM Property ID',
             'data_type': 'string',
         }, {
             'column_name': 'pm_parent_property_id',
             'table_name': 'PropertyState',
             'display_name': 'PM Parent Property ID',
+            'column_description': 'PM Parent Property ID',
             'data_type': 'string',
         }, {
             'column_name': 'jurisdiction_tax_lot_id',
             'table_name': 'TaxLotState',
             'display_name': 'Jurisdiction Tax Lot ID',
+            'column_description': 'Jurisdiction Tax Lot ID',
             'data_type': 'string',
         }, {
             'column_name': 'jurisdiction_property_id',
             'table_name': 'PropertyState',
             'display_name': 'Jurisdiction Property ID',
+            'column_description': 'Jurisdiction Property ID',
             'data_type': 'string',
         }, {
-            'column_name': 'ulid',
+            'column_name': 'ubid',
             'table_name': 'TaxLotState',
-            'display_name': 'ULID',
+            'display_name': 'UBID',
+            'column_description': 'UBID',
             'data_type': 'string',
         }, {
             'column_name': 'ubid',
             'table_name': 'PropertyState',
             'display_name': 'UBID',
+            'column_description': 'UBID',
             'data_type': 'string',
         }, {
             'column_name': 'custom_id_1',
             'table_name': 'PropertyState',
             'display_name': 'Custom ID 1',
+            'column_description': 'Custom ID 1',
             'data_type': 'string',
         }, {
             'column_name': 'custom_id_1',
             'table_name': 'TaxLotState',
             'display_name': 'Custom ID 1',
+            'column_description': 'Custom ID 1',
+            'data_type': 'string',
+        }, {
+            'column_name': 'audit_template_building_id',
+            'table_name': 'PropertyState',
+            'display_name': 'Audit Template Building ID',
+            'column_description': 'Audit Template Building ID',
             'data_type': 'string',
         }, {
             # This should never be mapped to!
@@ -227,63 +270,75 @@ class Column(models.Model):
             'column_name': 'address_line_1',
             'table_name': 'PropertyState',
             'display_name': 'Address Line 1',
+            'column_description': 'Address Line 1',
             'data_type': 'string',
         }, {
             'column_name': 'address_line_1',
             'table_name': 'TaxLotState',
             'display_name': 'Address Line 1',
+            'column_description': 'Address Line 1',
             'data_type': 'string',
         }, {
             'column_name': 'address_line_2',
             'table_name': 'PropertyState',
             'display_name': 'Address Line 2',
+            'column_description': 'Address Line 2',
             'data_type': 'string',
         }, {
             'column_name': 'address_line_2',
             'table_name': 'TaxLotState',
             'display_name': 'Address Line 2',
+            'column_description': 'Address Line 2',
             'data_type': 'string',
         }, {
             'column_name': 'city',
             'table_name': 'PropertyState',
             'display_name': 'City',
+            'column_description': 'City',
             'data_type': 'string',
         }, {
             'column_name': 'city',
             'table_name': 'TaxLotState',
             'display_name': 'City',
+            'column_description': 'City',
             'data_type': 'string',
         }, {
             'column_name': 'state',
             'table_name': 'PropertyState',
             'display_name': 'State',
+            'column_description': 'State',
             'data_type': 'string',
         }, {
             'column_name': 'state',
             'table_name': 'TaxLotState',
             'display_name': 'State',
+            'column_description': 'State',
             'data_type': 'string',
         }, {
             # This should never be mapped to!
             'column_name': 'normalized_address',
             'table_name': 'PropertyState',
             'display_name': 'Normalized Address',
+            'column_description': 'Normalized Address',
             'data_type': 'string',
         }, {
             # This should never be mapped to!
             'column_name': 'normalized_address',
             'table_name': 'TaxLotState',
             'display_name': 'Normalized Address',
+            'column_description': 'Normalized Address',
             'data_type': 'string',
         }, {
             'column_name': 'postal_code',
             'table_name': 'PropertyState',
             'display_name': 'Postal Code',
+            'column_description': 'Postal Code',
             'data_type': 'string',
         }, {
             'column_name': 'postal_code',
             'table_name': 'TaxLotState',
             'display_name': 'Postal Code',
+            'column_description': 'Postal Code',
             'data_type': 'string',
         }, {
             'column_name': 'county',
@@ -295,62 +350,67 @@ class Column(models.Model):
             'column_name': 'lot_number',
             'table_name': 'PropertyState',
             'display_name': 'Associated Tax Lot ID',
+            'column_description': 'Associated Tax Lot ID',
             'data_type': 'string',
         }, {
             'column_name': 'property_name',
             'table_name': 'PropertyState',
             'display_name': 'Property Name',
+            'column_description': 'Property Name',
             'data_type': 'string',
         }, {
             'column_name': 'latitude',
             'table_name': 'PropertyState',
             'display_name': 'Latitude',
+            'column_description': 'Latitude',
             'data_type': 'number',
         }, {
             'column_name': 'longitude',
             'table_name': 'PropertyState',
             'display_name': 'Longitude',
+            'column_description': 'Longitude',
             'data_type': 'number',
         }, {
             'column_name': 'latitude',
             'table_name': 'TaxLotState',
             'display_name': 'Latitude',
+            'column_description': 'Latitude',
             'data_type': 'number',
         }, {
             'column_name': 'longitude',
             'table_name': 'TaxLotState',
             'display_name': 'Longitude',
+            'column_description': 'Longitude',
             'data_type': 'number',
         }, {
             'column_name': 'geocoding_confidence',
             'table_name': 'PropertyState',
             'display_name': 'Geocoding Confidence',
+            'column_description': 'Geocoding Confidence',
             'data_type': 'string',
         }, {
             'column_name': 'geocoding_confidence',
             'table_name': 'TaxLotState',
             'display_name': 'Geocoding Confidence',
+            'column_description': 'Geocoding Confidence',
             'data_type': 'string',
         }, {
             'column_name': 'property_footprint',
             'table_name': 'PropertyState',
             'display_name': 'Property Footprint',
+            'column_description': 'Property Footprint',
             'data_type': 'geometry',
         }, {
             'column_name': 'taxlot_footprint',
             'table_name': 'TaxLotState',
             'display_name': 'Tax Lot Footprint',
+            'column_description': 'Tax Lot Footprint',
             'data_type': 'geometry',
         }, {
-            'column_name': 'campus',
-            'table_name': 'Property',
-            'display_name': 'Campus',
-            'data_type': 'boolean',
-            # 'type': 'boolean',
-        }, {
             'column_name': 'updated',
             'table_name': 'PropertyState',
             'display_name': 'Updated',
+            'column_description': 'Updated',
             'data_type': 'datetime',
             # 'type': 'date',
             # 'cellFilter': 'date:\'yyyy-MM-dd h:mm a\'',
@@ -358,6 +418,7 @@ class Column(models.Model):
             'column_name': 'created',
             'table_name': 'PropertyState',
             'display_name': 'Created',
+            'column_description': 'Created',
             'data_type': 'datetime',
             # 'type': 'date',
             # 'cellFilter': 'date:\'yyyy-MM-dd h:mm a\'',
@@ -365,6 +426,7 @@ class Column(models.Model):
             'column_name': 'updated',
             'table_name': 'TaxLotState',
             'display_name': 'Updated',
+            'column_description': 'Updated',
             'data_type': 'datetime',
             # 'type': 'date',
             # 'cellFilter': 'date:\'yyyy-MM-dd h:mm a\'',
@@ -372,6 +434,7 @@ class Column(models.Model):
             'column_name': 'created',
             'table_name': 'TaxLotState',
             'display_name': 'Created',
+            'column_description': 'Created',
             'data_type': 'datetime',
             # 'type': 'date',
             # 'cellFilter': 'date:\'yyyy-MM-dd h:mm a\'',
@@ -379,65 +442,77 @@ class Column(models.Model):
             'column_name': 'gross_floor_area',
             'table_name': 'PropertyState',
             'display_name': 'Gross Floor Area',
+            'column_description': 'Gross Floor Area',
             'data_type': 'area',
             # 'type': 'number',
         }, {
             'column_name': 'use_description',
             'table_name': 'PropertyState',
             'display_name': 'Use Description',
+            'column_description': 'Use Description',
             'data_type': 'string',
         }, {
             'column_name': 'energy_score',
             'table_name': 'PropertyState',
             'display_name': 'ENERGY STAR Score',
+            'column_description': 'ENERGY STAR Score',
             'data_type': 'integer',
             # 'type': 'number',
         }, {
             'column_name': 'property_notes',
             'table_name': 'PropertyState',
             'display_name': 'Property Notes',
+            'column_description': 'Property Notes',
             'data_type': 'string',
         }, {
             'column_name': 'property_type',
             'table_name': 'PropertyState',
             'display_name': 'Property Type',
+            'column_description': 'Property Type',
             'data_type': 'string',
         }, {
             'column_name': 'year_ending',
             'table_name': 'PropertyState',
             'display_name': 'Year Ending',
+            'column_description': 'Year Ending',
             'data_type': 'date',
         }, {
             'column_name': 'owner',
             'table_name': 'PropertyState',
             'display_name': 'Owner',
+            'column_description': 'Owner',
             'data_type': 'string',
         }, {
             'column_name': 'owner_email',
             'table_name': 'PropertyState',
             'display_name': 'Owner Email',
+            'column_description': 'Owner Email',
             'data_type': 'string',
         }, {
             'column_name': 'owner_telephone',
             'table_name': 'PropertyState',
             'display_name': 'Owner Telephone',
+            'column_description': 'Owner Telephone',
             'data_type': 'string',
         }, {
             'column_name': 'building_count',
             'table_name': 'PropertyState',
             'display_name': 'Building Count',
+            'column_description': 'Building Count',
             'data_type': 'integer',
             # 'type': 'number',
         }, {
             'column_name': 'year_built',
             'table_name': 'PropertyState',
             'display_name': 'Year Built',
+            'column_description': 'Year Built',
             'data_type': 'integer',
             # 'type': 'number',
         }, {
             'column_name': 'recent_sale_date',
             'table_name': 'PropertyState',
             'display_name': 'Recent Sale Date',
+            'column_description': 'Recent Sale Date',
             'data_type': 'datetime',
             # 'type': 'date',
             # 'cellFilter': 'date:\'yyyy-MM-dd h:mm a\'',
@@ -445,6 +520,7 @@ class Column(models.Model):
             'column_name': 'conditioned_floor_area',
             'table_name': 'PropertyState',
             'display_name': 'Conditioned Floor Area',
+            'column_description': 'Conditioned Floor Area',
             'data_type': 'area',
             # 'type': 'number',
             # 'dbField': True,
@@ -452,32 +528,38 @@ class Column(models.Model):
             'column_name': 'occupied_floor_area',
             'table_name': 'PropertyState',
             'display_name': 'Occupied Floor Area',
+            'column_description': 'Occupied Floor Area',
             'data_type': 'area',
             # 'type': 'number',
         }, {
             'column_name': 'owner_address',
             'table_name': 'PropertyState',
             'display_name': 'Owner Address',
+            'column_description': 'Owner Address',
             'data_type': 'string',
         }, {
             'column_name': 'owner_city_state',
             'table_name': 'PropertyState',
             'display_name': 'Owner City/State',
+            'column_description': 'Owner City/State',
             'data_type': 'string',
         }, {
             'column_name': 'owner_postal_code',
             'table_name': 'PropertyState',
             'display_name': 'Owner Postal Code',
+            'column_description': 'Owner Postal Code',
             'data_type': 'string',
         }, {
             'column_name': 'home_energy_score_id',
             'table_name': 'PropertyState',
             'display_name': 'Home Energy Score ID',
+            'column_description': 'Home Energy Score ID',
             'data_type': 'string',
         }, {
             'column_name': 'generation_date',
             'table_name': 'PropertyState',
             'display_name': 'PM Generation Date',
+            'column_description': 'PM Generation Date',
             'data_type': 'datetime',
             # 'type': 'date',
             # 'cellFilter': 'date:\'yyyy-MM-dd h:mm a\'',
@@ -485,6 +567,7 @@ class Column(models.Model):
             'column_name': 'release_date',
             'table_name': 'PropertyState',
             'display_name': 'PM Release Date',
+            'column_description': 'PM Release Date',
             'data_type': 'datetime',
             # 'type': 'date',
             # 'cellFilter': 'date:\'yyyy-MM-dd h:mm a\'',
@@ -492,92 +575,116 @@ class Column(models.Model):
             'column_name': 'site_eui',
             'table_name': 'PropertyState',
             'display_name': 'Site EUI',
+            'column_description': 'Site EUI',
             'data_type': 'eui',
             # 'type': 'number',
         }, {
             'column_name': 'site_eui_weather_normalized',
             'table_name': 'PropertyState',
             'display_name': 'Site EUI Weather Normalized',
+            'column_description': 'Site EUI Weather Normalized',
             'data_type': 'eui',
             # 'type': 'number',
         }, {
             'column_name': 'site_eui_modeled',
             'table_name': 'PropertyState',
             'display_name': 'Site EUI Modeled',
+            'column_description': 'Site EUI Modeled',
             'data_type': 'eui',
             # 'type': 'number',
         }, {
             'column_name': 'source_eui',
             'table_name': 'PropertyState',
             'display_name': 'Source EUI',
+            'column_description': 'Source EUI',
             'data_type': 'eui',
             # 'type': 'number',
         }, {
             'column_name': 'source_eui_weather_normalized',
             'table_name': 'PropertyState',
             'display_name': 'Source EUI Weather Normalized',
+            'column_description': 'Source EUI Weather Normalized',
             'data_type': 'eui',
             # 'type': 'number',
         }, {
             'column_name': 'source_eui_modeled',
             'table_name': 'PropertyState',
             'display_name': 'Source EUI Modeled',
+            'column_description': 'Source EUI Modeled',
             'data_type': 'eui',
             # 'type': 'number',
         }, {
             'column_name': 'energy_alerts',
             'table_name': 'PropertyState',
             'display_name': 'Energy Alerts',
+            'column_description': 'Energy Alerts',
             'data_type': 'string',
         }, {
             'column_name': 'space_alerts',
             'table_name': 'PropertyState',
             'display_name': 'Space Alerts',
+            'column_description': 'Space Alerts',
             'data_type': 'string',
         }, {
             'column_name': 'building_certification',
             'table_name': 'PropertyState',
             'display_name': 'Building Certification',
-            'data_type': 'string',
-        }, {
-            'column_name': 'analysis_start_time',
-            'table_name': 'PropertyState',
-            'display_name': 'Analysis Start Time',
-            'data_type': 'datetime',
-            # 'type': 'date',
-            # 'cellFilter': 'date:\'yyyy-MM-dd h:mm a\'',
-        }, {
-            'column_name': 'analysis_end_time',
-            'table_name': 'PropertyState',
-            'display_name': 'Analysis End Time',
-            'data_type': 'datetime',
-            # 'type': 'date',
-            # 'cellFilter': 'date:\'yyyy-MM-dd h:mm a\'',
-        }, {
-            'column_name': 'analysis_state',
-            'table_name': 'PropertyState',
-            'display_name': 'Analysis State',
-            'data_type': 'string',
-        }, {
-            'column_name': 'analysis_state_message',
-            'table_name': 'PropertyState',
-            'display_name': 'Analysis State Message',
+            'column_description': 'Building Certification',
             'data_type': 'string',
         }, {
             'column_name': 'number_properties',
             'table_name': 'TaxLotState',
             'display_name': 'Number Properties',
+            'column_description': 'Number Properties',
             'data_type': 'integer',
             # 'type': 'number',
         }, {
             'column_name': 'block_number',
             'table_name': 'TaxLotState',
             'display_name': 'Block Number',
+            'column_description': 'Block Number',
             'data_type': 'string',
         }, {
             'column_name': 'district',
             'table_name': 'TaxLotState',
             'display_name': 'District',
+            'column_description': 'District',
+            'data_type': 'string',
+        }, {
+            'column_name': 'egrid_subregion_code',
+            'table_name': 'PropertyState',
+            'display_name': 'eGRID Subregion Code',
+            'column_description': 'eGRID Subregion Code',
+            'data_type': 'string',
+        }, {
+            'column_name': 'total_ghg_emissions',
+            'table_name': 'PropertyState',
+            'display_name': 'Total GHG Emissions',
+            'column_description': 'Total GHG Emissions',
+            'data_type': 'ghg',
+        }, {
+            'column_name': 'total_marginal_ghg_emissions',
+            'table_name': 'PropertyState',
+            'display_name': 'Total Marginal GHG Emissions',
+            'column_description': 'Total Marginal GHG Emissions',
+            'data_type': 'ghg',
+        }, {
+            'column_name': 'total_ghg_emissions_intensity',
+            'table_name': 'PropertyState',
+            'display_name': 'Total GHG Emissions Intensity',
+            'column_description': 'Total GHG Emissions Intensity',
+            'data_type': 'ghg_intensity',
+        }, {
+            'column_name': 'total_marginal_ghg_emissions_intensity',
+            'table_name': 'PropertyState',
+            'display_name': 'Total Marginal GHG Emissions Intensity',
+            'column_description': 'Total Marginal GHG Emissions Intensity',
+            'data_type': 'ghg_intensity',
+        }, {
+            'column_name': 'property_timezone',
+            'table_name': 'PropertyState',
+            'display_name': 'Property Time Zone',
+            'column_description': 'Time zone of the property',
             'data_type': 'string',
         }, {
             'column_name': 'data_quality',
@@ -593,6 +700,7 @@ class Column(models.Model):
     table_name = models.CharField(max_length=512, blank=True, db_index=True)
 
     display_name = models.CharField(max_length=512, blank=True)
+    column_description = models.TextField(max_length=1000, blank=True, default=None)
     data_type = models.CharField(max_length=64, default='None')
 
     # Add created/modified timestamps
@@ -603,6 +711,7 @@ class Column(models.Model):
     is_extra_data = models.BooleanField(default=False)
     is_matching_criteria = models.BooleanField(default=False)
     import_file = models.ForeignKey('data_importer.ImportFile', on_delete=models.CASCADE, blank=True, null=True)
+    # TODO: units_pint should be renamed to `from_units` as this is the unit of the incoming data in pint format
     units_pint = models.CharField(max_length=64, blank=True, null=True)
 
     # 0 is deactivated. Order used to construct full address.
@@ -618,16 +727,24 @@ class Column(models.Model):
     recognize_empty = models.BooleanField(default=False)
 
     comstock_mapping = models.CharField(max_length=64, null=True, blank=True, default=None)
+    derived_column = models.OneToOneField('DerivedColumn', on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['organization', 'comstock_mapping'], name='unique_comstock_mapping'),
+            # create a name constraint on the column. The name must be unique across the organization,
+            # table_name (property or tax lot), if it is extra_data. Note that this may require some
+            # database cleanup because older organizations might have imported data before the `units_pint`
+            # column existed and there will be duplicates.
+            models.UniqueConstraint(fields=['organization', 'column_name', 'table_name', 'is_extra_data'], name='unique_column_name')
         ]
 
     def __str__(self):
         return '{} - {}:{}'.format(self.pk, self.table_name, self.column_name)
 
     def clean(self):
+        if self.derived_column:
+            return
         # Don't allow Columns that are not extra_data and not a field in the database
         if (not self.is_extra_data) and self.table_name:
             # if it isn't extra data and the table_name IS set, then it must be part of the database fields
@@ -642,6 +759,19 @@ class Column(models.Model):
                         'Column \'%s\':\'%s\' is not a field in the database and not marked as extra data. Mark as extra data to save column.') % (
                         self.table_name, self.column_name)})
 
+    def cast(self, value: Any) -> Any:
+        """Cast the value to the correct type for the column.
+
+        Args:
+            value (Any): Value to cast, typically a string.
+        """
+        return Column.cast_column_value(self.data_type, value)
+
+    def save(self, *args, **kwargs):
+        if self.column_name and not self.column_description:
+            self.column_description = self.column_name
+        super().save(*args, **kwargs)
+
     def rename_column(self, new_column_name, force=False):
         """
         Rename the column and move all the data to the new column. This can move the
@@ -652,15 +782,15 @@ class Column(models.Model):
         :param force: boolean force the overwrite of data in the column?
         :return:
         """
-        from datetime import (
-            datetime as datetime_type,
-            date as date_type,
-        )
+        from datetime import date as date_type
+        from datetime import datetime as datetime_type
+
         from django.db.utils import DataError
         from pint.errors import DimensionalityError
-        from seed.models.properties import PropertyState
-        from seed.models.tax_lots import TaxLotState, DATA_STATE_MATCHING
         from quantityfield.units import ureg
+
+        from seed.models.properties import PropertyState
+        from seed.models.tax_lots import DATA_STATE_MATCHING, TaxLotState
         STR_TO_CLASS = {'TaxLotState': TaxLotState, 'PropertyState': PropertyState}
 
         def _serialize_for_extra_data(column_value):
@@ -712,6 +842,7 @@ class Column(models.Model):
                         table_name=self.table_name,
                         column_name=new_column_name,
                         display_name=new_column_name,
+                        column_description=new_column_name,
                         is_extra_data=True,
                         unit=self.unit,
                         # unit_pint  # Do not import unit_pint since that only works with db fields
@@ -752,7 +883,7 @@ class Column(models.Model):
         except (ValidationError, DataError):
             return [False, "The column data aren't formatted properly for the new column due to type constraints (e.g., Datatime, Quantities, etc.)."]
         except DimensionalityError:
-            return [False, "The column data can't be converted to the new column due to conversion contraints (e.g., converting square feet to kBtu etc.)."]
+            return [False, "The column data can't be converted to the new column due to conversion constraints (e.g., converting square feet to kBtu etc.)."]
 
         # Return true if this operation was successful
         return [True, 'Successfully renamed column and moved data']
@@ -941,7 +1072,7 @@ class Column(models.Model):
             if organization_column:
                 return [organization_column]
             else:
-                # Try for "global" column definitions, e.g. BEDES. - Note the BEDES are not
+                # Try for "global" column definitions, e.g., BEDES. - Note the BEDES are not
                 # loaded into the database as of 9/8/2016 so not sure if this code is ever
                 # exercised
                 obj = Column.objects.filter(organization=None, column_name=column_name).first()
@@ -1037,6 +1168,7 @@ class Column(models.Model):
                     table_name='',
                     units_pint=field.get('from_units', None),
                     column_name=field['from_field'],
+                    column_description=field['from_field'],
                     is_extra_data=False  # Column objects representing raw/header rows are NEVER extra data
                 )
                 _log.debug("Creating a new from_column")
@@ -1117,6 +1249,32 @@ class Column(models.Model):
         return [c_count, cm_delete_count]
 
     @staticmethod
+    def cast_column_value(column_data_type: str, value: Any, allow_none: bool = True) -> Any:
+        """cast a single value from the column data type
+
+        Args:
+            column_data_type (str): The data type as defined in the column object
+            value (Any): value to cast. Note the value may already be cast correctly.
+
+        Raises:
+            Exception: CastException if the value cannot be cast to the correct type
+
+        Returns:
+            Any: Resulting casted value
+        """
+        if value is None:
+            if allow_none:
+                return None
+            else:
+                raise ColumnCastException('Datum is None and allow_none is False.')
+
+        parser = Column.DATA_TYPE_PARSERS.get(column_data_type, str)
+        try:
+            return parser(value)
+        except Exception:
+            raise ColumnCastException(f'Invalid data type for "{column_data_type}". Expected a valid "{column_data_type}" value.')
+
+    @staticmethod
     def retrieve_db_types():
         """
         Return the data types for the database columns in the format of:
@@ -1133,6 +1291,7 @@ class Column(models.Model):
         """
         columns = copy.deepcopy(Column.DATABASE_COLUMNS)
 
+        # TODO: There seem to be lots of these lists floating around. We should consolidate them.
         MAP_TYPES = {
             'number': 'float',
             'float': 'float',
@@ -1143,7 +1302,9 @@ class Column(models.Model):
             'date': 'date',
             'boolean': 'boolean',
             'area': 'float',
-            'eui': 'float'
+            'eui': 'float',
+            'ghg': 'float',
+            'ghg_intensity': 'float'
         }
 
         types = OrderedDict()
@@ -1179,7 +1340,7 @@ class Column(models.Model):
         """
         Similar to keys, except it returns a list of tuples of the columns that are in the database
 
-        .. code-block:: json
+        .. code-block:: python
 
             [
               ('PropertyState', 'address_line_1'),
@@ -1287,15 +1448,33 @@ class Column(models.Model):
             if not new_c['display_name']:
                 new_c['display_name'] = new_c['column_name']
 
+            # If no column_description, use the column name (this is the display name as it was typed
+            # during mapping) or display name
+            if not new_c['column_description']:
+                if not new_c['display_name']:
+                    new_c['column_description'] = new_c['column_name']
+                else:
+                    new_c['column_description'] = new_c['display_name']
+
             columns.append(new_c)
 
         # Sort by display name
         columns.sort(key=lambda col: col['display_name'].lower())
 
+        # Remove derived columns from mappable columns
+        columns = [col for col in columns if not col['derived_column']]
+
         return columns
 
     @staticmethod
-    def retrieve_all(org_id, inventory_type=None, only_used=False):
+    def retrieve_all(
+        org_id: int,
+        inventory_type: Optional[Literal['property', 'taxlot']] = None,
+        only_used: bool = False,
+        include_related: bool = True,
+        exclude_derived: bool = False,
+        column_ids: Optional[list[int]] = None
+    ) -> list[dict]:
         """
         Retrieve all the columns for an organization. This method will query for all the columns in the
         database assigned to the organization. It will then go through and cleanup the names to ensure that
@@ -1304,16 +1483,24 @@ class Column(models.Model):
         :param org_id: Organization ID
         :param inventory_type: Inventory Type (property|taxlot) from the requester. This sets the related columns if requested.
         :param only_used: View only the used columns that exist in the Column's table
-
-        :return: dict
+        :param include_related: Include related columns (e.g., if inventory type is Property, include Taxlot columns)
+        :param exclude_derived: Exclude derived columns.
+        :param column_ids: List of Column ids.
         """
         from seed.serializers.columns import ColumnSerializer
 
         # Grab all the columns out of the database for the organization that are assigned to a
         # table_name. Order extra_data last so that extra data duplicate-checking will happen after
         # processing standard columns
-        columns_db = Column.objects.filter(organization_id=org_id).exclude(table_name='').exclude(
-            table_name=None).order_by('is_extra_data', 'column_name')
+        if column_ids:
+            column_query = Column.objects.filter(organization_id=org_id, id__in=column_ids).exclude(
+                table_name='').exclude(table_name=None)
+        else:
+            column_query = Column.objects.filter(organization_id=org_id).exclude(
+                table_name='').exclude(table_name=None)
+        if exclude_derived:
+            column_query = column_query.exclude(derived_column__isnull=False)
+        columns_db = column_query.order_by('is_extra_data', 'column_name')
         columns = []
         for c in columns_db:
             if c.column_name in Column.EXCLUDED_COLUMN_RETURN_FIELDS:
@@ -1333,6 +1520,14 @@ class Column(models.Model):
             if not new_c['display_name']:
                 new_c['display_name'] = new_c['column_name']
 
+            # If no column_description, use the column name (this is the display name as it was typed
+            # during mapping) or display name
+            if not new_c['column_description']:
+                if not new_c['display_name']:
+                    new_c['column_description'] = new_c['column_name']
+                else:
+                    new_c['column_description'] = new_c['display_name']
+
             # Related fields
             new_c['related'] = False
             if inventory_type:
@@ -1342,15 +1537,17 @@ class Column(models.Model):
                     new_c['display_name'] = new_c['display_name'] + ' (%s)' % INVENTORY_DISPLAY[
                         new_c['table_name']]
 
-            # only add the column if it is in a ColumnMapping object
+            include_column = True
             if only_used:
-                if ColumnMapping.objects.filter(column_mapped=c).exists():
-                    columns.append(new_c)
-            else:
-                columns.append(new_c)
+                # only add the column if it is in a ColumnMapping object
+                include_column = include_column and ColumnMapping.objects.filter(column_mapped=c).exists()
+            if not include_related:
+                # only add the column if it is not a related column
+                is_not_related = not new_c['related']
+                include_column = include_column and is_not_related
 
-        # import json
-        # print(json.dumps(columns, indent=2))
+            if include_column:
+                columns.append(new_c)
 
         # validate that the field 'name' is unique.
         uniq = set()
@@ -1367,7 +1564,7 @@ class Column(models.Model):
         """
         Return the list of priorities for the columns. Result will be in the form of:
 
-        .. code-block:: json
+        .. code-block:: python
 
             {
                 'PropertyState': {
@@ -1410,7 +1607,7 @@ class Column(models.Model):
         """
         Return list of all columns for an organization as a tuple.
 
-        .. code-block:: json
+        .. code-block:: python
 
             [
               ('PropertyState', 'address_line_1'),

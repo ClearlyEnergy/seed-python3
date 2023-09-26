@@ -1,13 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import os
 
 from django.db.models import Q
@@ -16,23 +12,14 @@ from django_filters import CharFilter, DateFilter
 from django_filters.rest_framework import FilterSet
 from rest_framework import status
 from rest_framework.decorators import action
+
 from seed.building_sync.building_sync import BuildingSync
 from seed.hpxml.hpxml import HPXML
 from seed.lib.superperms.orgs.decorators import has_perm_class
-from seed.models import (
-    PropertyView,
-    PropertyState,
-    BuildingFile,
-    Cycle,
-    ColumnMappingProfile,
-)
-from seed.serializers.properties import (
-    PropertyViewAsStateSerializer,
-)
+from seed.models import BuildingFile, ColumnMappingProfile, Cycle, PropertyView
+from seed.serializers.properties import PropertyViewAsStateSerializer
 from seed.utils.api import OrgMixin
-from seed.utils.viewsets import (
-    SEEDOrgReadOnlyModelViewSet
-)
+from seed.utils.viewsets import SEEDOrgReadOnlyModelViewSet
 
 
 class PropertyViewFilterSet(FilterSet, OrgMixin):
@@ -40,14 +27,13 @@ class PropertyViewFilterSet(FilterSet, OrgMixin):
     Advanced filtering for PropertyView sets version 2.1.
     """
     address_line_1 = CharFilter(field_name="state__address_line_1", lookup_expr='contains')
-    analysis_state = CharFilter(method='analysis_state_filter')
     identifier = CharFilter(method='identifier_filter')
     cycle_start = DateFilter(field_name='cycle__start', lookup_expr='lte')
     cycle_end = DateFilter(field_name='cycle__end', lookup_expr='gte')
 
     class Meta:
         model = PropertyView
-        fields = ['identifier', 'address_line_1', 'cycle', 'property', 'cycle_start', 'cycle_end', 'analysis_state']
+        fields = ['identifier', 'address_line_1', 'cycle', 'property', 'cycle_start', 'cycle_end']
 
     def identifier_filter(self, queryset, name, value):
         address_line_1 = Q(state__address_line_1__icontains=value)
@@ -65,24 +51,6 @@ class PropertyViewFilterSet(FilterSet, OrgMixin):
         )
         return queryset.filter(query).order_by('-state__id')
 
-    def analysis_state_filter(self, queryset, name, value):
-        # For some reason a ChoiceFilter doesn't work on this object. I wanted to have it
-        # magically look up the map from the analysis_state string to the analysis_state ID, but
-        # it isn't working. Forcing it manually.
-
-        # If the user puts in a bogus filter, then it will return All, for now
-
-        state_id = None
-        for state in PropertyState.ANALYSIS_STATE_TYPES:
-            if state[1].upper() == value.upper():
-                state_id = state[0]
-                break
-
-        if state_id is not None:
-            return queryset.filter(Q(state__analysis_state__exact=state_id)).order_by('-state__id')
-        else:
-            return queryset.order_by('-state__id')
-
 
 class PropertyViewSetV21(SEEDOrgReadOnlyModelViewSet):
     """
@@ -94,7 +62,6 @@ class PropertyViewSetV21(SEEDOrgReadOnlyModelViewSet):
                 'properties': [
                     {
                         'id': Property primary key,
-                        'campus': property is a campus,
                         'parent_property': dict of associated parent property
                         'labels': list of associated label ids
                     }

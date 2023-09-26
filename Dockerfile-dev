@@ -14,11 +14,12 @@ RUN apk add --no-cache python3-dev \
         npm \
         nginx \
         openssl-dev \
-        geos \
+        geos-dev \
         gdal \
         gcc \
         musl-dev \
-        cargo && \
+        cargo \
+        tzdata && \
     ln -sf /usr/bin/python3 /usr/bin/python && \
     python -m ensurepip && \
     rm -r /usr/lib/python*/ensurepip && \
@@ -55,6 +56,7 @@ RUN npm install --unsafe-perm
 WORKDIR /seed
 COPY . /seed/
 COPY ./docker/wait-for-it.sh /usr/local/wait-for-it.sh
+RUN git config --system --add safe.directory /seed
 
 EXPOSE 80
 

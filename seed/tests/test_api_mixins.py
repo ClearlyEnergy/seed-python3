@@ -1,10 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 :author Nicholas Long <nicholas.long@nrel.gov>
 """
@@ -17,29 +16,24 @@ from django.test import TestCase
 from django.utils import timezone
 
 from seed.landing.models import SEEDUser as User
-from seed.lib.superperms.orgs.models import (
-    Organization,
-)
-from seed.models import (
-    Column,
-    PropertyView,
-)
+from seed.lib.superperms.orgs.models import Organization
+from seed.models import Column, PropertyView
 from seed.test_helpers.fake import (
+    FakeColumnListProfileFactory,
     FakeCycleFactory,
     FakePropertyFactory,
-    FakePropertyStateFactory,
-    FakeColumnListProfileFactory
+    FakePropertyStateFactory
 )
 from seed.utils.api import (
-    OrgMixin,
-    ProfileIdMixin,
     OrgCreateMixin,
+    OrgMixin,
     OrgQuerySetMixin,
     OrgUpdateMixin,
     OrgValidateMixin,
     OrgValidator,
-    rgetattr,
-    get_org_id_from_validator
+    ProfileIdMixin,
+    get_org_id_from_validator,
+    rgetattr
 )
 from seed.utils.organizations import create_organization
 
@@ -421,7 +415,7 @@ class TestHelpers(TestCase):
         result = rgetattr(obj, ['a', 'c'])
         self.assertEqual(result, None)
 
-    def test_gett_org_id_from_validator(self):
+    def test_get_org_id_from_validator(self):
         """test get_org_id_from_validator"""
         child = type('X', (object,), dict(a=7, b=2))
         obj = type('X', (object,), dict(a=child, b=3))

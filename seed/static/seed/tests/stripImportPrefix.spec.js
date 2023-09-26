@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 // create dummy angularJS app to attach filter(s)
 var myStripFilterApp = angular.module('myStripFilterApp', ['stripImportPrefix']);
@@ -16,7 +16,7 @@ describe('The stripImportPrefix filter', function () {
   });
 
   it('Strips out the import prefix from building ids', function () {
-    // e.g. remove the 'IMP12-' from the id 'IMP12-1321/123'
+    // e.g., remove the 'IMP12-' from the id 'IMP12-1321/123'
     // normal cases
     expect(stripImportPrefixFilter('IMP134-134')).toBe('134');
     expect(stripImportPrefixFilter('IMP134555-134')).toBe('134');
@@ -48,7 +48,7 @@ describe('The stripImportPrefix filter', function () {
   });
 
   it('Only strips out the prefix if it has at least one digit and a hyphen', function () {
-    // must have the 'IMP' folowed by a digit then a hyphen
+    // must have the 'IMP' followed by a digit then a hyphen
     expect(stripImportPrefixFilter('IMP-123')).toBe('IMP-123');
     expect(stripImportPrefixFilter('IMP1123')).toBe('IMP1123');
   });

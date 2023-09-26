@@ -1,12 +1,13 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import os
 import zipfile
 from tempfile import NamedTemporaryFile
+
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
@@ -18,7 +19,10 @@ from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.models import BuildingFile, Cycle
 from seed.serializers.building_file import BuildingFileSerializer
 from seed.serializers.properties import PropertyViewAsStateSerializer
-from seed.utils.api_schema import AutoSchemaHelper, swagger_auto_schema_org_query_param
+from seed.utils.api_schema import (
+    AutoSchemaHelper,
+    swagger_auto_schema_org_query_param
+)
 from seed.utils.viewsets import SEEDOrgReadOnlyModelViewSet
 
 
@@ -100,25 +104,23 @@ class BuildingFileViewSet(SEEDOrgReadOnlyModelViewSet):
                     # process xml files
                     if '.xml' in f.filename and '__MACOSX' not in f.filename:
                         # print("PROCESSING file: {}".format(f.filename))
-                        data_file = NamedTemporaryFile()
-                        data_file.write(openzip.read(f))
-                        data_file.seek(0)
-                        size = os.path.getsize(data_file.name)
-                        content_type = 'text/xml'
-                        # print("DATAFILE:")
-                        # print(data_file)
-                        a_file = InMemoryUploadedFile(
-                            data_file, 'data_file', f.filename, content_type,
-                            size, charset=None)
+                        with NamedTemporaryFile() as data_file:
+                            data_file.write(openzip.read(f))
+                            data_file.seek(0)
+                            size = os.path.getsize(data_file.name)
+                            content_type = 'text/xml'
 
-                        building_file = BuildingFile.objects.create(
-                            file=a_file,
-                            filename=f.filename,
-                            file_type=file_type,
-                        )
+                            a_file = InMemoryUploadedFile(
+                                data_file, 'data_file', f.filename, content_type,
+                                size, charset=None)
+
+                            building_file = BuildingFile.objects.create(
+                                file=a_file,
+                                filename=f.filename,
+                                file_type=file_type,
+                            )
+
                         p_status_tmp, property_state_tmp, property_view, messages_tmp = building_file.process(organization_id, cycle)
-                        # print('messages_tmp: ')
-                        # print(messages_tmp)
 
                         # append errors to overall messages
                         for i in messages_tmp['errors']:

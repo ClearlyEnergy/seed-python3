@@ -9,24 +9,48 @@ then
 else
    POSTGRES_ACTUAL_HOST=db-postgres
 fi
+<<<<<<< HEAD
 /usr/local/wait-for-it.sh --strict $POSTGRES_ACTUAL_HOST:$POSTGRES_PORT
+=======
+/usr/local/wait-for-it.sh --strict -t 0 $POSTGRES_ACTUAL_HOST:$POSTGRES_PORT
+>>>>>>> seed_branch
 
 echo "Waiting for redis to start"
 if [ -v REDIS_HOST ];
 then
+<<<<<<< HEAD
    REDIS_ACTUAL_HOST=$REDIS_HOST
 else
    REDIS_ACTUAL_HOST=db-postgres
 fi
 /usr/local/wait-for-it.sh --strict $REDIS_ACTUAL_HOST:6379
+=======
+    REDIS_ACTUAL_HOST=$REDIS_HOST
+else
+    REDIS_ACTUAL_HOST=db-redis
+fi
+
+/usr/local/wait-for-it.sh --strict -t 0 $REDIS_ACTUAL_HOST:6379
+
+echo "Waiting for web to start"
+if [ -v WEB_HOST ];
+then
+    WEB_ACTUAL_HOST=$WEB_HOST
+else
+    WEB_ACTUAL_HOST=web
+fi
+
+/usr/local/wait-for-it.sh --strict -t 0 $WEB_ACTUAL_HOST:80
+>>>>>>> seed_branch
 
 # check if the number of workers is set in the env
 if [ -z ${NUMBER_OF_WORKERS} ]; then
-    echo "var is unset"
+    echo "env var for NUMBER_OF_WORKERS of celery is unset"
     # Set the number of workers to half the number of cores on the machine
     export NUMBER_OF_WORKERS=$(($(nproc) / 2))
     export NUMBER_OF_WORKERS=$(($NUMBER_OF_WORKERS>1?$NUMBER_OF_WORKERS:1))
 fi
 
 echo "Number of workers will be set to: $NUMBER_OF_WORKERS"
-celery -A seed worker -l info -c $NUMBER_OF_WORKERS --maxtasksperchild 1000 --uid 1000 --events
+celery -A seed beat -l INFO --uid 1000 -S django_celery_beat.schedulers:DatabaseScheduler &
+celery -A seed worker -l INFO -c $NUMBER_OF_WORKERS --max-tasks-per-child 1000 --uid 1000 -E

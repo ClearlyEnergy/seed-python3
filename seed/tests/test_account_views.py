@@ -1,23 +1,28 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 from datetime import date
 
-from django.urls import reverse_lazy, NoReverseMatch
 from django.test import TestCase
+from django.urls import NoReverseMatch, reverse_lazy
 
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.exceptions import InsufficientPermission
 from seed.lib.superperms.orgs.models import (
-    ROLE_OWNER,
     ROLE_MEMBER,
+    ROLE_OWNER,
     ROLE_VIEWER,
+<<<<<<< HEAD
     OrganizationUser,
     #    Organization
+=======
+    Organization,
+    OrganizationUser
+>>>>>>> seed_branch
 )
 # Helix add
 from helix.models import HELIXOrganization as Organization
@@ -67,7 +72,7 @@ class AccountsViewTests(TestCase):
                 'id': self.user.pk}],
             'number_of_users': 1,
             'name': 'my org',
-            'display_significant_figures': 2,
+            'display_decimal_places': 2,
             'display_units_area': 'ft**2',
             'display_units_eui': 'kBtu/ft**2/year',
             'user_role': 'owner',
@@ -148,7 +153,7 @@ class AccountsViewTests(TestCase):
                 'user_is_owner': True,
                 'display_units_area': 'ft**2',
                 'display_units_eui': 'kBtu/ft**2/year',
-                'display_significant_figures': 2,
+                'display_decimal_places': 2,
                 'cycles': [{
                     'num_taxlots': 0,
                     'num_properties': 0,
@@ -176,7 +181,7 @@ class AccountsViewTests(TestCase):
             'org_id': self.org.pk,
             'id': self.org.pk,
             'user_is_owner': True,
-            'display_significant_figures': 2,
+            'display_decimal_places': 2,
             'display_units_area': 'ft**2',
             'display_units_eui': 'kBtu/ft**2/year',
             'cycles': [{

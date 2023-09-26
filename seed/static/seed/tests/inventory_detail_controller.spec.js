@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 
 // Replaces building detail controller, will test later with both property and taxlot data too
@@ -112,7 +112,10 @@ describe('controller: inventory_detail_controller', function () {
       cycle: {
         id: 2017
       },
-      user_org_id: 42
+      user_org_id: 42,
+      property: {
+        inventory_documents: []
+      }
     };
     var fake_all_columns = [{
       title: 'PM Property ID',
@@ -178,7 +181,9 @@ describe('controller: inventory_detail_controller', function () {
       organization_payload: {
         organization: {
           id: 1,
-          display_significant_figures: 2,
+          display_decimal_places: 2,
+          property_display_field: 'address_line_1',
+          taxlot_display_field: 'address_line_1',
         },
       },
       analyses_payload: {
@@ -187,6 +192,10 @@ describe('controller: inventory_detail_controller', function () {
       users_payload: {
         users: []
       },
+      views_payload: {
+        status:	"success",
+        property_views: [],
+      }
     });
   }
 

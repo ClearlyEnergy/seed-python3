@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.service.auth', []).factory('auth_service', [
   '$http',
@@ -15,7 +15,7 @@ angular.module('BE.seed.service.auth', []).factory('auth_service', [
      * checks against the auth backend to determine if the requesting user is
      * authorized for a given action. This should happen once per page view.
      *
-     * e.g. from the route dispatcher:
+     * e.g., from the route dispatcher:
      *  auth_service.is_authorized(org_id, ['can_invite_member', 'can_remove_member'])
      *    .then(function(data) {
      *      auth = data.auth; // auth === {'can_invite_member': true, 'can_remove_member': true}

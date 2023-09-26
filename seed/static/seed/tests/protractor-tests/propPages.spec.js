@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 // check inventory pages after import and delete test dataset
 var EC = protractor.ExpectedConditions;
@@ -64,7 +64,7 @@ describe('When I go to the prop page', function () {
     // no historical items
     var historicalItems = element.all(by.repeater('historical_item in historical_items'));
 
-    // commented out, not guarranteed:
+    // commented out, not guaranteed:
     // expect(historicalItems.count()).toBeLessThan(1);
 
     //make change

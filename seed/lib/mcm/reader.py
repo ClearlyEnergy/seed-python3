@@ -1,30 +1,31 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
-"""
-"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 The Reader module is intended to contain only code which reads data
 out of CSV files. Fuzzy matches, application to data models happens
 elsewhere.
-
 """
 import json
+import logging
 import mmap
 import operator
 import re
-import xmltodict
-
 from builtins import str
 from csv import DictReader, Sniffer
 
+import xmltodict
 from past.builtins import basestring
-from seed.data_importer.utils import kbtu_thermal_conversion_factors
 from unidecode import unidecode
-from xlrd import xldate, XLRDError, open_workbook, empty_cell
+from xlrd import XLRDError, empty_cell, open_workbook, xldate
 from xlrd.xldate import XLDateAmbiguous
 
+from seed.data_importer.utils import kbtu_thermal_conversion_factors
+
+# Create a list of Excel cell types. This is copied
+# directly from the xlrd source code.
 (
     XL_CELL_EMPTY,
     XL_CELL_TEXT,
@@ -32,11 +33,14 @@ from xlrd.xldate import XLDateAmbiguous
     XL_CELL_DATE,
     XL_CELL_BOOLEAN,
     XL_CELL_ERROR,
-    XL_CELL_BLANK,  # for use in debugging, gathering stats, etc
+    XL_CELL_BLANK,
 ) = range(7)
 
 ROW_DELIMITER = "|#*#|"
 SEED_GENERATED_HEADER_PREFIX = "SEED Generated Header"
+
+
+_log = logging.getLogger(__name__)
 
 
 def clean_fieldnames(fieldnames):
@@ -63,7 +67,6 @@ def clean_fieldnames(fieldnames):
 
 class SheetDoesNotExist(Exception):
     """Exception when parsing an Excel workbook and the specified sheet does not exist"""
-    pass
 
 
 class GreenButtonParser(object):
@@ -258,7 +261,8 @@ class GeoJSONParser(object):
         features = raw_data.get("features")
         raw_column_names = features[0].get("properties").keys()
 
-        self.headers = [self._display_name(col) for col in raw_column_names]
+        # add in the property footprint to the headers/columns
+        self.headers = [self._display_name(col) for col in raw_column_names] + ["property_footprint"]
         self.column_translations = {col: self._display_name(col) for col in raw_column_names}
         self.first_five_rows = [self._capture_row(feature) for feature in features[:5]]
 
@@ -267,7 +271,7 @@ class GeoJSONParser(object):
             properties = feature.get('properties')
 
             entry = {self.column_translations.get(k, k): v for k, v in properties.items()}
-            entry["bounding_box"] = self._get_bounding_box(feature)
+            entry["property_footprint"] = self._get_bounding_box(feature)
 
             self.data.append(entry)
 
@@ -282,7 +286,7 @@ class GeoJSONParser(object):
         return f"POLYGON (({', '.join(coords_strings)}))"
 
     def _capture_row(self, feature):
-        stringified_values = [str(value) for value in feature.get('properties').values()]
+        stringified_values = [str(value) for value in feature.get('properties').values()] + ['Property Footprint - Not Displayed']
         return "|#*#|".join(stringified_values)
 
     def num_columns(self):
@@ -347,6 +351,9 @@ class ExcelParser(object):
         """Handle different value types for XLS.
 
         :param item: xlrd cell object
+        :kwargs:
+            :trim_and_clean_strings: boolean, default False, strip whitespace before and after, remove
+                                     multiple whitespaces within string. Used specifically for headers
         :returns: items value with dates parsed properly
         """
 
@@ -364,13 +371,31 @@ class ExcelParser(object):
             else:
                 return item.value
 
-        if isinstance(item.value, basestring):
-            return unidecode(item.value)
+        # If Excel reports an ERROR (typically the #VALUE! or #NAME! in the cell), then return None,
+        # otherwise the item.value will be the error code and saved in SEED incorrectly.
+        if item.ctype in [XL_CELL_ERROR]:
+            return None
 
+        # If it is blank or empty, then return empty string
+        if item.ctype in [XL_CELL_EMPTY, XL_CELL_BLANK]:
+            return ''
+
+        # XL_CELL_TEXT
+        if isinstance(item.value, basestring):
+            if kwargs.get('trim_and_clean_strings', False):
+                # remove leading and trailing whitespace
+                value = item.value.strip()
+                # remove any double spaces within the string
+                value = " ".join(value.split())
+            else:
+                value = item.value
+            return unidecode(value)
+
+        # only remaining items should be booleans
         return item.value
 
     def XLSDictReader(self, sheet, header_row=0):
-        """returns a generator yeilding a dict per row from the XLS/XLSX file
+        """returns a generator yielding a dict per row from the XLS/XLSX file
         https://gist.github.com/mdellavo/639082
 
         :param sheet: xlrd Sheet
@@ -382,13 +407,13 @@ class ExcelParser(object):
         # called later (which it is in `seek_to_beginning` then don't reparse the headers
         if not self.cache_headers:
             for j in range(sheet.ncols):
-                self.cache_headers.append(self.get_value(sheet.cell(header_row, j)).strip())
+                self.cache_headers.append(self.get_value(sheet.cell(header_row, j), trim_and_clean_strings=True))
 
         def item(i, j):
             """returns a tuple (column header, cell value)"""
             # self.cache_headers[j],
             return (
-                self.get_value(sheet.cell(header_row, j)),
+                self.get_value(sheet.cell(header_row, j), trim_and_clean_strings=True),
                 self.get_value(sheet.cell(i, j))
             )
 
@@ -441,7 +466,14 @@ class CSVParser(object):
         self.csvfile.readline()
         # Read a significant chunk of the data to improve the odds of
         # determining the dialect.  MCM is often run on very wide csv files.
-        dialect = Sniffer().sniff(self.csvfile.read(16384))
+        try:
+            dialect = Sniffer().sniff(self.csvfile.read(16384))
+            if dialect.delimiter != ',':
+                _log.warn('CSV file has a non-standard delimiter, converting to \'comma\'')
+                dialect.delimiter = ','
+        except SyntaxError:
+            raise Exception("CSV file is not in a format that SEED can interpret. Try converting to XLSX.")
+
         self.csvfile.seek(0)
 
         fieldnames, generated_headers = clean_fieldnames(
@@ -474,7 +506,7 @@ class MCMParser(object):
     columnar data against a set of known ontologies and separates data
     according to those distinctions.
 
-    Map: mapping the columns to known ontologies, then colating data by these.
+    Map: mapping the columns to known ontologies, then collating data by these.
     Clean: coerce data according to ontology schema.
     Merge: merging the data from multiple sources into one ontology.
 
@@ -527,7 +559,7 @@ class MCMParser(object):
         elif isinstance(self.reader, ExcelParser):
             self.data = self.reader.excelreader
         else:
-            raise Exception('Uknown type of parser in MCMParser')
+            raise Exception('Unknown type of parser in MCMParser')
 
         return self.reader.seek_to_beginning()
 

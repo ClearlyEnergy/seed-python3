@@ -1,21 +1,20 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 
 from django.urls import reverse, reverse_lazy
 
 from seed.landing.models import SEEDUser as User
-from seed.models import (
-    Column,
-    PropertyState,
-    TaxLotState,
-    DATA_STATE_MATCHING,
-
+from seed.models import DATA_STATE_MATCHING, Column, PropertyState, TaxLotState
+from seed.test_helpers.fake import (
+    FakePropertyStateFactory,
+    FakeTaxLotStateFactory
 )
+from seed.tests.util import DeleteModelsTestCase
 from seed.utils.organizations import create_organization
 
 DEFAULT_CUSTOM_COLUMNS = [
@@ -25,12 +24,6 @@ DEFAULT_CUSTOM_COLUMNS = [
     'city',
     'state_province',
 ]
-from seed.test_helpers.fake import (
-    FakePropertyStateFactory,
-    FakeTaxLotStateFactory,
-)
-
-from seed.tests.util import DeleteModelsTestCase
 
 
 class DefaultColumnsViewTests(DeleteModelsTestCase):
@@ -68,6 +61,92 @@ class DefaultColumnsViewTests(DeleteModelsTestCase):
                                                       is_extra_data=True)
 
         self.client.login(**user_details)
+
+    def test_create_column(self):
+        # Set Up
+        ps = self.property_state_factory.get_property_state(self.org)
+        self.assertFalse("new_column" in ps.extra_data)
+
+        url = reverse_lazy('api:v3:columns-list')
+        post_data = {
+            'column_name': 'new_column',
+            'table_name': 'PropertyState',
+        }
+
+        # Act
+        response = self.client.post(
+            url,
+            content_type='application/json',
+            data=json.dumps(post_data)
+        )
+
+        # Assert
+        self.assertEqual(201, response.status_code)
+
+        json_string = response.content
+        data = json.loads(json_string)
+        self.assertEqual(data["column"]["column_name"], post_data["column_name"])
+        self.assertEqual(data["column"]["table_name"], post_data["table_name"])
+
+        Column.objects.get(**post_data)  # error if doesn't exist.
+
+    def test_create_column_bad_no_data(self):
+        # Set Up
+        url = reverse_lazy('api:v3:columns-list')
+
+        # Act - no data
+        response = self.client.post(
+            url,
+            content_type='application/json',
+            data=json.dumps({})
+        )
+        self.assertEqual(400, response.status_code)
+
+        # Act - no table_name
+        response = self.client.post(
+            url,
+            content_type='application/json',
+            data=json.dumps({'column_name': 'new_column'})
+        )
+        self.assertEqual(400, response.status_code)
+
+        # Act - no column_name
+        response = self.client.post(
+            url,
+            content_type='application/json',
+            data=json.dumps({'table_name': 'PropertyState'})
+        )
+        self.assertEqual(400, response.status_code)
+
+        # Act - invalid key
+        response = self.client.post(
+            url,
+            content_type='application/json',
+            data=json.dumps({
+                'column_name': 'new_column',
+                'table_name': 'bad',
+                'whoa': 'I shouldnt be here',
+            })
+        )
+        self.assertEqual(400, response.status_code)
+
+    def test_create_column_bad_table_name(self):
+        # Set Up
+        url = reverse_lazy('api:v3:columns-list')
+        post_data = {
+            'column_name': 'new_column',
+            'table_name': 'bad',
+        }
+
+        # Act
+        response = self.client.post(
+            url,
+            content_type='application/json',
+            data=json.dumps(post_data)
+        )
+
+        # Assert
+        self.assertEqual(400, response.status_code)
 
     def test_set_default_columns(self):
         url = reverse_lazy('api:v1:set_default_columns')
@@ -135,6 +214,7 @@ class DefaultColumnsViewTests(DeleteModelsTestCase):
             'table_name': 'PropertyState',
             'column_name': 'pm_property_id',
             'display_name': 'PM Property ID',
+            'column_description': 'PM Property ID',
             'is_extra_data': False,
             'merge_protection': 'Favor New',
             'data_type': 'string',
@@ -147,8 +227,8 @@ class DefaultColumnsViewTests(DeleteModelsTestCase):
             'is_matching_criteria': True,
             'recognize_empty': False,
             'comstock_mapping': None,
+            'derived_column': None,
         }
-
         # randomly check a column
         self.assertIn(expected, data)
 
@@ -191,7 +271,8 @@ class DefaultColumnsViewTests(DeleteModelsTestCase):
             content_type='application/json',
             data=json.dumps({
                 'new_column_name': 'address_line_1_extra_data',
-                'overwrite': False
+                'overwrite': False,
+                'organization_id': self.org.id
             })
         )
         result = response.json()
@@ -223,7 +304,8 @@ class DefaultColumnsViewTests(DeleteModelsTestCase):
             content_type='application/json',
             data=json.dumps({
                 'new_column_name': 'property_name',
-                'overwrite': False
+                'overwrite': False,
+                'organization_id': self.org.id,
             })
         )
         result = response.json()
@@ -235,7 +317,8 @@ class DefaultColumnsViewTests(DeleteModelsTestCase):
             content_type='application/json',
             data=json.dumps({
                 'new_column_name': 'property_name',
-                'overwrite': True
+                'overwrite': True,
+                'organization_id': self.org.id,
             })
         )
         result = response.json()
@@ -272,7 +355,8 @@ class DefaultColumnsViewTests(DeleteModelsTestCase):
             content_type='application/json',
             data=json.dumps({
                 'new_column_name': 'address_line_1_extra_data',
-                'overwrite': False
+                'overwrite': False,
+                'organization_id': self.org.id,
             })
         )
         result = response.json()
@@ -290,6 +374,7 @@ class DefaultColumnsViewTests(DeleteModelsTestCase):
         response = self.client.post(
             reverse('api:v3:columns-rename', args=[self.cross_org_column.pk]),
             content_type='application/json',
+            data={'organization_id': self.org.id}
         )
         result = response.json()
         # self.assertFalse(result['success'])
@@ -303,6 +388,7 @@ class DefaultColumnsViewTests(DeleteModelsTestCase):
         response = self.client.post(
             reverse('api:v3:columns-rename', args=[-999]),
             content_type='application/json',
+            data={'organization_id': self.org.id},
         )
         self.assertEqual(response.status_code, 404)
         result = response.json()

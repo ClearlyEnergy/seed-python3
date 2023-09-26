@@ -22,6 +22,8 @@
                 <button type="button" class="btn btn-primary" ng-click="save_settings()" ng-disabled="!isModified()">{$:: 'Save Changes' | translate $}
                     <i class="fa fa-check" ng-show="columns_updated"></i>
                 </button>
+                <button type="button" class="btn btn-primary" ng-click="open_create_column_modal()">{$:: 'Create Column' | translate $}
+                </button>
             </div>
         </div>
     </div>
@@ -47,6 +49,14 @@
                         <ul>
                             <li translate>COL_CHANGE_NAME</li>
                             <li translate>GEOCODING_NEEDS_THREE_COLS</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td translate>Column Description</td>
+                    <td>
+                        <ul>
+                            <li translate>COL_CHANGE_DESCRIPTION</li>
                         </ul>
                     </td>
                 </tr>
@@ -88,7 +98,6 @@
                     <td>
                         <ul>
                             <li translate>RECOGNIZE_EMPTY_EXPLANATION</li>
-                            <li style="font-weight: bold;" translate>RECOGNIZE_EMPTY_IMPORT_WARNING</li>
                         </ul>
                     </td>
                 </tr>
@@ -140,6 +149,7 @@
                             <th class="text-left" ng-click="toggle_column_name_order_sort()">
                                 <span>Column Name<i class="glyphicon glyphicon-sort"></i></span>
                             </th>
+                            <th class="text-center" style="min-width: 350px;" translate>Column Description</th>
                             <th class="text-center" style="min-width: 80px; width: 80px;" ng-click="toggle_geocoding_order_sort()">
                                 <span>Geocoding Order<i class="glyphicon glyphicon-sort"></i></span>
                             </th>
@@ -176,6 +186,7 @@
                             <th class="sub_head"></th>
                             <th class="sub_head"></th>
                             <th class="sub_head"></th>
+                            <th class="sub_head"></th>
                             <th class="sub_head" ng-if="::org.comstock_enabled"></th>
                             <th class="sub_head"></th>
                         </tr>
@@ -188,6 +199,9 @@
                             <td>
                                 {$:: column.column_name $}
                                 <span ng-if="column.is_extra_data" class="badge" style="margin-left: 10px;">extra data</span>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control" ng-model="column.column_description" ng-change="setModified()" ng-model-options="{debounce: 125}" required>
                             </td>
 
                             <td>

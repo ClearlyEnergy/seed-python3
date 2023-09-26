@@ -1,13 +1,12 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 This files has faker methods for generating fake data.
 The data is pseudo random, but still predictable. I.e. calling the same
-method mutiple times will always return the same sequence of results
+method multiple times will always return the same sequence of results
 (after initialization)..
 .. warning::
     Do not edit the seed unless you know what you are doing!
@@ -25,14 +24,37 @@ from django.utils import timezone
 from faker import Factory
 
 from seed.models import (
-    Analysis, AnalysisPropertyView, Cycle, Column, DerivedColumn, GreenAssessment, GreenAssessmentURL, Measure,
-    GreenAssessmentProperty, Property, PropertyAuditLog, PropertyView,
-    PropertyState, StatusLabel, TaxLot, TaxLotAuditLog, TaxLotProperty,
-    TaxLotState, TaxLotView, PropertyMeasure, Note, ColumnListProfile,
-    ColumnListProfileColumn,
     VIEW_LIST,
+<<<<<<< HEAD
     VIEW_LIST_PROPERTY)
 from helix.models import HELIXGreenAssessment as GreenAssessment
+=======
+    VIEW_LIST_PROPERTY,
+    Analysis,
+    AnalysisPropertyView,
+    Column,
+    ColumnListProfile,
+    ColumnListProfileColumn,
+    Cycle,
+    DerivedColumn,
+    GreenAssessment,
+    GreenAssessmentProperty,
+    GreenAssessmentURL,
+    Measure,
+    Note,
+    Property,
+    PropertyAuditLog,
+    PropertyMeasure,
+    PropertyState,
+    PropertyView,
+    StatusLabel,
+    TaxLot,
+    TaxLotAuditLog,
+    TaxLotProperty,
+    TaxLotState,
+    TaxLotView
+)
+>>>>>>> seed_branch
 from seed.models.auditlog import AUDIT_IMPORT, AUDIT_USER_CREATE
 from seed.utils.strings import titlecase
 
@@ -54,7 +76,7 @@ class BaseFake(object):
     """
     Base class for fake factories.
     .. warning::
-    *Always* call super, *first* when overridding init if you subclass this.
+    *Always* call super, *first* when overriding init if you subclass this.
     """
 
     def __init__(self):
@@ -243,7 +265,7 @@ class FakePropertyStateFactory(BaseFake):
         }
 
     def get_property_state_as_extra_data(self, organization=None, **kw):
-        """Return the porperty state but only populated as extra_data (used for mapping)"""
+        """Return the property state but only populated as extra_data (used for mapping)"""
         property_details = {}
         if 'no_default_data' not in kw:
             property_details = self.get_details()
@@ -290,7 +312,7 @@ class FakePropertyStateFactory(BaseFake):
             organization=self._get_attr('organization', self.organization),
             **property_details
         )
-        # make sure to create an audit log so that we can test various methods (e.g. updating properties)
+        # make sure to create an audit log so that we can test various methods (e.g., updating properties)
         PropertyAuditLog.objects.create(
             organization=self._get_attr('organization', self.organization),
             state=ps,
@@ -550,7 +572,7 @@ class FakeStatusLabelFactory(BaseFake):
 
 class FakeNoteFactory(BaseFake):
     """
-    Facotry Class for producing Note instances.
+    Factory Class for producing Note instances.
     """
 
     def __init__(self, organization=None, user=None):
@@ -687,7 +709,7 @@ class FakeTaxLotPropertyFactory(BaseFake):
         property_view = kwargs.get('property_view')
         if not property_view:
             property_view = self.property_view_factory.get_property_view(
-                prprty=kwargs.get('prprpty'), cycle=cycle,
+                prprty=kwargs.get('prprty'), cycle=cycle,
                 state=kwargs.get('property_state'),
                 organization=organization, user=user
             )
@@ -788,6 +810,7 @@ class FakeAnalysisFactory(BaseFake):
     """
     Factory Class for producing Analysis instances.
     """
+
     def __init__(self, organization=None, user=None):
         super().__init__()
         self.organization = organization
@@ -812,6 +835,7 @@ class FakeAnalysisPropertyViewFactory(BaseFake):
     """
     Factory Class for producing AnalysisPropertyView instances.
     """
+
     def __init__(self, organization=None, user=None, analysis=None):
         super().__init__()
         self.organization = organization
@@ -844,7 +868,7 @@ class FakeDerivedColumnFactory(BaseFake):
     def __init__(self, expression=None, name=None, organization=None, inventory_type=None):
         super().__init__()
         self.expression = expression
-        self.name = name if name else self.fake.text()
+        self.name = name if name else self.fake.name()
         self.organization = organization
         self.inventory_type = inventory_type
 

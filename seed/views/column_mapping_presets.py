@@ -1,21 +1,21 @@
 # !/usr/bin/env python
 # encoding: utf-8
-
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 from django.http import JsonResponse
-
 from rest_framework.decorators import action
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
+from rest_framework.viewsets import ViewSet
+
 from seed.lib.mcm import mapper
 from seed.lib.superperms.orgs.decorators import has_perm_class
-from seed.models import (
-    Column,
-    ColumnMappingProfile,
-    Organization,
+from seed.models import Column, ColumnMappingProfile, Organization
+from seed.serializers.column_mapping_profiles import (
+    ColumnMappingProfileSerializer
 )
-from seed.serializers.column_mapping_profiles import ColumnMappingProfileSerializer
 from seed.utils.api import api_endpoint_class
-
-from rest_framework.viewsets import ViewSet
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_200_OK
 
 
 class ColumnMappingPresetViewSet(ViewSet):
@@ -108,7 +108,7 @@ class ColumnMappingPresetViewSet(ViewSet):
 
                 preset.mappings = final_mappings
             elif updated_mappings:
-                # indiscriminantly update the mappings
+                # indiscriminately update the mappings
                 preset.mappings = updated_mappings
 
         preset.save()
@@ -230,7 +230,8 @@ class ColumnMappingPresetViewSet(ViewSet):
             # Fix the table name, eventually move this to the build_column_mapping
             for m in suggested_mappings:
                 table, _destination_field, _confidence = suggested_mappings[m]
-                # Do not return the campus, created, updated fields... that is force them to be in the property state
+                # Do not return the created or updated fields... that is force them to be
+                # in the property state. Not sure where this happens in this code block.
                 if not table or table == 'Property':
                     suggested_mappings[m][0] = 'PropertyState'
                 elif table == 'TaxLot':

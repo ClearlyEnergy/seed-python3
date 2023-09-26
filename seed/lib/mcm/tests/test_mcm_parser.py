@@ -1,6 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
-
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 import os
 
 from django.test import TestCase
@@ -13,6 +16,9 @@ class CSVParserTest(TestCase):
         file_path = os.path.dirname(os.path.abspath(__file__)) + "/test_data/test_csv.csv"
         self.file = open(file_path, "r", encoding="utf-8")
         self.parser = MCMParser(self.file)
+
+    def tearDown(self) -> None:
+        self.file.close()
 
     def test_it_has_a_data_property(self):
         expectation = [
@@ -67,6 +73,9 @@ class CSVMissingHeadersParserTest(TestCase):
         file_path = os.path.dirname(os.path.abspath(__file__)) + "/test_data/test_missing_headers.csv"
         self.file = open(file_path, "r", encoding="utf-8")
         self.parser = MCMParser(self.file)
+
+    def tearDown(self) -> None:
+        self.file.close()
 
     def test_it_has_a_data_property(self):
         expectation = [

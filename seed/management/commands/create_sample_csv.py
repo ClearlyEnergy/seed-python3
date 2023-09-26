@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from __future__ import unicode_literals
 
 import csv
 import random
-
 from math import floor
+
 from django.core.management.base import BaseCommand
 
 from seed.test_helpers.fake import BaseFake

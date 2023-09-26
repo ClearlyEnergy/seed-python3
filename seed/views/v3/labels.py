@@ -1,25 +1,21 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author 'Piper Merriam <pmerriam@quickleft.com>'
 """
+from django.utils.decorators import method_decorator
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework.parsers import JSONParser, FormParser
+from rest_framework.parsers import FormParser, JSONParser
 from rest_framework.renderers import JSONRenderer
 
 from seed.decorators import DecoratorMixin
-from seed.filters import (
-    LabelFilterBackend,
-)
-from seed.models import (
-    StatusLabel as Label,
-)
-from seed.serializers.labels import (
-    LabelSerializer,
-)
+from seed.filters import LabelFilterBackend
+from seed.models import StatusLabel as Label
+from seed.serializers.labels import LabelSerializer
 from seed.utils.api import drf_api_endpoint
-from django.utils.decorators import method_decorator
 from seed.utils.api_schema import AutoSchemaHelper
 from seed.utils.labels import filter_labels_for_inv_type
 from seed.utils.viewsets import SEEDOrgNoPatchOrOrgCreateModelViewSet
@@ -81,7 +77,7 @@ from seed.utils.viewsets import SEEDOrgNoPatchOrOrgCreateModelViewSet
         )
     ),
 )
-class LabelViewSet(DecoratorMixin(drf_api_endpoint), SEEDOrgNoPatchOrOrgCreateModelViewSet):
+class LabelViewSet(DecoratorMixin(drf_api_endpoint), SEEDOrgNoPatchOrOrgCreateModelViewSet):  # type: ignore[misc]
     """
     retrieve:
         Return a label instance by pk if it is within user`s specified org.

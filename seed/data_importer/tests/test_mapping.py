@@ -1,32 +1,25 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-from django.core.files.uploadedfile import SimpleUploadedFile
-
 import logging
-
 import os.path as osp
+import pathlib
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from quantityfield.units import ureg
 
 from seed.data_importer import tasks
-from seed.data_importer.tests.util import (
-    FAKE_MAPPINGS,
-)
+from seed.data_importer.tests.util import FAKE_MAPPINGS
 from seed.lib.mcm import mapper
-from seed.models import (
-    ASSESSED_RAW,
-    DATA_STATE_IMPORT,
-    Column,
-)
+from seed.models import ASSESSED_RAW, DATA_STATE_IMPORT, Column
 from seed.models.column_mappings import get_column_mapping
 from seed.test_helpers.fake import (
     FakePropertyFactory,
     FakePropertyStateFactory,
-    FakePropertyViewFactory,
+    FakePropertyViewFactory
 )
 from seed.tests.util import DataMappingBaseTestCase
 
@@ -81,7 +74,6 @@ class TestMapping(DataMappingBaseTestCase):
             mappings.append(mapping)
 
         # Now save the mappings
-        # print(mappings)
         Column.create_mappings(mappings, self.org, self.user, self.import_file.id)
         # END TODO
 
@@ -100,7 +92,7 @@ class TestMapping(DataMappingBaseTestCase):
         """
         During import, when the initial -State objects are created from the extra_data values,
         ColumnMapping objects are used to take the extra_data dictionary values and create the
-        -State objects, setting the DB-level values as necessary - e.g. taking a raw
+        -State objects, setting the DB-level values as necessary - e.g., taking a raw
         "Site EUI (kBtu/ft2)" value and inserting it into the DB field "site_eui".
 
         Previously, remapping could cause extra Column objects to be created, and subsequently,
@@ -273,7 +265,7 @@ class TestDuplicateFileHeaders(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 

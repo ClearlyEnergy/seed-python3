@@ -11,6 +11,9 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgid "\"Your building's latitude and longitude is {{latitude}}, {{longitude}}!\""
+msgstr "\"La latitude et la longitude de votre bâtiment sont {{latitude}} , {{longitude}} !\""
+
 msgid "# Of Files"
 msgstr "Nombre de fichiers"
 
@@ -23,6 +26,9 @@ msgstr "# d'Enregistrements"
 #, fuzzy
 msgid "(field must contain this text)"
 msgstr "(le champ doit contenir ce texte)"
+
+msgid "(from table below)"
+msgstr "(à partir du tableau ci-dessous)"
 
 msgid "(no address 1)"
 msgstr "(pas d'adresse 1)"
@@ -39,11 +45,20 @@ msgstr "(pas de minimum)"
 msgid "A 'Remove' button is shown for tags that are already applied to one or more properties in the current selection"
 msgstr "Un bouton «Supprimer» s'affiche pour les balises déjà appliquées à une ou plusieurs propriétés dans la sélection actuelle"
 
+msgid "A Custom Report allows you to look at aggregated data across your inventories and cycles.  This is useful to see how specific metrics change over time. doesn't exist"
+msgstr "Un rapport personnalisé vous permet de consulter des données agrégées sur vos inventaires et vos cycles. Ceci est utile pour voir comment des métriques spécifiques changent au fil du temps. n'existe pas"
+
+msgid "A Custom Report allows you to look at aggregated data across your inventories and cycles. This is useful to see how specific metrics change over time."
+msgstr "Un rapport personnalisé vous permet de consulter des données agrégées sur vos inventaires et vos cycles. Ceci est utile pour voir comment des métriques spécifiques changent au fil du temps."
+
 msgid "A list of your imported headers."
 msgstr "Une liste de vos en-têtes importés."
 
 msgid "A preview of your concatenated data will appear in the box below."
 msgstr "Un aperçu de vos données concaténées apparaîtra dans la case ci-dessous."
+
+msgid "ACCESS_LEVEL_FILENAME_UPLOADED"
+msgstr "Le fichier d'instances de niveau d'accès a été téléchargé"
 
 msgid "ADD_FILES_TO"
 msgstr "Ajoutez des fichiers à {dataset_name}."
@@ -54,6 +69,15 @@ msgstr "Ajouter ou supprimer des étiquettes de {num, plural, one{1 propriété 
 msgid "ADD_REMOVE_LABELS_FROM_TAXLOTS"
 msgstr "Ajouter ou supprimer des étiquettes de {num, plural, one{1 lot d'impôt sélectionné} other{# lots d'impôt sélectionnés}}"
 
+msgid "AH_FILE_TYPES_SUPPORTED"
+msgstr "Types de fichiers pris en charge: .csv, .xls et .xlsx."
+
+msgid "ALSO_DELETE_ANALYSES"
+msgstr "Supprimez également {num,plural, one{ 1 analyse } other{# analyses }} ."
+
+msgid "ALSO_DELETE_BATCH_ANALYSES"
+msgstr "Supprimez également {num,plural, one{ 1 analyse de lot associée } other{# analyses de lot associées }} ."
+
 msgid "AND"
 msgstr "ET"
 
@@ -62,6 +86,16 @@ msgstr "Documentation de l'API"
 
 msgid "API Key"
 msgstr "Clé API"
+
+msgid "AT_EMAIL_TEXT"
+msgstr "Utilisez l'e-mail associé à votre compte depuis <a href=\"{link}/\" target=\"_blank\" rel=\"noopener noreferrer\"> Building Energy Score </a> ."
+
+msgid "AT_PASS_TEXT"
+msgstr "Utilisez le mot de passe associé à votre compte sur le <a href=\"{link}/\" target=\"_blank\" rel=\"noopener noreferrer\"> Building Energy Score </a> ."
+
+#. Helper text for the Audit Template token in organization settings.
+msgid "AT_TOKEN_TEXT"
+msgstr "Veuillez consulter la <a href=\"{link}/reports/api/\" target=\"_blank\" rel=\"noopener noreferrer\"> documentation sur Audit Template </a> pour savoir comment obtenir une clé API. Remarque, ne préfixez pas le jeton avec \"Jeton \", incluez uniquement le jeton lui-même."
 
 msgid "About"
 msgstr "À Propos"
@@ -87,6 +121,15 @@ msgstr "Actions"
 msgid "Active"
 msgstr "actif"
 
+msgid "Actual > Target"
+msgstr "Réel > Cible"
+
+msgid "Actual Column"
+msgstr "Colonne réelle"
+
+msgid "Actual Field"
+msgstr "Champ réel"
+
 msgid "Add"
 msgstr "Ajouter"
 
@@ -98,6 +141,9 @@ msgstr "Ajouter des fichiers de données"
 
 msgid "Add Label"
 msgstr "Ajouter une étiquette"
+
+msgid "Add Mapping"
+msgstr "Ajouter une configuration"
 
 msgid "Add Shared Properties"
 msgstr "Ajouter des propriétés partagées"
@@ -114,14 +160,14 @@ msgstr "Ajouter un autre fichier"
 msgid "Add compliance information"
 msgstr "Ajouter des informations sur la conformité"
 
-msgid "Add compliance information."
-msgstr "Ajouter des informations sur la conformité"
-
 msgid "Add files to"
 msgstr "Ajouter des fichiers à"
 
 msgid "Add more data files"
 msgstr "Ajouter plus de fichiers de données"
+
+msgid "Add program information."
+msgstr "Ajouter des informations sur le programme."
 
 msgid "Add user"
 msgstr "Ajouter un utilisateur"
@@ -137,6 +183,9 @@ msgstr "Ajouter/Supprimer Des Étiquettes"
 
 msgid "Add/Remove a user to an organization"
 msgstr "Ajouter/Supprimer un utilisateur d'une organisation"
+
+msgid "Add/Update UBID"
+msgstr "Ajouter/Mettre à jour UBID"
 
 msgid "Adding buildings to project"
 msgstr "Ajout de bâtiments à projet"
@@ -159,11 +208,17 @@ msgstr "Adresse Ligne 2 (Lot d'impôt)"
 msgid "Admin"
 msgstr "Admin"
 
+msgid "An Audit Template organization token, user email and password are required"
+msgstr "Un jeton d'organisation Audit Template, un e-mail d'utilisateur et un mot de passe sont requis"
+
 msgid "An error occurred while processing the file. Please ensure that your file meets the required specifications."
 msgstr "Une erreur s'est produite lors du traitement du fichier. Assurez-vous que votre fichier respecte les spécifications requises."
 
 msgid "Analyses"
-msgstr "Analyses"
+msgstr "Analyses (bêta)"
+
+msgid "Analysis"
+msgstr "Analyse (bêta)"
 
 msgid "Analysis Name"
 msgstr "Nom de l'analyse"
@@ -192,6 +247,9 @@ msgstr "Êtes-vous sûr de vouloir supprimer le fichier de données"
 msgid "Are you sure you want to delete the data set"
 msgstr "Êtes-vous sûr de vouloir supprimer le jeu de données"
 
+msgid "Are you sure you want to delete the filter group"
+msgstr "Êtes-vous sûr de vouloir supprimer le groupe de filtres"
+
 msgid "Are you sure you want to unmerge these properties and then merge with the selected properties?"
 msgstr "Êtes-vous sûr de vouloir annuler la fusion de ces propriétés et fusionner avec les propriétés sélectionnées?"
 
@@ -213,6 +271,18 @@ msgstr "ID de lot d'impôt associé"
 msgid "Associated Tax Lot IDs"
 msgstr "IDs des lots d'impôt associé"
 
+msgid "Audit Template Building ID"
+msgstr "Audit Template ID de bâtiment"
+
+msgid "Audit Template Email"
+msgstr "Audit Template Email"
+
+msgid "Audit Template Organization Token"
+msgstr "Audit Template jeton d'organisation"
+
+msgid "Audit Template Password"
+msgstr "Audit Template le mot de passe"
+
 #: seed/models/models.py:136
 msgid "Auditing"
 msgstr "Audit"
@@ -222,6 +292,9 @@ msgstr "Correspondance automatique"
 
 msgid "BEFORE_GEOCODING"
 msgstr "Avant le géocodage"
+
+msgid "BETTER_TOKEN_TEXT"
+msgstr "Veuillez consulter la <a href=\"{link}/docs/api/\" target=\"_blank\" rel=\"noopener noreferrer\"> documentation BETTER </a> pour savoir comment obtenir une clé API. Remarque, ne préfixez pas le jeton avec \"Token\", incluez uniquement le jeton lui-même. L'hôte BETTER est configuré pour être"
 
 msgid "BUILDING ENERGY DATA EXCHANGE SPECIFICATION (BEDES)"
 msgstr "SPECIFICATION DE L'ÉCHANGE DE DONNÉES D'ÉNERGIE DES BÂTIMENTS (BEDES)"
@@ -269,11 +342,17 @@ msgstr "Filtres de bâtiments"
 msgid "Buildings"
 msgstr "Bâtiments"
 
+msgid "By clicking the Log In button you accept the NREL Data Terms."
+msgstr "En cliquant sur le bouton Connexion, vous acceptez les conditions d'utilisation des données NREL."
+
 msgid "COLUMN_NAME_DUPLICATE_ERROR"
 msgstr "Erreur: Le nom de la nouvelle colonne ne peut pas correspondre au nom précédent."
 
 msgid "COLUMN_NAME_EXISTS_WARNING"
 msgstr "Attention: le nom de la colonne existe déjà."
+
+msgid "COL_CHANGE_DESCRIPTION"
+msgstr "Fournit une description de la colonne pour aider à se souvenir de la signification de la colonne. Il s'agit par défaut du nom d'affichage s'il est disponible, sinon le nom de la colonne est utilisé."
 
 #, fuzzy
 msgid "COL_CHANGE_DISPLAY"
@@ -332,6 +411,9 @@ msgstr "Êtes-vous sûr de vouloir supprimer le profil"
 msgid "CONFIRM_AND_START_MATCHING"
 msgstr "Confirmer et commencer l'appariement"
 
+msgid "CONTINUE"
+msgstr "Continuer"
+
 msgid "CONTINUE_QUESTION"
 msgstr "Es-tu sur de vouloir continuer?"
 
@@ -340,6 +422,9 @@ msgstr "Créé étiquette {label_name}"
 
 msgid "CREATED_NEW_CYCLE"
 msgstr "Nouveau cycle créé avec nom {cycle_name}"
+
+msgid "CREATE_DATA_LOGGER"
+msgstr "Créer un enregistreur de données"
 
 msgid "CURRENTLY_GEOCODING"
 msgstr "Géocodage en cours"
@@ -378,11 +463,17 @@ msgstr "Changer mon mot de passe"
 msgid "Changed By"
 msgstr "Changé par"
 
+msgid "Chart Legend"
+msgstr "Légende du graphique"
+
 msgid "Choose Existing Organization:"
 msgstr "Choisissez Organisation Existante:"
 
 msgid "Choose the year ending month for report period."
 msgstr "Choisissez le mois de fin de l'année pour la période du rapport."
+
+msgid "City"
+msgstr "Ville"
 
 msgid "City (Property)"
 msgstr "Ville (Propriété)"
@@ -407,6 +498,12 @@ msgstr "Fermer l'aperçu"
 
 msgid "Collapse Tabs"
 msgstr "Réduire les onglets"
+
+msgid "Column"
+msgstr "Colonne"
+
+msgid "Column Description"
+msgstr "Description de la colonne"
 
 msgid "Column List Profile"
 msgstr "Profil de liste de colonnes"
@@ -436,6 +533,12 @@ msgstr "Cartographie ComStock"
 msgid "Commercial"
 msgstr "Commercial"
 
+msgid "Compare UBIDs"
+msgstr "Comparez les UBID"
+
+msgid "Comparing UBIDs Complete"
+msgstr "Comparaison des UBID terminée"
+
 msgid "Complete"
 msgstr "Complète"
 
@@ -444,6 +547,18 @@ msgstr "Conformité"
 
 msgid "Compliance Information"
 msgstr "Informations de conformité"
+
+msgid "Compliance Label"
+msgstr "Étiquette de Conformité"
+
+msgid "Compliance Period"
+msgstr "Période de conformité"
+
+msgid "Compliance Period (years)"
+msgstr "Période de conformité (années)"
+
+msgid "Compliant"
+msgstr "Conforme"
 
 msgid "Concatenate Headers (Columns of Data)"
 msgstr "Concaténer les en-Têtes (colonnes de données)"
@@ -471,8 +586,20 @@ msgstr "Confirmer la supprimation"
 msgid "Confirm new password"
 msgstr "Confirmer le nouveau mot de passe"
 
+msgid "Connection"
+msgstr "Connexion"
+
 msgid "Contact"
 msgstr "Contact"
+
+msgid "Contact Account Name Column"
+msgstr "Colonne Nom du compte de contact"
+
+msgid "Contact Benchmark Field"
+msgstr "Nom de champ Contact pour l'object Benchmark"
+
+msgid "Contacts and Accounts"
+msgstr "Contacts et Comptes"
 
 msgid "Continue to data mapping"
 msgstr "Continuer à la mappage de données"
@@ -504,6 +631,9 @@ msgstr "Créer un cycle"
 msgid "Create Data Set"
 msgstr "Créer un ensemble de données"
 
+msgid "Create Filter Group"
+msgstr "Créer un groupe de filtres"
+
 msgid "Create New Sub-Organization"
 msgstr "Créer nouvelle sous-organisation"
 
@@ -512,6 +642,9 @@ msgstr "Créer un profil"
 
 msgid "Create Project"
 msgstr "Créer un projet"
+
+msgid "Create UBID"
+msgstr "Créer un UBID"
 
 #: seed/landing/templates/landing/signup.html:29
 msgid "Create Your Account"
@@ -525,6 +658,9 @@ msgstr "Créer un nouveau projet"
 
 msgid "Create a New Sub-Organization"
 msgstr "Créer une nouvelle sous-organisation"
+
+msgid "Create a Program to get started!"
+msgstr "Créez un programme pour commencer !"
 
 msgid "Create a new rule"
 msgstr "Créer une nouvelle règle"
@@ -573,6 +709,9 @@ msgstr "Entre les Cycles"
 msgid "Current Column Mapping Profile"
 msgstr "Profil de mappage de colonne actuel"
 
+msgid "Current Filters"
+msgstr "Filtres Actuel"
+
 msgid "Current Name"
 msgstr "Nom Actuel"
 
@@ -587,6 +726,12 @@ msgstr "ID personnalisé 1 (propriété)"
 
 msgid "Custom ID 1 (Tax Lot)"
 msgstr "ID personnalisé 1 (lot d'impôt)"
+
+msgid "Custom Reports"
+msgstr "Rapports"
+
+msgid "Custom emails can be sent to Building Owners using the templates defined below. The email will be sent to the SEED record's Owner Email address and is currently not configurable. The email 'from' address is the same as the server email address which is also used to email users their account information."
+msgstr "Des e-mails personnalisés peuvent être envoyés aux propriétaires d'immeubles à l'aide des modèles définis ci-dessous. L'e-mail sera envoyé à l'adresse e-mail du propriétaire de l'enregistrement SEED et n'est actuellement pas configurable. L'adresse e-mail \"de\" est la même que l'adresse e-mail du serveur qui est également utilisée pour envoyer aux utilisateurs leurs informations de compte par e-mail."
 
 msgid "Cycle"
 msgstr "Cycle"
@@ -603,14 +748,23 @@ msgstr "Cycle:"
 msgid "Cycles"
 msgstr "Cycles"
 
+msgid "Cycles to Include in Compliance Period"
+msgstr "Cycles à inclure dans la periode de conformité"
+
 msgid "DATASET_FILENAME_UPLOADED_TO"
 msgstr "<strong> {dataset_filename} </strong> a été importé dans <strong> {dataset_name} </strong> , sous le cycle <strong> {cycle_name} </strong> ."
+
+msgid "DATASET_FILENAME_UPLOADED_TO_MULTIPLE_CYCLE"
+msgstr "<strong> {dataset_filename} </strong> a été importé dans <strong> {dataset_name} </strong> , sous plusieurs cycles. Le cycle par défaut est <strong> {cycle_name} </strong> ."
 
 msgid "DATASET_NAME_ALREADY_EXISTS"
 msgstr "Le <strong>nom du fichier \"{dataset_name}\" existe déjà</strong> . Veuillez en sélectionner un nouveau"
 
 msgid "DATA_FILE_HEADER_DUP_WARNING"
 msgstr "Veuillez consulter les en-têtes des fichiers de date. Les valeurs en double ou vides ne sont pas autorisées."
+
+msgid "DATA_LOGGERS"
+msgstr "Enregistreurs de données"
 
 msgid "DATA_MAPPING_AND_VALIDATION"
 msgstr "Mappage des données et Validation ({filename})"
@@ -635,6 +789,15 @@ msgstr "Si vous souhaitez géocoder vos données à l'aide du service MapQuest, 
 
 msgid "Data"
 msgstr "Les données"
+
+msgid "Data Administrator Account Name Column"
+msgstr "Colonne Nom du compte de l'administrateur de données"
+
+msgid "Data Administrator Contact Field"
+msgstr "Champ de contact de l'administrateur des données"
+
+msgid "Data Administrator Contact Settings"
+msgstr "Paramètres de contact de l'administrateur de données"
 
 msgid "Data File Header"
 msgstr "En-tête du fichier de données"
@@ -696,6 +859,18 @@ msgstr "Date limite"
 msgid "Deadline:"
 msgstr "Date limite:"
 
+msgid "Decode UBID"
+msgstr "Décoder UBID"
+
+msgid "Decode UBID for Selected"
+msgstr "Décoder l'UBID pour la sélection"
+
+msgid "Default Contact Account Name"
+msgstr "Nom du compte de contact par défaut"
+
+msgid "Default Data Administrator Account Name"
+msgstr "Nom du compte d'administrateur de données par défaut"
+
 msgid "Default Display Fields"
 msgstr "Champs d'affichage par défaut"
 
@@ -704,6 +879,9 @@ msgstr "Supprimer"
 
 msgid "Delete All Mappings"
 msgstr "Supprimer tous les mappages"
+
+msgid "Delete Indication Label After Successful Salesforce Update"
+msgstr "Supprimer l'étiquette d'indication après une mise à jour réussie de Salesforce"
 
 msgid "Delete Organization"
 msgstr "Supprimer l'organisation"
@@ -723,6 +901,9 @@ msgstr "Supprimez votre fichier de données"
 msgid "Delete your Data Set"
 msgstr "Supprimez votre ensemble de données"
 
+msgid "Delete your Filter Group"
+msgstr "Supprimer votre groupe de filtres"
+
 msgid "Delete your Inventory"
 msgstr "Supprimez votre inventaire"
 
@@ -731,6 +912,9 @@ msgstr "Supprimer votre profil"
 
 msgid "Deleting in progress..."
 msgstr "Suppression en cours ..."
+
+msgid "Derived Columns"
+msgstr "Colonnes dérivées"
 
 #: seed/landing/models.py:48
 msgid "Designates whether the user can log into this admin site."
@@ -761,11 +945,17 @@ msgstr "Rejeter"
 msgid "Display Name"
 msgstr "Afficher un nom"
 
+msgid "Distance to Target"
+msgstr "Distance à la cible"
+
 msgid "District"
 msgstr "District"
 
 msgid "Documentation"
 msgstr "Documentation"
+
+msgid "Domain"
+msgstr "Domaine"
 
 msgid "Done"
 msgstr "Fait"
@@ -824,6 +1014,9 @@ msgstr "Modifier"
 msgid "Edit Name"
 msgstr "Modifier le nom"
 
+msgid "Edit UBIDs"
+msgstr "Modifier les UBIDs"
+
 #: seed/landing/forms.py:13
 msgid "Email"
 msgstr "Email"
@@ -836,17 +1029,29 @@ msgstr "adresse e-mail"
 msgid "Email Address:"
 msgstr "Adresse e-mail:"
 
+msgid "Email Templates"
+msgstr "Modèles d'e-mails"
+
+msgid "Emission Metric"
+msgstr "Mesure des émissions"
+
 msgid "Enable ComStock Functionality"
 msgstr "Activer la fonctionnalité ComStock"
 
 msgid "Enable Geocoding"
 msgstr "Activer le géocodage"
 
+msgid "Enable Salesforce Integration"
+msgstr "Activer la fonctionnalité Salesforce"
+
 msgid "Energy"
 msgstr "Énergie"
 
 msgid "Energy Alerts"
 msgstr "Alertes énergétiques"
+
+msgid "Energy Metric"
+msgstr "Métrique énergétique"
 
 msgid "Energy data file"
 msgstr "Fichier de données d'énergie"
@@ -967,6 +1172,18 @@ msgstr "Source du fichier:"
 msgid "Files (Main State Only)"
 msgstr "Fichiers (état principal uniquement)"
 
+msgid "Filter By Label"
+msgstr "Filtrer par étiquette"
+
+msgid "Filter Group"
+msgstr "Groupe de filtres"
+
+msgid "Filter Group Name"
+msgstr "Filtrer le nom du groupe"
+
+msgid "Filter Groups"
+msgstr "Groupe de filtres"
+
 msgid "Filter by label"
 msgstr "Filtrer par étiquette"
 
@@ -1076,6 +1293,9 @@ msgstr "GJ/m²/année"
 msgid "GREENBUTTON_CONTENTS_TITLE"
 msgstr "Confirmer le contenu du fichier GreenButton"
 
+msgid "Generate Token"
+msgstr "Générer un jeton"
+
 msgid "Geocode"
 msgstr "Géocodage"
 
@@ -1110,6 +1330,9 @@ msgstr "Guide de Démarrage"
 msgid "Go to Detail Page"
 msgstr "Accéder à la page Détail"
 
+msgid "Go to Meters"
+msgstr "Aller aux compteurs"
+
 msgid "Go to Notes"
 msgstr "Accéder aux Notes"
 
@@ -1125,6 +1348,12 @@ msgstr "COMMENT APPORTER MANUELLEMENT VOS PROPRIETES ET LOTS D'IMPÔT:"
 msgid "HOW_SYSTEM_AUTO_MATCHES_EXPLANATION"
 msgstr "Votre fichier de données source est présenté dans le tableau de gauche. Toutes les propriétés/lots d'impôt où une correspondance de données possible existe sont présentées dans un tableau sur la droite. Le système tente de faire correspondre automatiquement les enregistrements à l'aide d'ID uniques partagés tels que: ID de Propriété PM, ID de Lot d'Impôt de Juridiction et les ID personnalisés, ainsi que des informations d'adresse. Lorsque le système croit qu'une correspondance existe entre un enregistrement de votre fichier source et un enregistrement existant, il vérifie automatiquement la 'correspondance' <i class=\"fa fa-check-square-o\"></i> case à cocher &mdash; faire efficacement une correspondance entre ces enregistrements."
 
+msgid "HTTP Error! Status Code: 404. The requested URL was not found."
+msgstr "Erreur HTTP! Code d'état : 404. L'URL demandée est introuvable."
+
+msgid "HTTP Error! Status Code: 500. Internal Server Error."
+msgstr "Erreur HTTP! Code d'état : 500. Erreur interne du serveur."
+
 #: seed/templates/seed/account_create_email.html:2
 msgid "Hello %(first_name)s, "
 msgstr "Bonjour% (first_name) s,"
@@ -1134,6 +1363,9 @@ msgstr "Points forts de la Plate-Forme SEED™"
 
 msgid "Home Energy Score ID"
 msgstr "ID de score d'énergie domestique"
+
+msgid "Hour"
+msgstr "Hour"
 
 msgid "ID"
 msgstr "ID"
@@ -1155,6 +1387,12 @@ msgstr "Cette action lancera un match et fusionnera pour l’enregistrement rés
 
 msgid "INTERNAL"
 msgstr "INTERNE"
+
+msgid "INVALID_CSV_EXTENSION_ALERT"
+msgstr "<strong>Désolé!</strong> SEED ne prend actuellement pas en charge ce format de fichier. Seuls les fichiers <strong>.csv</strong> sont pris en charge."
+
+msgid "INVALID_DOC_FILE_EXTENSION_ALERT"
+msgstr "Type de document sélectionné non valide. Les types de fichiers acceptés sont .dxf, .pdf, .idf et .osm"
 
 msgid "INVALID_EXTENSION_ALERT"
 msgstr "<strong>Désolée!</strong> SEED ne supporte actuellement pas ce format de fichier. Seuls les fichiers <strong>.csv</strong>, <strong>.xls</strong>, <strong>.xlsx</strong>, et <strong>.xml</strong> sont pris en charge."
@@ -1186,8 +1424,14 @@ msgstr "Copies de propriété ignorées dans le fichier d'importation"
 msgid "Ignored tax lot duplicates within the import file"
 msgstr "Copies des lots d'impôt ignorées dans the fichier d'importation"
 
+msgid "Import Access Level Instances"
+msgstr "Importer des instances de niveau d'accès"
+
 msgid "Import Portfolio Manager Data"
 msgstr "Importer les données de Portfolio Manager"
+
+msgid "Import from Audit Template"
+msgstr "Importer à partir du Audit Template"
 
 msgid "In addition, you need to specify where the field should be associated with Tax Lot data or Property data. This will affect how the data is matched and merged, as well as how it is displayed in the Inventory view."
 msgstr "En outre, vous devez spécifier où le champ doit être associé aux données du lot d'impôt ou aux données de la propriété. Cela affectera la manière dont les données sont mises en correspondance et fusionnées, ainsi que la manière dont elles sont affichées dans la vue Inventaire."
@@ -1202,14 +1446,23 @@ msgstr "Inclure l'en-tête d'étiquette CSV"
 msgid "Include Notes"
 msgstr "Inclure des notes"
 
+msgid "Indication Label"
+msgstr "Étiquette d'indication"
+
 msgid "Ineligible"
 msgstr "Inéligible"
+
+msgid "Insights"
+msgstr "Connaissances"
 
 msgid "Integer"
 msgstr "Entier"
 
 msgid "Interval"
 msgstr "Intervalle"
+
+msgid "Invalid UBID"
+msgstr "UBID invalide"
 
 msgid "Inventory"
 msgstr "Inventaire"
@@ -1235,6 +1488,9 @@ msgstr "Inviter un propriétaire"
 msgid "It is necessary to map your field names to SEED field names. You can select from the list that appears as you start to type, which is based on the Building Energy Data Exchange Specification (BEDES), or you can type in your own name, as well as typing in the field name from the original datafile."
 msgstr "Il est nécessaire de mapper vos noms de champs aux noms de champs SEED. Vous pouvez sélectionner dans la liste qui apparaît lorsque vous commencez à taper, qui est basée sur la spécification BEDES (Building Energy Data Exchange Specification) ou vous pouvez taper votre propre nom et saisir le nom du champ dans le fichier de données d'origine."
 
+msgid "JACCARD_EXPLANATION"
+msgstr "La comparaison repose sur l'indice de Jaccard, qui varie de 0.0 (aucune superposition) à 1.0 (correspondance parfaite)."
+
 msgid "Jurisdiction Property ID"
 msgstr "Juridiction"
 
@@ -1250,6 +1506,7 @@ msgstr "Pour cette organisation, les enregistrements correspondent si les champs
 msgid "LIST_GUIDANCE_PROPERTIES"
 msgstr "Sélectionnez des colonnes dans la liste ci-dessous pour les faire apparaître dans votre liste de propriétés. Faites glisser les lignes pour modifier l'ordre dans lequel elles apparaissent. Épinglez les lignes pour qu'elles soient épinglées dans la vue de liste."
 
+#, fuzzy
 msgid "LIST_GUIDANCE_PROPERTIES_NO_PIN"
 msgstr "Sélectionnez les colonnes de la liste ci-dessous pour les faire apparaître dans votre tableau des propriétés. Faites glisser les lignes pour modifier l'ordre dans lequel elles apparaissent."
 
@@ -1287,11 +1544,17 @@ msgstr "Nom de famille"
 msgid "Last Name:"
 msgstr "Nom de famille:"
 
+msgid "Last Salesforce Update"
+msgstr "Dernière Mise á Jour Salesforce"
+
 msgid "Last name is required."
 msgstr "Le nom de famille est requis."
 
 msgid "Latitude"
 msgstr "Latitude"
+
+msgid "Left Axis"
+msgstr "Axe gauche"
 
 msgid "Left Half"
 msgstr "Moitié gauche"
@@ -1317,6 +1580,9 @@ msgstr "S'identifier"
 #: seed/landing/templates/landing/home.html:16
 msgid "Log in to SEED Platform"
 msgstr "Connectez-vous à SEED Platform"
+
+msgid "Logging Email"
+msgstr "Adresse courriel pour reportage"
 
 msgid "Logout"
 msgstr "Déconnexion"
@@ -1388,6 +1654,9 @@ msgstr "<strong>Remarque:</strong> seule la première feuille de fichiers Excel 
 msgid "Main"
 msgstr "Principale"
 
+msgid "Main Contact Settings"
+msgstr "Principaux paramètres de contact"
+
 msgid "Maintenance"
 msgstr "Maintenance"
 
@@ -1420,6 +1689,9 @@ msgstr "Mapper les champs SEED aux champs de fichiers importés"
 
 msgid "Map Your Data"
 msgstr "Mappez vos données"
+
+msgid "Map features are provided by"
+msgstr "Les fonctionnalités cartographiques sont fournies par"
 
 msgid "MapQuest API Key"
 msgstr "Clé API MapQuest"
@@ -1504,6 +1776,9 @@ msgstr "Rôle de membre"
 msgid "Members"
 msgstr "Membres"
 
+msgid "Merge"
+msgstr "Fusionner"
+
 msgid "Merge Protection"
 msgstr "Protection contre les fusions"
 
@@ -1540,6 +1815,24 @@ msgstr "Données du compteur"
 msgid "Meters"
 msgstr "Mètres"
 
+msgid "Metric"
+msgstr "Métrique"
+
+msgid "Metric Actual Column"
+msgstr "Colonne de mesures réelles"
+
+msgid "Metric Name"
+msgstr "Nom de la métrique"
+
+msgid "Metric Target Column"
+msgstr "Colonne Cible de métrique"
+
+msgid "Metric Type"
+msgstr "Type de métrique"
+
+msgid "Metric Type Settings"
+msgstr "Type de métrique"
+
 msgid "Min"
 msgstr "Min"
 
@@ -1551,6 +1844,9 @@ msgstr "Minimum"
 
 msgid "Minimum Sq Ft"
 msgstr "Pi/Ca Minimum"
+
+msgid "Minute"
+msgstr "Minute"
 
 msgid "Modifying Data Quality Rules"
 msgstr "Modification des règles de qualité des données"
@@ -1567,8 +1863,14 @@ msgstr "Déplacer/copier des bâtiments dans un autre projet"
 msgid "NEW_COLUMN_REPLACE_DATA_WARNING"
 msgstr "Une nouvelle colonne sera créée et/ou les données existantes peuvent être remplacées."
 
+msgid "NON_UNIQUE_DATA_LOGGER_DISPLAY_NAME"
+msgstr "Le nom d'affichage doit être unique."
+
 msgid "NOT_GEOCODED_PREVIOUSLY"
 msgstr "Non géocodé auparavant"
+
+msgid "NO_DATA_LOGGER_DISPLAY_NAME"
+msgstr "S'il vous plaît entrer un nom d'affichage."
 
 msgid "NO_MAPQUEST_API_KEY_FOR_ORG"
 msgstr "Aucune clé d'API MapQuest n'est associée à votre organisation."
@@ -1598,7 +1900,7 @@ msgid "National Renewable Energy Laboratory"
 msgstr "Laboratoire National Des Énergies Renouvelables"
 
 msgid "New Analysis"
-msgstr "Nouvelle analyse"
+msgstr "Nouvelle analyse (bêta)"
 
 msgid "New Note"
 msgstr "Nouvelle note"
@@ -1623,20 +1925,41 @@ msgstr "Prochain"
 msgid "No"
 msgstr "Non"
 
+msgid "No Custom Reports Selected"
+msgstr "Aucun rapport personnalisé sélectionné"
+
 msgid "No Data"
 msgstr "Pas de données"
+
+msgid "No UBIDs For Property"
+msgstr "Aucun UBID pour la propriété"
+
+msgid "No UBIDs For Tax Lot"
+msgstr "Aucun UBID pour le lot fiscal"
 
 msgid "No action was taken"
 msgstr "Aucune action n'a été prise"
 
+msgid "No filters added."
+msgstr "Aucun filtre ajouté."
+
 msgid "No labels available. Add a label above to get started."
 msgstr "Pas d'étiquettes disponibles. Ajoutez une étiquette ci-dessus pour commencer."
+
+msgid "No program created"
+msgstr "Aucun programme créé"
+
+msgid "No program selected"
+msgstr "Aucun programme sélectionné"
 
 msgid "No warnings/errors"
 msgstr "Aucun avertissement/erreur"
 
 msgid "None"
 msgstr "Aucun"
+
+msgid "Not Compliant"
+msgstr "Non conforme"
 
 msgid "Not Null"
 msgstr "Pas nul"
@@ -1646,6 +1969,9 @@ msgstr "Tous les éléments de l'inventaire n'ont pas été supprimés"
 
 msgid "Note:"
 msgstr "Remarque:"
+
+msgid "Note:  Meters are labeled with the following format:  \"Type - Source - Source ID\""
+msgstr "Remarque: Les compteurs sont étiquetés au format suivant: \"la catégorie - Source - Source ID\""
 
 msgid "Note: Parent organization members are not automatically made members of sub-organizations."
 msgstr "Remarque: les membres de l'organisation parente ne sont pas automatiquement devenus membres de sous-organisations."
@@ -1668,6 +1994,9 @@ msgstr "Nombre de propriétés"
 
 msgid "Number of Tax Lots"
 msgstr "Nombre de lots d'impôt"
+
+msgid "Number of decimal places to display"
+msgstr "Nombre de décimales à afficher"
 
 msgid "OK_TO_DELETE_NUM_PROPERTIES_AND_TAXLOTS"
 msgstr "Voulez-vous vraiment supprimer {num_properties,plural,one{<strong>1</strong> propriété} other{<strong>#</strong> propriétés}} et {num_taxlots,plural,one{<strong>1</strong>lot d'impôt} other{<strong>#</strong> lots d'impôt}}?"
@@ -1708,6 +2037,9 @@ msgstr "Nom de l'organisation:"
 
 msgid "Organization Owner(s)"
 msgstr "Propriétaire(s) de l'organisation"
+
+msgid "Organization Settings"
+msgstr "Paramètres de l'organisation"
 
 msgid "Organizations"
 msgstr "Organisations"
@@ -1845,6 +2177,9 @@ msgstr "Passez à la page suivante et configurez votre compte:"
 msgid "Please join the SEED-Platform Dev forum where you can connect with other developers."
 msgstr "Rejoignez le forum SEED-Platform Dev où vous pouvez vous connecter avec d'autres développeurs."
 
+msgid "Please review SEED column names or the column names of the file being imported. Column names that match an existing Derived Column name are not allowed."
+msgstr "Veuillez vérifier les noms de colonne SEED ou les noms de colonne du fichier importé. Les noms de colonne qui correspondent à un nom de colonne dérivée existant ne sont pas autorisés."
+
 msgid "Please review SEED column names or the column names of the file being imported. Duplicate values are not allowed in either case."
 msgstr "Veuillez consulter les noms de colonnes SEED ou les noms de colonnes du fichier en cours d'importation. Les valeurs en double ne sont pas autorisées dans les deux cas."
 
@@ -1860,6 +2195,9 @@ msgstr "Veuillez patienter pendant que vos données sont chargées ..."
 msgid "Populate SEED Headers with best known matches"
 msgstr "Remplissez les en-têtes SEED avec les correspondances les plus connues"
 
+msgid "Postal Code"
+msgstr "Code postal"
+
 msgid "Postal Code (Property)"
 msgstr "Code postal (propriété)"
 
@@ -1868,6 +2206,9 @@ msgstr "Code postal (lot d'impôt)"
 
 msgid "Potential Matches from Source"
 msgstr "Correspondances possibles à partir de la source"
+
+msgid "Preferred"
+msgstr "Préféré"
 
 msgid "Preparing your inventory for deletion"
 msgstr "Préparer votre inventaire pour la suppression"
@@ -1895,6 +2236,24 @@ msgstr "Informations sur le profil"
 
 msgid "Profile Name"
 msgstr "Nom de profil"
+
+msgid "Program"
+msgstr "Programme"
+
+msgid "Program Definition"
+msgstr "Définition du programme"
+
+msgid "Program Metric"
+msgstr "Métrique du programme"
+
+msgid "Program Metric Configuration"
+msgstr "Configuration de la métrique du programme"
+
+msgid "Program Overview"
+msgstr "Métrique du programme"
+
+msgid "Program Setup"
+msgstr "Configuration du programme"
 
 #: seed/models/models.py:239
 msgid "Project"
@@ -1925,6 +2284,9 @@ msgstr "Propriétés"
 msgid "Properties List"
 msgstr "Liste Des Propriétés"
 
+msgid "Properties List (legacy)"
+msgstr "Liste des propriétés (héritage)"
+
 msgid "Properties with Data"
 msgstr "Propriétés avec données"
 
@@ -1944,17 +2306,17 @@ msgstr "Nombre de propriétés"
 msgid "Property Detail"
 msgstr "Détails de la propriété"
 
-msgid "Property Detail Notes"
-msgstr "Notes de détail de la propriété"
-
 msgid "Property Detail Settings"
 msgstr "Paramètres de détail de la propriété"
 
-msgid "Property Detail View Display Field"
-msgstr "Champ d'affichage de la vue détaillée de la propriété"
+msgid "Property Display Field"
+msgstr "Champ d'affichage de la propriété"
 
 msgid "Property Footprint"
 msgstr "Empreinte de propriété"
+
+msgid "Property Insights"
+msgstr "Rapports de propriété"
 
 msgid "Property Name"
 msgstr "Nom de la propriété"
@@ -2006,6 +2368,12 @@ msgstr "Reconnaître vide"
 msgid "Record from Source"
 msgstr "Enregistrement de la source"
 
+msgid "Refresh Metadata"
+msgstr "Actualiser les métadonnées"
+
+msgid "Refresh Metadata of Selected Properties and Tax Lots"
+msgstr "Actualiser les métadonnées des propriétés et terrains d'impôt sélectionnés"
+
 #: src/django-tos-master/tos/templates/tos/tos_check.html:18
 msgid "Reject"
 msgstr "Rejeter"
@@ -2043,8 +2411,14 @@ msgstr "Retrait des bâtiments du projet"
 msgid "Rename"
 msgstr "Renommer"
 
+msgid "Rename Filter Group"
+msgstr "Renommer le groupe de filtres"
+
 msgid "Rename Profile"
 msgstr "Renommer le profil"
+
+msgid "Rename your Filter Group"
+msgstr "Renommez votre groupe de filtres"
 
 #, fuzzy
 msgid "Rename your Profile"
@@ -2084,6 +2458,9 @@ msgstr "Restaurer les règles par défaut"
 msgid "Retro Commissioning"
 msgstr "Rétrospection de mise en service"
 
+msgid "Retry"
+msgstr "Recommencez"
+
 msgid "Review Changes"
 msgstr "Revoir les Changements"
 
@@ -2092,6 +2469,9 @@ msgstr "Examiner les données mappées"
 
 msgid "Review matches"
 msgstr "Examiner les correspondences"
+
+msgid "Right Axis"
+msgstr "Axe droit"
 
 msgid "Right Half"
 msgstr "Moitié droite"
@@ -2117,6 +2497,9 @@ msgstr "Rangée 5"
 msgid "Rules for a single field must have the same Data Type. Note that some Data Types are not available to certain Condition Checks."
 msgstr "Les règles pour un seul champ doivent avoir le même type de données. Notez que certains types de données ne sont pas disponibles pour certaines vérifications de condition."
 
+msgid "Run Analysis"
+msgstr "Exécuter l'analyse (bêta)"
+
 msgid "Run Author"
 msgstr "Exécuter l'auteur"
 
@@ -2132,6 +2515,9 @@ msgstr "ID d'exécution"
 msgid "Run Status"
 msgstr "État de l'exécution"
 
+msgid "SEED Field Name"
+msgstr "Nom du champ SEED"
+
 msgid "SEED Header"
 msgstr "En-tête SEED"
 
@@ -2143,6 +2529,9 @@ msgstr "Plate-forme SEED"
 msgid "SEED Platform™"
 msgstr "SEED Platform™"
 
+msgid "SEED Unique Benchmark ID Fieldname"
+msgstr "Unique nom de champ pour Benchmark ID SEED"
+
 msgid "SEED doesn't currently support that file format"
 msgstr "SEED ne prend pas actuellement en charge ce format de fichier"
 
@@ -2153,8 +2542,127 @@ msgstr "SEED est un logiciel simple, flexible et rentable conçu pour aider les 
 msgid "SELECT_DATA_SET_TITLE"
 msgstr "Sélectionner un ensemble de données"
 
+#, fuzzy
+msgid "SELECT_DOC_UPLOAD_TITLE"
+msgstr "Sélectionner un document à télécharger"
+
 msgid "SELECT_THE_TYPE_OF_FILE_TO_ADD_TO_DATASET"
 msgstr "Sélectionnez le type de fichier(s) que vous souhaitez ajouter à {dataset_name}."
+
+msgid "SENSORS"
+msgstr "Capteurs"
+
+msgid "SENSOR_CONTENTS_TITLE"
+msgstr "Confirmer le contenu du fichier"
+
+msgid "SENSOR_READINGS"
+msgstr "Lectures de capteur"
+
+msgid "SENSOR_READING_COUNTS_TITLE"
+msgstr "Compte de lecture du capteur"
+
+#, fuzzy
+msgid "SF_ACCOUNT_NAME_FIELDNAME_TEXT"
+msgstr "Selectionez le champ qui contient le nom de compte du contact. Ex: 'Organization'"
+
+msgid "SF_ACCOUNT_RECORD_TYPE_TEXT"
+msgstr "Si votre Salesforce a plusieurs types de Compte, fournissez le 'Record Type ID' à utiliser lorsqu'un compte est automatiquement créé par SEED"
+
+msgid "SF_BENCHMARK_CONTACT_FIELDNAME_TEXT"
+msgstr "Si votre objet Benchmark a un champ pour capturer le Contact, inscrivez le nom du champ dans l'application Salesforce, ex: Contact_Name__c"
+
+msgid "SF_BENCHMARK_ID_FIELDNAME_TEXT"
+msgstr "Nom du champ dans l'application Salesforce utilisé pour identifier uniquement un object 'Benchmark'. Example: 'Salesforce_Benchmark_ID__c'"
+
+msgid "SF_COMPLIANCE_LABEL_TEXT"
+msgstr "Étiquette qui signale qu'une propriété est en conformité. Example: 'Comforme'"
+
+msgid "SF_CONFIGURATION_TEXT"
+msgstr "Configurez les paramètres necessaires pour transferez les données à Salesforce"
+
+msgid "SF_CONNECTION_TEXT"
+msgstr "Inscrivez vos détails pour la connexion Salesforce"
+
+msgid "SF_CONTACTS_AND_ACCOUNTS_TEXT"
+msgstr "Configurez les paramètres pour les notifications Salesforce reliées aux objets de type Benchmark"
+
+msgid "SF_CONTACT_EMAIL_FIELDNAME_TEXT"
+msgstr "Selectionez le champ qui contient l'adresse courriel du contact pour l'object Benchmark. Ex:'Email'"
+
+msgid "SF_CONTACT_HEADER_TEXT"
+msgstr "Les champs suivants seront utilisés pour récupérer ou créer un contact principal à associer à l'objet Benchmark dans Salesforce. Laissez vide si votre instance n'utilise pas cette fonctionnalité."
+
+msgid "SF_CONTACT_NAME_FIELDNAME_TEXT"
+msgstr "Selectionez le champ qui contient le nom du contact pour l'object Benchmark. Ex: 'On Behalf Of'"
+
+msgid "SF_CONTACT_RECORD_TYPE_TEXT"
+msgstr "Si votre Salesforce a plusieurs types de Contact, fournissez le 'Record Type ID' à utiliser lorsqu'un contact est automatiquement créé par SEED"
+
+msgid "SF_CYCLE_FIELDNAME_TEXT"
+msgstr "Si votre objet Benchmark a un champ pour capturer le nom du cycle, inscrivez le nom du champ dans l'application Salesforce, ex: Cycle__c"
+
+msgid "SF_DATA_ADMIN_ACCOUNT_NAME_FIELDNAME_TEXT"
+msgstr "Sélectionnez le champ SEED contenant le nom de compte pour l'enregistrement de contact de l'administrateur de données à créer dans Salesforce. Ex : \"Organisation\""
+
+msgid "SF_DATA_ADMIN_CONTACT_FIELDNAME_TEXT"
+msgstr "Si votre enregistrement de référence Salesforce stocke une relation de contact Salesforce pour un administrateur de données de propriété, indiquez le nom du champ Salesforce ici, par exemple : Property_Data_Administrator__c"
+
+msgid "SF_DATA_ADMIN_EMAIL_FIELDNAME_TEXT"
+msgstr "Selectionez le champ qui contient l'adresse courriel de l'administrateur de données pour l'objet Salesforce. Ex: 'Property Data Administrator - Email'"
+
+msgid "SF_DATA_ADMIN_HEADER_TEXT"
+msgstr "Les champs suivants seront utilisés pour récupérer ou créer un contact d'administrateur de données de propriété à associer à l'objet Benchmark dans Salesforce. Laissez vide si votre instance n'utilise pas cette fonctionnalité."
+
+msgid "SF_DATA_ADMIN_NAME_FIELDNAME_TEXT"
+msgstr "Selectionez le champ qui contient le nom de l'administrateur de données pour l'objet Salesforce. Ex: 'Property Data Administrator'"
+
+msgid "SF_DEFAULT_ACCOUNT_NAME_TEXT"
+msgstr "Fournissez un nom de compte par défaut à utiliser par Salesforce lorsqu'il n'y a pas de données valides dans la colonne Nom du compte de contact spécifiée ci-dessus. Laissez ce champ vide pour signaler une erreur et abandonner la synchronisation lorsque la colonne Nom du compte de contact est vide."
+
+msgid "SF_DEFAULT_DATA_ADMIN_ACCOUNT_NAME_TEXT"
+msgstr "Fournissez un nom de compte par défaut à utiliser par Salesforce lorsqu'il n'y a pas de données valides dans la colonne Nom du compte de l'administrateur de données spécifiée ci-dessus. Laissez ce champ vide pour signaler une erreur et abandonner la synchronisation lorsque la colonne Nom du compte de l'administrateur de données est vide."
+
+msgid "SF_DELETE_LABEL_AFTER_SYNC_TEXT"
+msgstr "Cochez cette case pour supprimer automatiquement l'étiquette d'indication des propriétés qui ont été mises à jour avec succès dans Salesforce afin d'empêcher de futures mises à jour automatiques."
+
+msgid "SF_DOMAIN_TEXT"
+msgstr "Si votre instance Salesforce est un environment de test (sandbox), inscrivez 'test'; sinon lassez le champ vide."
+
+msgid "SF_INDICATION_LABEL_TEXT"
+msgstr "Étiquette qui signale qu'une propriété devrait être mise á jour dans Salesforce. Example: 'Ajouter à Salesforce'"
+
+msgid "SF_INTEGRATION_TEXT"
+msgstr "Cochez cette case si vous voulez synchronize vos données entre SEED et Salesforce"
+
+msgid "SF_LABELS_FIELDNAME_TEXT"
+msgstr "Si votre objet Benchmark a un champ pour capturer tous les étiquettes SEED, inscrivez le nom du champ dans l'application Salesforce, ex: SEED_Labels__c"
+
+msgid "SF_LOGGING_EMAIL_TEXT"
+msgstr "Inscrivez l'adresse courriel à utiliser pour le reportage des errors rencontrée pendant la mise à jour Salesforce"
+
+msgid "SF_MAPPINGS_TEXT"
+msgstr "Associez les champs de données de votre objet Benchmark dans l'application Salesforce avec le nom du champ dans l'application SEED. Vous pouvez utiliser le gestionnaire d'object dans Salesforce pour trouver les noms de champs (et non les étiquettes de champs)"
+
+msgid "SF_SCHEDULED_UPDATE_TEXT"
+msgstr "Si vous désirez faire une mise à jour automatique de l'application Salesforce quotidiennement, configurez les champs ci-dessous"
+
+msgid "SF_SECURITY_TOKEN_TEXT"
+msgstr "Jeton d'authentification Salesforce"
+
+msgid "SF_SEED_BENCHMARK_ID_FIELDNAME_TEXT"
+msgstr "Nom du champ dans SEED utilisé pour identifier uniquement un object 'Benchmark'. Example: 'Salesforce Benchmark ID'"
+
+msgid "SF_STATUS_FIELDNAME_TEXT"
+msgstr "Si votre objet Benchmark a un champ pour capturer le Statut (ex: violation ou conforme), inscrivez le nom du champ dans l'application Salesforce, ex: Status__c"
+
+msgid "SF_UPDATE_HOUR_TEXT"
+msgstr "Selectionez l'heure à quelle devrait s'effectuer la mise à jour quotidienne (0-23)"
+
+msgid "SF_UPDATE_MINUTE_TEXT"
+msgstr "Selectionez à quelle minute après l'heure devrait s'effectuer la mise à jour quotidienne (0-59)"
+
+msgid "SF_VIOLATION_LABEL_TEXT"
+msgstr "Étiquette qui signale qu'une propriété a une violation.  Example: 'Violation - Données Insufficientes'"
 
 msgid "SHARE DATA WITH"
 msgstr "PARTAGE DE DONNÉES AVEC"
@@ -2194,6 +2702,30 @@ msgstr "Veuillez vérifier les points suivants avant de continuer."
 msgid "SUGGEST_UPDATE_GEOCODE_COLS"
 msgstr "Mettez à jour les paramètres de colonne de géocodage dans la page des paramètres de colonne de votre organisation."
 
+msgid "Salesforce"
+msgstr "Salesforce"
+
+msgid "Salesforce Account Object Record Type"
+msgstr "Type d'enregistrement pour Compte Salesforce"
+
+msgid "Salesforce Connection Parameters"
+msgstr "Paramètres pour la Connexion Salesforce"
+
+msgid "Salesforce Contact Object Record Type"
+msgstr "Type d'enregistrement pour Contact Salesforce"
+
+msgid "Salesforce Field Mappings"
+msgstr "Attribution de champs Salesforce"
+
+msgid "Salesforce Field Name"
+msgstr "Nom du champ Salesforce"
+
+msgid "Salesforce Instance URL"
+msgstr "Salesforce URL"
+
+msgid "Salesforce Unique Benchmark ID Fieldname"
+msgstr "Unique nom de champ pour Benchmark ID Salesforce"
+
 msgid "Save"
 msgstr "Enregistrer"
 
@@ -2208,6 +2740,9 @@ msgstr "Enregistrer les mappages"
 
 msgid "Save Settings"
 msgstr "Enregistrer les paramètres"
+
+msgid "Scheduled Daily Update"
+msgstr "Mise à jour programmée quotidienne"
 
 msgid "Search column name"
 msgstr "Rechercher le nom de la colonne"
@@ -2224,13 +2759,31 @@ msgstr "Rechercher le nom de la table"
 msgid "Security"
 msgstr "Sécurité"
 
+msgid "Security Token"
+msgstr "Jeton d'authentification"
+
 #: seed/models/columns.py:688 seed/models/models.py:195
 #: seed/models/models.py:256 seed/models/projects.py:42
 msgid "SeedOrg"
 msgstr "SeedOrg"
 
+msgid "Select All"
+msgstr "Tout sélectionner"
+
 msgid "Select All Columns"
 msgstr "Sélectionnez toutes les colonnes"
+
+msgid "Select None"
+msgstr "Sélectionnez Aucun"
+
+msgid "Select a Custom Report to get started!"
+msgstr "Sélectionnez un rapport personnalisé pour commencer !"
+
+msgid "Select a Program to get started!"
+msgstr "Sélectionnez un programme pour commencer !"
+
+msgid "Select a column to show data on this axis.  Only columns with one of these data types will be listed:"
+msgstr "Sélectionnez une colonne pour afficher les données sur cet axe. Seules les colonnes contenant l'un de ces types de données seront répertoriées :"
 
 msgid "Select columns from the list below to make them appear in your Buildings List table."
 msgstr "Sélectionnez les colonnes de la liste ci-dessous pour les faire apparaître dans votre tableau Liste des bâtiments."
@@ -2244,20 +2797,38 @@ msgstr "Sélectionnez les colonnes de la liste ci-dessous pour les faire appara�
 msgid "Select columns from the lists below to make them appear on the left or right halves of your Matching List table. Drag the rows to change the order in which they appear."
 msgstr "Sélectionnez les colonnes dans les listes ci-dessous pour les faire apparaître sur les moitiés gauche ou droite de votre table de Liste des Correspondances. Faites glisser les lignes pour modifier l'ordre dans lequel elles apparaissent."
 
+msgid "Select one or more filter groups to load your inventory."
+msgstr "Sélectionnez un ou plusieurs groupes de filtres pour charger votre inventaire."
+
 msgid "Select the type of file(s) you would like to add to"
 msgstr "Sélectionnez le type de fichier (s) que vous souhaitez ajouter à"
 
 msgid "Select which columns to include in the list:"
 msgstr "Sélectionnez les colonnes à inclure dans la liste:"
 
+msgid "Selected Properties"
+msgstr "Propriétés Sélectionnées"
+
+msgid "Selected Taxlots"
+msgstr "Lots d'impôt Sélectionnés"
+
 msgid "Selecting Fields to Share"
 msgstr "Sélection des champs à partager"
+
+msgid "Selections:"
+msgstr "Sélections:"
 
 msgid "Send Invite"
 msgstr "Envoyer une invitation"
 
 msgid "Sends the reset password email to all users."
 msgstr "Envoie l'e-mail de réinitialisation du mot de passe à tous les utilisateurs"
+
+msgid "Sensors"
+msgstr "Capteurs"
+
+msgid "Set UBID Threshold"
+msgstr "Définir le seuil UBID"
 
 msgid "Set a Query Threshold"
 msgstr "Définir un seuil de requête"
@@ -2315,9 +2886,6 @@ msgstr "Afficher/masquer les colonnes"
 msgid "Signature"
 msgstr "Signature"
 
-msgid "Significant figures for EUIs and areas"
-msgstr "Chiffres significatifs pour les IUE et les zones"
-
 msgid "Site EUI"
 msgstr "IUE site"
 
@@ -2336,6 +2904,9 @@ msgstr "Les projets Snapshot sont utiles lorsque vous souhaitez geler les donné
 msgid "Sorry!"
 msgstr "Désolée!"
 
+msgid "Sorting By (in order)"
+msgstr "Trier Par (dans l'ordre)"
+
 msgid "Source EUI"
 msgstr "IUE source"
 
@@ -2347,6 +2918,9 @@ msgstr "Intensité d'utilisation de l'énergie à la source"
 
 msgid "Space Alerts"
 msgstr "Alertes spatiales"
+
+msgid "State"
+msgstr "État"
 
 msgid "State (Property)"
 msgstr "Etat (Propriété)"
@@ -2381,6 +2955,12 @@ msgstr "Succès!"
 msgid "Successful upload!"
 msgstr "Téléchargement réussi!"
 
+msgid "Successfully Uploaded"
+msgstr "Téléversé avec succès"
+
+msgid "Summary (Beta)"
+msgstr "Résumé (Bêta)"
+
 msgid "Switch Profiles"
 msgstr "Changer de profil"
 
@@ -2395,6 +2975,21 @@ msgstr "Veuillez saisir <strong> {org} </strong> pour confirmer."
 
 msgid "Table Name"
 msgstr "Nom de la table"
+
+msgid "Target <= Actual for Compliance"
+msgstr "Cible <= Réel pour la conformité"
+
+msgid "Target > Actual"
+msgstr "Cible > Réel"
+
+msgid "Target >= Actual for Compliance"
+msgstr "Cible >= Réel pour la conformité"
+
+msgid "Target Column"
+msgstr "Colonne cible"
+
+msgid "Target Field"
+msgstr "Champ cible"
 
 msgid "Tax Lot"
 msgstr "Lot d'impôt"
@@ -2420,8 +3015,8 @@ msgstr "Lots d'impôt"
 msgid "Tax Lots List"
 msgstr "Liste des lots d'impôt"
 
-msgid "Taxlot Detail View Display Field"
-msgstr "Champ d'affichage de la vue détaillée du lot de taxes"
+msgid "Taxlot Display Field"
+msgstr "Champ d'affichage du lot de taxes"
 
 #: src/django-tos-master/tos/models.py:43
 #: src/django-tos-master/tos/models.py:44
@@ -2432,6 +3027,9 @@ msgstr "Conditions d'utilisation"
 #: src/django-tos-master/tos/templates/tos/tos_check.html:6
 msgid "Terms of Service as of %(tos.created|date:\"SHORT_DATE_FORMAT\")s"
 msgstr "Conditions de service à partir de% (tos.created | date: \"SHORT_DATE_FORMAT\") s"
+
+msgid "Test Connection"
+msgstr "Tester la Connexion"
 
 msgid "Text"
 msgstr "Texte"
@@ -2472,11 +3070,19 @@ msgstr "L'équipe SEED"
 msgid "The Standard Energy Efficiency Data (SEED)™ Platform is a software application that helps organizations easily manage data on the energy performance of large groups of buildings. Users can combine data from multiple sources, clean and validate it, and share the information with others. The software application provides an easy, flexible, and cost-effective method to improve the quality and availability of data to help demonstrate the economic and environmental benefits of energy efficiency, to implement programs, and to target investment activity."
 msgstr "La Plate-forme SEED™ (Standard Energy Efficiency Data) est une application logicielle qui aide les entreprises à gérer facilement les données sur la performance énergétique de grands groupes de bâtiments. Les utilisateurs peuvent combiner les données provenant de plusieurs sources, les nettoyer et les valider, et partager les informations avec les autres. L'application logicielle fournit une méthode simple, flexible et rentable pour améliorer la qualité et la disponibilité des données afin de démontrer les avantages économiques et environnementaux de l'efficacité énergétique, de mettre en œuvre des programmes et de cibler l'activité d'investissement."
 
+msgid "The UBID Threshold defines the minimum Jaccard Index value required for a UBID Comparison to be considered acceptable. When the threshold is satisfied, the incoming property can be merged with the existing property."
+msgstr "Le seuil UBID définit la valeur minimale de l'indice Jaccard requise pour qu'une comparaison UBID soit considérée comme acceptable. Lorsque le seuil est atteint, la propriété entrante peut être fusionnée avec la propriété existante."
+
+msgid "The comparison relies on the Jaccard Index, which ranges from 0.0 (no match) to 1.0 (perfect match)."
+msgstr "La comparaison repose sur l'indice de Jaccard, qui varie de 0.0 (aucune superposition) à 1.0 (correspondance parfaite)."
+
+msgid "The email supports brace templating to pull in data from the SEED property record. For example, the snippet below will replace the latitude and longitude from the SEED record. Other fields can be added, but make sure to use the SEED field name not the display name."
+msgstr "L'e-mail prend en charge les modèles d'accolades pour extraire les données de l'enregistrement de propriété SEED. Par exemple, l'extrait ci-dessous remplacera la latitude et la longitude de l'enregistrement SEED. D'autres champs peuvent être ajoutés, mais assurez-vous d'utiliser le nom du champ SEED et non le nom d'affichage."
+
 msgid "The following actions have destructive effects, please read all warnings after clicking an option."
 msgstr "Les actions suivantes ont des effets destructeurs, veuillez lire tous les avertissements après avoir cliqué sur une option."
 
-msgid ""
-"The following is a list of the fields we use to match up properties/tax lots between different imported files. The more data you have in these four fields the better our"
+msgid "The following is a list of the fields we use to match up properties/tax lots between different imported files. The more data you have in these four fields the better our"
 "                            system will auto-match your records."
 msgstr "Voici une liste des champs que nous utilisons pour faire correspondre les propriétés/lots d'impôt entre différents fichiers importés. Le plus de données que vous avez dans ces quatre domaines, le mieux notre système correspondra automatiquement à vos enregistrements."
 
@@ -2486,6 +3092,9 @@ msgstr "Voici une liste des champs que nous utilisons pour faire correspondre le
 #: seed/landing/templates/landing/signup.html:41
 msgid "The invite link was invalid, possibly because it has already been used.  Please request a new invitation."
 msgstr "Le lien d'invitation était invalide, peut-être parce qu'il a déjà été utilisé. Veuillez demander une nouvelle invitation."
+
+msgid "The overall metric can be made up of an energy metric, an emission metric, or both. At least one type of metric is required and if two are defined, then both metrics must be met for compliance."
+msgstr "La métrique globale peut être composée d'une métrique d'énergie, d'une métrique d'émission, ou des deux. Au moins un type de métrique est requis et si deux sont définis, les deux métriques doivent être respectées pour la conformité."
 
 #: seed/landing/templates/landing/password_reset_confirm.html:41
 msgid "The password link was invalid, possibly because it has already been used.  Please request a new password reset."
@@ -2514,10 +3123,13 @@ msgid "This password must contain at least %(quantity)d %(type)s characters."
 msgstr "Ce mot de passe doit contenir au moins% (quantité) d% (type) s caractères."
 
 msgid "This will reset your visible columns and column order to only columns that contain data. Are you sure you want to continue?"
-msgstr "Cela réinitialisera vos colonnes visibles et l'ordre des colonnes aux seules colonnes contenant des données. Es-tu sur de vouloir continuer?"
+msgstr "Cela réinitialisera vos colonnes visibles et l'ordre des colonnes aux seules colonnes non dérivées contenant des données. Es-tu sur de vouloir continuer?"
 
 msgid "Time Period"
 msgstr "Période de temps"
+
+msgid "Timeline"
+msgstr "Chronologie"
 
 msgid "To Date"
 msgstr "À ce jour"
@@ -2536,11 +3148,32 @@ msgstr "Pour configurer votre compte, saisissez votre mot de passe deux fois dan
 msgid "Toggle Dropdown"
 msgstr "Basculer le menu déroulant"
 
+msgid "Toggle Hexbins"
+msgstr "Basculer les Hexbins"
+
+msgid "Toggle Points"
+msgstr "Basculer les points"
+
+msgid "Toggle Property UBID Bounding Boxes"
+msgstr "Toggle Boîtes englobantes UBID de propriété"
+
+msgid "Toggle Property UBID Centroids"
+msgstr "Basculer les centroïdes UBID de propriété"
+
+msgid "Toggle Taxlot UBID Bounding Boxes"
+msgstr "Toggle Boîtes englobantes UBID Taxlot"
+
+msgid "Toggle Taxlot UBID Centroids"
+msgstr "Basculer les centroïdes UBID Taxlot"
+
 msgid "Total Properties"
 msgstr "Total des propriétés"
 
 msgid "Total rows in the import file"
 msgstr "Nombre total de lignes dans le fichier d'importation"
+
+msgid "Two UBIDs are required for comparison. Click Custom UBIDs to continue."
+msgstr "Deux UBID sont nécessaires pour la comparaison. Cliquez sur UBID personnalisés pour continuer."
 
 msgid "Type"
 msgstr "Type"
@@ -2551,8 +3184,7 @@ msgstr "Type de soumission"
 msgid "Type of Submittal:"
 msgstr "Type de soumission:"
 
-msgid ""
-"U.S."
+msgid "U.S."
 "                        Department of Energy"
 msgstr "Département Américain de l'Énergie"
 
@@ -2562,8 +3194,26 @@ msgstr "Département Américain de l'Énergie"
 msgid "UBID"
 msgstr "UBID"
 
+msgid "UBID Threshold"
+msgstr "Seuil UBID"
+
+msgid "UBID Threshold must be between 0.0 and 1.0"
+msgstr "Le seuil UBID doit être compris entre 0,0 et 1,0"
+
+msgid "UBID already exists"
+msgstr "UBID existe déjà"
+
+msgid "UBID comparison result:"
+msgstr "Résultat de la comparaison UBID :"
+
+msgid "UBID thresholds are between 0.0 and 1.0"
+msgstr "Les seuils UBID sont compris entre 0,0 et 1,0"
+
 msgid "UPDATE_MANUALLY_GEOCODED_INSTRUCTIONS"
 msgstr "Si les propriétés ont été géocodées manuellement, elles ne seront pas mises à jour. Pour mettre à jour le géocodage, supprimez le lat / long."
+
+msgid "UPLOADING_DOCUMENT_TITLE"
+msgstr "Téléchargement du document..."
 
 msgid "UPLOADING_FILE_TITLE"
 msgstr "Téléchargement de Fichier"
@@ -2571,8 +3221,20 @@ msgstr "Téléchargement de Fichier"
 msgid "UPLOADING_PROGRESS"
 msgstr "Importation de <strong> {dataset_filename} </strong> pour faire un cycle <strong> {cycle_name} </strong>"
 
+msgid "UPLOADING_PROGRESS_MULTIPLE_CYCLE"
+msgstr "Importation de <strong> {dataset_filename} </strong> sur plusieurs cycles. Le cycle par défaut est <strong> {cycle_name} </strong>"
+
+msgid "UPLOADING_PROGRESS_NO_CYCLE"
+msgstr "Importation de <strong>{dataset_filename}</strong>"
+
 msgid "UPLOAD_COMPLETE_TITLE"
 msgstr "Téléchargement Complet"
+
+msgid "UPLOAD_DATA_LOGGER_BUTTON"
+msgstr "Créer un enregistreur de données"
+
+msgid "UPLOAD_DOC_ACCEPTED_FILE_TYPES"
+msgstr "Types de fichiers acceptés : .dxf, .pdf, .idf et .osm"
 
 msgid "UPLOAD_FILE"
 msgstr "Téléverser un Fichier"
@@ -2587,12 +3249,24 @@ msgstr "Téléchargement incomplet"
 msgid "UPLOAD_PM_READINGS_MODAL_TITLE"
 msgstr "Importer des lectures de compteur Portfolio Manager"
 
+msgid "UPLOAD_SENSORS_BUTTON"
+msgstr "Télécharger des capteurs"
+
+msgid "UPLOAD_SENSOR_BUTTON"
+msgstr "Télécharger le capteur"
+
+msgid "UPLOAD_SENSOR_READINGS_BUTTON"
+msgstr "Télécharger les relevés de capteur"
+
 #, fuzzy
 msgid "USING_DEFAULT_UNITS_WARNING"
 msgstr "Pour les colonnes avec des paramètres d'unité, les unités par défaut seront utilisées pour les conversions."
 
 msgid "Units"
 msgstr "Unités"
+
+msgid "Unknown"
+msgstr "Inconnue"
 
 msgid "Until last date of"
 msgstr "Jusqu'à la dernière date de"
@@ -2603,11 +3277,23 @@ msgstr "Mettre à jour les graphiques"
 msgid "Update Filters"
 msgstr "Mise à jour les filtres"
 
+msgid "Update Salesforce"
+msgstr "Mettre à jour Salesforce"
+
+msgid "Update UBID"
+msgstr "Mettre à jour UBID"
+
 msgid "Update with BuildingSync"
 msgstr "Mettre à jour avec BuildingSync"
 
 msgid "Updated"
 msgstr "Mise à jour"
+
+msgid "Upload Access Level Instances"
+msgstr "Importer des instances de niveau d'accès"
+
+msgid "Upload Audit Template XML"
+msgstr "Téléchargement Audit Template XML"
 
 #, fuzzy
 msgid "Upload BuildingSync Data"
@@ -2689,6 +3375,9 @@ msgstr "Valide"
 msgid "Version"
 msgstr "Version"
 
+msgid "View Compliance Tracking"
+msgstr "Afficher le suivi de la conformité"
+
 msgid "View Project"
 msgstr "Voir le projet"
 
@@ -2701,11 +3390,20 @@ msgstr "Examiner par lot d'impôt"
 msgid "View my properties"
 msgstr "Voir mes propriétés"
 
+msgid "View/Hide Terms"
+msgstr "Afficher/Masquer les termes"
+
 msgid "Viewer"
 msgstr "Spectateur"
 
+msgid "Violation Label"
+msgstr "Étiquette de Violation"
+
 msgid "Visit the BETTER website to run a portfolio analysis"
 msgstr "Visitez le site Web de BETTER pour effectuer une analyse de portefeuille"
+
+msgid "Visualization Settings"
+msgstr "Paramètres de visualisation"
 
 msgid "WHEN_YOU_CLICK_MAP_YOUR_DATA"
 msgstr "Lorsque vous cliquez sur le bouton <span class=\"label label-primary\">Mapper vos données</span> , le programme affiche une grille avec les nouveaux noms de champs comme en-têtes de colonne et vos données dans les lignes. Dans cette vue, vous pouvez toujours revenir à l'écran de mappage initial et modifier le mappage de champ."
@@ -2744,14 +3442,32 @@ msgstr "Bienvenue sur SEED Platform™"
 msgid "Welcome to SEED!"
 msgstr "Bienvenue chez SEED!"
 
+msgid "What is a Custom Report?"
+msgstr "Qu'est-ce qu'un rapport personnalisé ?"
+
 msgid "What type of file would you like to upload?"
 msgstr "Quel type de fichier souhaitez-vous télécharger?"
+
+msgid "When checked, properties/taxlots will be matched to existing cycles based on the 'year_ending' column or the default cycle if there is no match"
+msgstr "Lorsque cette case est cochée, les propriétés/taxlots seront appariés aux cycles existants en fonction de la colonne 'year_ending' ou du cycle par défaut s'il n'y a pas de correspondance"
 
 msgid "Where would you like to move these buildings?"
 msgstr "Où aimeriez-vous déplacer ces bâtiments?"
 
 msgid "X Axis"
 msgstr "Axe X"
+
+msgid "X Axis Column Selections:"
+msgstr "Sélections de colonne sur l'axe X :"
+
+msgid "X Axis Column Types for Plotting:"
+msgstr "Types de colonne de l'axe X pour le traçage:"
+
+msgid "X-Axis Columns"
+msgstr "Colonnes de l'axe X"
+
+msgid "X-Axis Field Options"
+msgstr "Options de champ de l'axe X"
 
 #. Using this string to test if the translation machinery is escaping/sanitizing correctly.
 msgid "XSS_TEST"
@@ -2801,6 +3517,9 @@ msgstr "Oui, supprimer la sous-organisation"
 
 msgid "Yes, Delete User"
 msgstr "Oui, Supprimer l'utilisateur"
+
+msgid "Yes, Remove Filter Group"
+msgstr "Oui, supprimer le groupe de filtres"
 
 msgid "You can review and edit each individual match by clicking one of the linked IDs in the table. This will open a new table that shows the source data for the individual record you are attempting to match. Underneath this record is a searchable list of all potential existing matches. Use this table to explore all your records and to select single or multiple records to match your source data to."
 msgstr "Vous pouvez vérifier et modifier chaque correspondance en cliquant sur l'un des ID liés dans la table. Cela ouvrira une nouvelle table qui montre les données source pour l'enregistrement individuel que vous essayez de faire correspondre. Sous cet enregistrement est une liste consultable de toutes les correspondances existantes potentielles. Utilisez ce tableau pour explorer tous vos enregistrements et pour sélectionner un ou plusieurs enregistrements correspondant à vos données source."
@@ -2954,6 +3673,12 @@ msgstr "date jointe"
 msgid "deadline_date"
 msgstr "date limite"
 
+msgid "default"
+msgstr "défaut"
+
+msgid "default_cycle"
+msgstr "Cycle par défaut"
+
 #: seed/models/projects.py:47
 msgid "description"
 msgstr "la description"
@@ -3086,6 +3811,9 @@ msgstr "enregistrant les données"
 
 msgid "saving energy data"
 msgstr "enregistreant des données de l’énergie"
+
+msgid "selected"
+msgstr "la sélection"
 
 #: seed/landing/models.py:60
 msgid "shows shared buildings within search results"
