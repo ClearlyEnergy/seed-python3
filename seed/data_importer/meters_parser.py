@@ -1,32 +1,28 @@
 # !/usr/bin/env python
 # encoding: utf-8
-
-from calendar import monthrange
-
-from config.settings.common import TIME_ZONE
-
-from datetime import (
-    datetime,
-    timedelta,
-)
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
+import logging
 import re
+from calendar import monthrange
+from datetime import datetime, timedelta
 
 from django.db.models import Subquery
 from django.utils.timezone import make_aware
-
 from pytz import timezone
 
-from seed.lib.superperms.orgs.models import Organization
-from seed.models import (
-    Meter,
-    PropertyState,
-    PropertyView,
-)
+from config.settings.common import TIME_ZONE
 from seed.data_importer.utils import (
     kbtu_thermal_conversion_factors,
-    usage_point_id,
+    usage_point_id
 )
 from seed.lib.mcm import reader
+from seed.lib.superperms.orgs.models import Organization
+from seed.models import Meter, PropertyState, PropertyView
+
+_log = logging.getLogger(__name__)
 
 
 class MetersParser(object):
@@ -90,7 +86,7 @@ class MetersParser(object):
         :param meters_file: File
         :param org_id: int
         :param source_type: int, type of meter data
-        :param property_id: int, id of property - required if meter data is for a specific property (e.g. GreenButton)
+        :param property_id: int, id of property - required if meter data is for a specific property (e.g., GreenButton)
         :return: MetersParser
         """
         if source_type == Meter.GREENBUTTON:
@@ -187,8 +183,6 @@ class MetersParser(object):
 
         if self._cache_proposed_imports is None:
             self._cache_proposed_imports = []
-            energy_type_lookup = dict(Meter.ENERGY_TYPES)
-
             # Gather info based on property_id - cycles (query) and related pm_property_ids (parsed in different method)
             property_ids_info = {}
             for pm_property_id, property_ids in self._source_to_property_ids.items():
@@ -206,7 +200,7 @@ class MetersParser(object):
             # Put summaries together based on source type
             for meter in self.meter_and_reading_objs:
                 meter_summary = {
-                    'type': energy_type_lookup[meter['type']],
+                    'type': Meter.ENERGY_TYPE_BY_METER_TYPE[meter['type']],
                     'incoming': len(meter.get("readings")),
                     'property_id': meter['property_id'],
                 }
@@ -307,7 +301,7 @@ class MetersParser(object):
         the same property_id more than once. Return True when a property_id is
         found.
 
-        If no ProperyStates (and subsequent Properties) are found, flag the
+        If no PropertyStates (and subsequent Properties) are found, flag the
         PM ID as unlinkable, and False is returned.
         """
         # If the PM ID has been previously found to be unlinkable, return False
@@ -419,10 +413,9 @@ class MetersParser(object):
         these are deduplicated.
         """
         type_unit_combinations = set()
-        energy_type_lookup = dict(Meter.ENERGY_TYPES)
 
         for meter in self.meter_and_reading_objs:
-            type = energy_type_lookup[meter['type']]
+            type = Meter.ENERGY_TYPE_BY_METER_TYPE[meter['type']]
             type_units = {
                 (type, reading['source_unit'])
                 for reading
@@ -439,7 +432,7 @@ class MetersParser(object):
     @staticmethod
     def preprocess_raw_pm_data_request(raw_data):
         """Reformats the raw data. Must be called on meter data which comes
-        from a Data Request spreadsheet, _before_ intializing the MetersParser
+        from a Data Request spreadsheet, _before_ initializing the MetersParser
         class with the data.
 
         :param raw_data: list[dict], `.data` from MCMParser for the Monthly Usage sheet
@@ -452,21 +445,19 @@ class MetersParser(object):
             return []
 
         # check which (if any) meter readings are provided
-        # there can be more than one reading type per row (e.g. both electricity
+        # there can be more than one reading type per row (e.g., both electricity
         # and natural gas in the same row)
         provided_reading_types = []
         for field in raw_data[0].keys():
-            if field.startswith('Electricity Use') or field.startswith('Natural Gas Use'):
-                provided_reading_types.append(field)
+            for header_string in Meter.ENERGY_TYPE_BY_HEADER_STRING.keys():
+                if field.startswith(header_string):
+                    provided_reading_types.append(field)
+                    continue
 
         if not provided_reading_types:
             return []
 
         TYPE_AND_UNITS_REGEX = re.compile(r'(?P<meter_type>.*)\s+\((?P<units>.*)\)')
-        METER_TYPE_MAPPING = {
-            'Electricity Use': 'Electric - Unknown',
-            'Natural Gas Use': 'Natural Gas',
-        }
         METER_UNITS_MAPPING = {
             'kBtu': 'kBtu (thousand Btu)',
             'GJ': 'GJ',
@@ -475,6 +466,7 @@ class MetersParser(object):
         results = []
         for raw_reading in raw_data:
             start_date = datetime.strptime(raw_reading['Month'], '%b-%y')
+
             _, days_in_month = monthrange(start_date.year, start_date.month)
             end_date = datetime(
                 start_date.year,
@@ -486,27 +478,39 @@ class MetersParser(object):
             ) + timedelta(seconds=1)
 
             for reading_type in provided_reading_types:
-                if not raw_reading[reading_type].strip() or 'not available' in raw_reading[reading_type].lower():
-                    continue
+                if isinstance(raw_reading[reading_type], str):
+                    if not raw_reading[reading_type].strip() or 'not available' in raw_reading[reading_type].lower():
+                        continue
 
                 type_and_units_match = TYPE_AND_UNITS_REGEX.match(reading_type)
                 if type_and_units_match is None:
                     raise Exception(f'Failed to parse meter type and units from "{reading_type}"')
 
                 meter_type_match = type_and_units_match.group('meter_type').strip()
-                meter_type = METER_TYPE_MAPPING.get(meter_type_match)
-                if meter_type is None:
-                    raise Exception(f'Invalid meter type "{meter_type_match}"')
+                for energy_type in Meter.ENERGY_TYPE_BY_HEADER_STRING.keys():
+                    if meter_type_match.startswith(energy_type):
+                        meter_type = Meter.ENERGY_TYPE_BY_HEADER_STRING.get(energy_type)
+                        continue
+                if not meter_type:
+                    raise Exception(f'Invalid units "{meter_type_match}"')
 
                 units_match = type_and_units_match.group('units').strip()
                 units = METER_UNITS_MAPPING.get(units_match)
                 if units is None:
                     raise Exception(f'Invalid units "{units_match}"')
 
+                # Get the correct Property ID depending on the version of meter file
+                if not raw_reading.get('Property Id'):
+                    # This is the new format as of around 3/22/2023
+                    property_id = raw_reading.get('Portfolio Manager Property ID')
+                else:
+                    # This is the previous format
+                    property_id = raw_reading.get('Property Id')
+
                 reading = {
                     'Start Date': start_date.strftime('%Y-%m-%d %H:%M:%S'),
                     'End Date': end_date.strftime('%Y-%m-%d %H:%M:%S'),
-                    'Portfolio Manager ID': raw_reading['Property Id'],
+                    'Portfolio Manager ID': property_id,
                     'Portfolio Manager Meter ID': 'Unknown',
                     'Meter Type': meter_type,
                     'Usage/Quantity': raw_reading[reading_type],

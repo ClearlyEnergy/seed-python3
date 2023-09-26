@@ -1,8 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 import logging
@@ -13,7 +13,7 @@ from random import randint
 
 import pytz
 from django.apps import apps
-from django.db import models, IntegrityError
+from django.db import IntegrityError, models
 from django.utils.timezone import get_current_timezone, make_aware, make_naive
 from past.builtins import basestring
 from pint.errors import DimensionalityError
@@ -23,15 +23,13 @@ from seed.lib.superperms.orgs.models import Organization
 from seed.models import (
     Column,
     DerivedColumn,
-    StatusLabel,
     PropertyView,
-    TaxLotView
+    StatusLabel,
+    TaxLotView,
+    obj_to_dict
 )
-from seed.models import obj_to_dict
 from seed.serializers.pint import pretty_units
-from seed.utils.cache import (
-    set_cache_raw, get_cache_raw
-)
+from seed.utils.cache import get_cache_raw, set_cache_raw
 from seed.utils.time import convert_datestr
 
 _log = logging.getLogger(__name__)
@@ -596,7 +594,7 @@ class DataQualityCheck(models.Model):
         Initialize the cache for storing the results. This is called before the
         celery tasks are chunked up.
 
-        The cache_key is different than the indentifier. The cache_key is where all the results are
+        The cache_key is different than the identifier. The cache_key is where all the results are
         to be stored for the data quality checks, the identifier, is the random number (or specified
         value that is used to identifier both the progress and the data storage
 

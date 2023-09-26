@@ -1,23 +1,15 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from collections import namedtuple
 
-from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
-from seed.models import (
-    Analysis,
-    Cycle,
-    Property,
-    PropertyState,
-    PropertyView
-)
-
+from seed.models import Analysis, Cycle, Property, PropertyState, PropertyView
 
 BatchCreateError = namedtuple('BatchCreateError', ['property_view_id', 'message'])
 
@@ -37,7 +29,7 @@ class AnalysisPropertyView(models.Model):
     # parsed_results can contain any results gathered from the resulting file(s)
     # that are applicable to this specific property.
     # For results not specific to the property, use the Analysis's parsed_results
-    parsed_results = JSONField(default=dict, blank=True)
+    parsed_results = models.JSONField(default=dict, blank=True)
 
     @classmethod
     def batch_create(cls, analysis_id, property_view_ids):
@@ -103,19 +95,19 @@ class AnalysisPropertyView(models.Model):
         property_view_query = models.Q()
         for analysis_property_view in analysis_property_views:
             property_view_query |= (
-                models.Q(property=analysis_property_view.property)
-                & models.Q(cycle=analysis_property_view.cycle)
+                models.Q(property_id=analysis_property_view.property_id)
+                & models.Q(cycle_id=analysis_property_view.cycle_id)
             )
         property_views = PropertyView.objects.filter(property_view_query).prefetch_related('state')
 
         # get original property views keyed by canonical property id and cycle
         property_views_by_property_cycle_id = {
-            (pv.property.id, pv.cycle.id): pv
+            (pv.property_id, pv.cycle_id): pv
             for pv in property_views
         }
 
         return {
             # we use .get() here because the PropertyView might not exist anymore!
-            apv.id: property_views_by_property_cycle_id.get((apv.property.id, apv.cycle.id), None)
+            apv.id: property_views_by_property_cycle_id.get((apv.property_id, apv.cycle_id), None)
             for apv in analysis_property_views
         }

@@ -1,7 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Dan Gunter <dkgunter@lbl.gov>
 """
 import json
@@ -9,10 +11,9 @@ import logging
 import os
 import re
 from collections import OrderedDict
-from os.path import realpath, join, dirname
+from os.path import dirname, join, realpath
 
 from past.builtins import basestring
-
 from unidecode import unidecode
 
 LINEAR_UNITS = set(['ft', 'm', 'in'])

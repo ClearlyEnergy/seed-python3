@@ -1,3 +1,7 @@
+/**
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
+ */
 var BEHome = BEHome || {};
 BEHome.actions = BEHome.actions || {};
 BEHome.handlers = BEHome.handlers || {};
@@ -29,7 +33,7 @@ BEHome.actions.show_login_form = function () {
 };
 BEHome.actions.check_unsupported_browser = function () {
   // var version=parseInt($.browser.version, 10);
-  // if(($.browser.msie&&version<9)||($.browser.mozila&&version<3)||($.browser.webkit&&version<200)) {
+  // if(($.browser.msie&&version<9)||($.browser.mozilla&&version<3)||($.browser.webkit&&version<200)) {
   //     BEHome.actions.show_unsupported_browser_message();
   //     BEHome.actions.hide_login_form();
   // }
@@ -69,4 +73,3 @@ $(function () {
   BEHome.actions.hide_all_forms();
   BEHome.util.bind_all_handlers();
 });
-

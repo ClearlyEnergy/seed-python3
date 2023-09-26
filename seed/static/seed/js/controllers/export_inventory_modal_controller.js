@@ -1,19 +1,22 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.export_inventory_modal', []).controller('export_inventory_modal_controller', [
   '$http',
   '$scope',
   '$uibModalInstance',
   'user_service',
+  'uploader_service',
   'ids',
   'columns',
   'inventory_type',
   'export_category',
   'profile_id',
+  'spinner_utility',
   'filter_header_string',
   function (
+<<<<<<< HEAD
     $http, 
     $scope, 
     $uibModalInstance, 
@@ -24,28 +27,60 @@ angular.module('BE.seed.controller.export_inventory_modal', []).controller('expo
     profile_id, 
     spinner_utility,
     filter_header_string,
+=======
+    $http,
+    $scope,
+    $uibModalInstance,
+    user_service,
+    uploader_service,
+    ids,
+    columns,
+    inventory_type,
+    profile_id,
+    spinner_utility,
+    filter_header_string
+>>>>>>> merging_new_version
   ) {
     $scope.export_name = '';
     $scope.include_notes = true;
     $scope.include_label_header = false;
+    $scope.include_meter_readings = false;
     $scope.inventory_type = inventory_type;
+    $scope.exporting = false;
+    $scope.exporter_progress = {
+      progress: 0,
+      status_message: ''
+    };
 
     $scope.export_selected = function (export_type) {
       var filename = $scope.export_name;
       var ext = '.' + export_type;
       if (!_.endsWith(filename, ext)) filename += ext;
-      return $http.post('/api/v3/tax_lot_properties/export/', {
-        ids: ids,
-        filename: filename,
-        profile_id: profile_id,
-        export_type: export_type,
-        include_notes: $scope.include_notes
-      }, {
+      $scope.exporting = true;
+      $http.get('/api/v3/tax_lot_properties/start_export/', {
         params: {
-          organization_id: user_service.get_organization().id,
-          inventory_type: inventory_type
-        },
-        responseType: export_type === 'xlsx' ? 'arraybuffer' : undefined
+          organization_id: user_service.get_organization().id
+        }
+      }).then(data => {
+        uploader_service.check_progress_loop(data.data.progress_key, 0, 1,
+          function () { },
+          function () { },
+          $scope.exporter_progress);
+        return $http.post('/api/v3/tax_lot_properties/export/', {
+          ids: ids,
+          filename: filename,
+          profile_id: profile_id,
+          export_type: export_type,
+          include_notes: $scope.include_notes,
+          include_meter_readings: $scope.include_meter_readings,
+          progress_key: data.data.progress_key
+        }, {
+          params: {
+            organization_id: user_service.get_organization().id,
+            inventory_type: inventory_type
+          },
+          responseType: export_type === 'xlsx' ? 'arraybuffer' : undefined
+        });
       }).then(function (response) {
         var blob_type = response.headers()['content-type'];
         var data;

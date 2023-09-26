@@ -1,8 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from __future__ import unicode_literals
 
@@ -10,8 +10,9 @@ import logging
 
 from django.db import models
 
+from seed.models.events import ATEvent
+from seed.models.properties import PropertyView
 from seed.models.property_measures import PropertyMeasure
-from seed.models.properties import PropertyState, PropertyView
 
 _log = logging.getLogger(__name__)
 
@@ -73,14 +74,8 @@ class Scenario(models.Model):
     cdd = models.FloatField(null=True)
     cdd_base_temperature = models.FloatField(null=True)
 
-    analysis_start_time = models.DateTimeField(null=True)
-    analysis_end_time = models.DateTimeField(null=True)
-    # use the analysis states that are defined in the PropertyState model
-    analysis_state = models.IntegerField(choices=PropertyState.ANALYSIS_STATE_TYPES,
-                                         default=PropertyState.ANALYSIS_STATE_NOT_STARTED)
-    analysis_state_message = models.TextField(null=True)
-
     measures = models.ManyToManyField(PropertyMeasure)
+    event = models.ForeignKey(ATEvent, related_name='scenarios', on_delete=models.DO_NOTHING, null=True)
 
     def copy_initial_meters(self, source_scenario_id):
         """
@@ -96,7 +91,7 @@ class Scenario(models.Model):
             property_ = PropertyView.objects.get(state=self.property_state).property
         except PropertyView.DoesNotExist:
             # possible that the state does not yet have a canonical property
-            # e.g. when processing BuildingFiles, it's 'promoted' after this merging
+            # e.g., when processing BuildingFiles, it's 'promoted' after this merging
             property_ = None
 
         for source_meter in source_scenario.meter_set.all():

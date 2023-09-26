@@ -1,15 +1,15 @@
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import json
 import logging
 import re
 import string
 
 from django.db import models
+
 from seed.models import Organization
 
 _log = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def _snake_case(display_name):
     Convert the BuildingSync measure display names into reasonable snake_case for storing into
     database.
 
-    :param display_name: BuidingSync measure displayname
+    :param display_name: BuildingSync measure displayname
     :return: string
     """
     str_re = re.compile('[{0}]'.format(re.escape(string.punctuation)))

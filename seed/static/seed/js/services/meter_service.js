@@ -1,3 +1,7 @@
+/**
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
+ */
 angular.module('BE.seed.service.meter', [])
   .factory('meter_service', [
     '$http',
@@ -8,6 +12,14 @@ angular.module('BE.seed.service.meter', [])
         return $http.get(
           '/api/v3/properties/' + property_view_id + '/meters/',
           { params: { organization_id } }
+        ).then(function (response) {
+          return response.data;
+        });
+      };
+
+      meter_factory.delete_meter = function (property_view_id, meter_id) {
+        return $http.delete(
+          '/api/v3/properties/' + property_view_id + '/meters/' + meter_id,
         ).then(function (response) {
           return response.data;
         });

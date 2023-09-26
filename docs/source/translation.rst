@@ -9,8 +9,8 @@ Translating SEED
 
    .. code:: bash
 
-      script/get_python_translations
-      script/get_angular_translations
+      script/get_python_translations.sh
+      script/get_angular_translations.sh
 
 4. Uncomment the ``useMissingTranslationHandlerLog`` line seed.js to log untranslated strings to the console for review
 
@@ -53,7 +53,7 @@ So, the basic flow on top of any new UI features is now:
    and commit them. There are scripts under ``/scripts`` to make this
    mostly automatic.
 5. Visually check that the containing UI looks OK with the translated
-   string(s). Some languages (eg. French, German) can be wordy relative
+   string(s). Some languages (e.g., French, German) can be wordy relative
    to English and cause UI elements like buttons to expand oddly. Adjust
    the layout or adjust the translation as needed.
 

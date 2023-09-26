@@ -1,10 +1,15 @@
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author nicholas.long@nrel.gov
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 
-File contains settings needed to run SEED with docker
+:author nicholas.long@nrel.gov
+:description File contains settings needed to run SEED with docker
 """
 from __future__ import absolute_import
+
+import os
+
+from kombu import Exchange, Queue
 
 from config.settings.common import *  # noqa
 
@@ -19,7 +24,12 @@ SMTP_ENV_VARS = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_HOST_USER',
 # The optional vars will set the SERVER_EMAIL information as needed
 OPTIONAL_ENV_VARS = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SES_REGION_NAME',
                      'AWS_SES_REGION_ENDPOINT', 'SERVER_EMAIL', 'SENTRY_JS_DSN', 'SENTRY_RAVEN_DSN',
+<<<<<<< HEAD
                      'REDIS_PASSWORD', 'DJANGO_EMAIL_BACKEND', 'POSTGRES_HOST', 'REDIS_HOST'] + SMTP_ENV_VARS
+=======
+                     'REDIS_PASSWORD', 'REDIS_HOST', 'DJANGO_EMAIL_BACKEND',
+                     'POSTGRES_HOST'] + SMTP_ENV_VARS
+>>>>>>> merging_new_version
 
 for loc in ENV_VARS + OPTIONAL_ENV_VARS:
     locals()[loc] = os.environ.get(loc)
@@ -46,33 +56,43 @@ HELIX_SSL = os.environ.get("HELIX_SSL")
 if HELIX_SSL is not None:
     FORCE_SSL_PROTOCOL = True
 
-# Make sure to disable secure cooking and csrf when usign Cloudflare
+# Make sure to disable secure cookies and csrf when using Cloudflare
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
 ALLOWED_HOSTS = ['*']
 
 # By default we are using SES as our email client. If you would like to use
-# another backend (e.g. SMTP), then please update this model to support both and
+# another backend (e.g., SMTP), then please update this model to support both and
 # create a pull request.
-EMAIL_BACKEND = (DJANGO_EMAIL_BACKEND if 'DJANGO_EMAIL_BACKEND' in os.environ else "django_ses.SESBackend")
-DEFAULT_FROM_EMAIL = SERVER_EMAIL
+EMAIL_BACKEND = os.environ.get('DJANGO_EMAIL_BACKEND', 'django_ses.SESBackend')
+PASSWORD_RESET_EMAIL = SERVER_EMAIL # noqa F405
+DEFAULT_FROM_EMAIL = SERVER_EMAIL  # noqa F405
 POST_OFFICE = {
     'BACKENDS': {
         'default': EMAIL_BACKEND,
         'post_office_backend': EMAIL_BACKEND,
-    }
+    },
+    'CELERY_ENABLED': True,
 }
 
 # PostgreSQL DB config
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
+<<<<<<< HEAD
         'NAME': POSTGRES_DB,
         'USER': POSTGRES_USER,
         'PASSWORD': POSTGRES_PASSWORD,
         'HOST': (POSTGRES_HOST if 'POSTGRES_HOST' in os.environ else "db-postgres"),  # noqa F405
         'PORT': POSTGRES_PORT,
+=======
+        'NAME': POSTGRES_DB,  # noqa F405
+        'USER': POSTGRES_USER,  # noqa F405
+        'PASSWORD': POSTGRES_PASSWORD,  # noqa F405
+        'HOST': os.environ.get('POSTGRES_HOST', 'db-postgres'),  # noqa F405
+        'PORT': POSTGRES_PORT,  # noqa F405
+>>>>>>> merging_new_version
     }
 }
 
@@ -81,10 +101,14 @@ if 'REDIS_PASSWORD' in os.environ:
     CACHES = {
         'default': {
             'BACKEND': 'redis_cache.cache.RedisCache',
+<<<<<<< HEAD
             'LOCATION': os.environ.get('REDIS_HOST', 'db-redis') + ':6379',
+=======
+            'LOCATION': os.environ.get('REDIS_HOST', 'db-redis:6379'),
+>>>>>>> merging_new_version
             'OPTIONS': {
                 'DB': 1,
-                'PASSWORD': REDIS_PASSWORD,
+                'PASSWORD': REDIS_PASSWORD,  # noqa F405
             },
             'TIMEOUT': 300
         }
@@ -98,7 +122,11 @@ else:
     CACHES = {
         'default': {
             'BACKEND': 'redis_cache.cache.RedisCache',
+<<<<<<< HEAD
             'LOCATION': os.environ.get('REDIS_HOST', 'db-redis') + ':6379',
+=======
+            'LOCATION': os.environ.get('REDIS_HOST', 'db-redis:6379'),
+>>>>>>> merging_new_version
             'OPTIONS': {
                 'DB': 1
             },
@@ -137,17 +165,31 @@ LOGGING = {
     },
 }
 
-if 'default' in SECRET_KEY:
+if 'default' in SECRET_KEY:  # noqa F405
     print("WARNING: SECRET_KEY is defaulted. Makes sure to override SECRET_KEY in local_untracked or env var")
 
 if 'SENTRY_RAVEN_DSN' in os.environ:
-    import raven
-    RAVEN_CONFIG = {
-        'dsn': SENTRY_RAVEN_DSN,
-        # If you are using git, you can also automatically configure the
-        # release based on the git info.
-        'release': raven.fetch_git_sha(os.path.abspath(os.curdir)),
-    }
+    import sentry_sdk
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=os.environ.get('SENTRY_RAVEN_DSN'),
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+        ],
+
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=0.25,
+
+        # If you wish to associate users to errors (assuming you are using
+        # django.contrib.auth) you may enable sending PII data.
+        send_default_pii=True
+    )
+
 # SENTRY_JS_DSN is directly passed through to the Sentry configuration for JS.
 try:
     from .local_untracked import *

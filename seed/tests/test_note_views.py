@@ -1,21 +1,23 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author nicholas.long@nrel.gov
 """
-
 import json
 
-from django.urls import reverse
 from django.test import TestCase
+from django.urls import reverse
 from rest_framework import status
 
 from seed.landing.models import SEEDUser as User
+from seed.models import NoteEvent
 from seed.test_helpers.fake import (
-    FakePropertyViewFactory,
-    FakeTaxLotViewFactory,
     FakeNoteFactory,
+    FakePropertyViewFactory,
+    FakeTaxLotViewFactory
 )
 from seed.utils.organizations import create_organization
 
@@ -90,9 +92,14 @@ class NoteViewTests(TestCase):
         self.assertEqual(result['note_type'], 'Note')
         self.assertEqual(result['text'], payload['text'])
         self.assertEqual(result['property_view_id'], self.pv.pk)
-        self.assertIsNone(result['taxlot_view_id'])
+        self.assertTrue('taxlot_view_id' not in result)
         self.assertEqual(result['organization_id'], self.org.pk)
         self.assertEqual(result['user_id'], self.user.pk)
+
+        events = NoteEvent.objects.all().values()
+        self.assertEqual(1, len(events))
+        event = events[0]
+        self.assertEqual(result["id"], event["note_id"])
 
     def test_create_note_taxlot(self):
         url = reverse('api:v3:taxlot-notes-list', args=[self.tl.pk])
@@ -109,7 +116,7 @@ class NoteViewTests(TestCase):
         # check that the note was attached to the property
         self.assertEqual(result['note_type'], 'Note')
         self.assertEqual(result['text'], payload['text'])
-        self.assertIsNone(result['property_view_id'])
+        self.assertTrue('property_view_id' not in result)
         self.assertEqual(result['taxlot_view_id'], self.tl.pk)
 
     def test_update_note(self):

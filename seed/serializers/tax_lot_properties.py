@@ -1,22 +1,18 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 """
-
 from rest_framework import serializers
 
-from seed.models import (
-    Property
-)
+from seed.models import Property
 from seed.serializers.properties import (
     PropertyLabelsField,
     PropertyListSerializer,
-    PropertyMinimalSerializer,
+    PropertyMinimalSerializer
 )
 
 

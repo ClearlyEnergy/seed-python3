@@ -1,8 +1,7 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
- */
-/**
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
+ *
  * data_upload_modal_controller: the AngularJS controller for the data upload modal.
  *
  * The numbers corresponding to ``step.number`` are reflected in
@@ -26,6 +25,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
   .controller('data_upload_modal_controller', [
     '$http',
     '$scope',
+    '$rootScope',
     '$uibModalInstance',
     '$log',
     '$timeout',
@@ -45,6 +45,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
     function (
       $http,
       $scope,
+      $rootScope,
       $uibModalInstance,
       $log,
       $timeout,
@@ -66,6 +67,8 @@ angular.module('BE.seed.controller.data_upload_modal', [])
       $scope.cycles = cycles.cycles;
       var cached_cycle = inventory_service.get_last_cycle();
       $scope.selectedCycle = _.find(cycles.cycles, {id: cached_cycle}) || _.first(cycles.cycles);
+      $scope.multipleCycleUpload = false;
+      $scope.show_help = false;
 
       $scope.step_10_style = 'info';
       $scope.step_10_title = 'load more data';
@@ -74,6 +77,8 @@ angular.module('BE.seed.controller.data_upload_modal', [])
       };
       $scope.pm_buttons_enabled = true;
       $scope.pm_error_alert = false;
+      // Initial value is 0, after a response is returned it will be set to true or false
+      $scope.import_file_reusable_for_meters = 0;
       /**
        * dataset: holds the state of the data set
        * name: string - the data set name
@@ -96,6 +101,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
         filename: '',
         import_file_id: 0
       };
+
       /**
        * uploader: hold the state of the upload.
        * invalid_extension_alert: bool - hides or shows the bootstrap alert for csv/xls/xlsx files
@@ -105,7 +111,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
        * in_progress: bool - when true: shows the progress bar and hides the
        *  upload button. when false: hides the progress bar and shows the upload
        *  button.
-       * progress: int or float - the progress bar value, i.e. percentage complete
+       * progress: int or float - the progress bar value, i.e., percentage complete
        * complete: bool - true when the upload has finished
        * status_message: str - status of the task
        * progress_last_updated: null | int - when not null it indicates the last time the progress bar changed (UNIX Epoch in ms)
@@ -122,6 +128,10 @@ angular.module('BE.seed.controller.data_upload_modal', [])
         status_message: '',
         progress_last_updated: null,
         progress_last_checked: null
+      };
+      $scope.sub_uploader = {
+        progress: 0,
+        status_message: ''
       };
 
       /**
@@ -140,6 +150,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
       };
 
       /**
+<<<<<<< HEAD
        * Helix change - Synchronize HES records and create datafiles
        */	  
 	  $scope.synchronize_hes = function() {
@@ -198,10 +209,17 @@ angular.module('BE.seed.controller.data_upload_modal', [])
 
       /**
        * goto_step: changes the step of the modal, i.e. name dataset -> upload ...
+=======
+       * goto_step: changes the step of the modal, i.e., name dataset -> upload ...
+>>>>>>> merging_new_version
        * step: int - used with the `ng-switch` in the DOM to change state
        */
       $scope.goto_step = function (step) {
         $scope.step.number = step;
+      };
+
+      $scope.toggleMultipleCycleUpload = function () {
+        $scope.multipleCycleUpload = !$scope.multipleCycleUpload;
       };
 
       $scope.cycleChanged = function (selected) {
@@ -233,7 +251,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
        */
       $scope.cancel = function () {
         // If step 15, PM Meter Usage import confirmation was not accepted by user, so delete file
-        if ($scope.step.number == 15) {
+        if ($scope.step.number == 15 && $scope.file_id) {
           dataset_service.delete_file($scope.file_id).then(function (/*results*/) {
             $uibModalInstance.dismiss('cancel');
           });
@@ -243,7 +261,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
       };
       /**
        * create_dataset: uses the `uploader_service` to create a new data set. If
-       *  there is an error, i.e. the request fails or the data set name is
+       *  there is an error, i.e., the request fails or the data set name is
        *  already taken, then the bootstrap alert is shown
        */
       $scope.create_dataset = function (dataset_name) {
@@ -265,6 +283,12 @@ angular.module('BE.seed.controller.data_upload_modal', [])
       };
 
       var present_parsed_meters_confirmation = function (result) {
+        $scope.proposed_meters_count = result.proposed_imports.length;
+        $scope.proposed_meters_count_string = $scope.proposed_meters_count > 1 ? `${$scope.proposed_meters_count} Meters` : `${$scope.proposed_meters_count} Meter`;
+        $scope.proposed_properties_count = new Set(result.proposed_imports.map((meter) => meter.pm_property_id)).size;
+        $scope.proposed_properties_count_string = $scope.proposed_properties_count > 1 ? `${$scope.proposed_properties_count} Properties` : `${$scope.proposed_properties_count} Property`;
+        $scope.unlinkable_properties_count = result.unlinkable_pm_ids.length;
+        $scope.unlinkable_properties_count_string = $scope.unlinkable_properties_count > 1 ? `${$scope.unlinkable_properties_count} Properties` : `${$scope.unlinkable_properties} Property`;
         $scope.proposed_imports_options = {
           data: result.proposed_imports,
           columnDefs: [{
@@ -331,8 +355,8 @@ angular.module('BE.seed.controller.data_upload_modal', [])
         $scope.step.number = 15;
       };
 
-      var present_meter_import_error = function (/*error*/) {
-        $scope.pm_meter_import_error = true;
+      var present_meter_import_error = function (message) {
+        $scope.pm_meter_import_error = message;
         $scope.uploader.in_progress = false;
         $scope.uploader.progress = 0;
 
@@ -407,7 +431,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
               uploader_service
                 .pm_meters_preview(file.file_id, $scope.organization.org_id)
                 .then(present_parsed_meters_confirmation)
-                .catch(present_meter_import_error);
+                .catch((err) => present_meter_import_error(err));
             } else {
               $scope.dataset.import_file_id = file.file_id;
 
@@ -417,12 +441,12 @@ angular.module('BE.seed.controller.data_upload_modal', [])
                 if (file.source_type === 'BuildingSync Raw') {
                   validate_use_cases_then_save(file.file_id, file.cycle_id);
                 } else {
-                  save_raw_assessed_data(file.file_id, file.cycle_id, false);
+                  save_raw_assessed_data(file.file_id, file.cycle_id, false, $scope.multipleCycleUpload);
                 }
               }
               // Portfolio Data
               if (current_step === 4) {
-                save_map_match_PM_data(file.file_id, file.cycle_id);
+                save_map_match_PM_data(file.file_id, file.cycle_id, $scope.multipleCycleUpload);
               }
             }
             break;
@@ -441,6 +465,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
         cycle_id = cycle_id || $scope.selectedCycle.id;
         $scope.uploader.in_progress = true;
         save_raw_assessed_data(file_id, cycle_id, true);
+        $rootScope.$emit('datasets_updated');
       };
 
       /**
@@ -448,11 +473,12 @@ angular.module('BE.seed.controller.data_upload_modal', [])
        *
        * @param {string} file_id: the id of the import file
        * @param {string} cycle_id: the id of the cycle
+       * @param {boolean} multiple_cycle_upload: whether records can be imported into multiple cycles
        */
-      var save_map_match_PM_data = function (file_id, cycle_id) {
+      var save_map_match_PM_data = function (file_id, cycle_id, multiple_cycle_upload = false) {
         $scope.uploader.status_message = 'saving energy data';
         $scope.uploader.progress = 25;
-        uploader_service.save_raw_data(file_id, cycle_id)
+        uploader_service.save_raw_data(file_id, cycle_id, multiple_cycle_upload)
           .then(function (data) {
             // resolve save_raw_data promise
             monitor_save_raw_data(data.progress_key, file_id);
@@ -586,6 +612,14 @@ angular.module('BE.seed.controller.data_upload_modal', [])
           var result = JSON.parse(progress_data.message);
           $scope.buildingsync_valid = result.valid;
           $scope.buildingsync_issues = result.issues;
+          for (const file in $scope.buildingsync_issues) {
+            let schema_errors = [];
+            for (const i in $scope.buildingsync_issues[file].schema_errors) {
+              let error = $scope.buildingsync_issues[file].schema_errors[i];
+              schema_errors.push([error.message, error.path].join(' - '));
+            }
+            $scope.buildingsync_issues[file].schema_errors = schema_errors;
+          }
 
           // if validation failed, end the import flow here; otherwise continue
           if ($scope.buildingsync_valid !== true) {
@@ -595,6 +629,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
           } else {
             // successfully passed validation, save the data
             save_raw_assessed_data(file_id, cycle_id, false);
+
           }
         };
 
@@ -619,6 +654,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
       };
 
       $scope.reuse_import_file_to_import_meters = function () {
+        $scope.preparing_pm_meters_preview = true;
         dataset_service.reuse_inventory_file_for_meters($scope.dataset.import_file_id).then(function (data) {
           $scope.dataset.import_file_id = data.import_file_id;
           $scope.uploader.progress = 50;
@@ -626,9 +662,12 @@ angular.module('BE.seed.controller.data_upload_modal', [])
           uploader_service
             .pm_meters_preview($scope.dataset.import_file_id, $scope.organization.org_id)
             .then(present_parsed_meters_confirmation)
-            .catch(present_meter_import_error);
-        })
-      }
+            .then(function () {
+              $scope.preparing_pm_meters_preview = false
+            })
+            .catch((err) => present_meter_import_error(err));
+        });
+      };
 
       /**
        * save_raw_assessed_data: saves Assessed data
@@ -636,16 +675,21 @@ angular.module('BE.seed.controller.data_upload_modal', [])
        * @param {string} file_id: the id of the import file
        * @param cycle_id
        * @param is_meter_data
+       * @param multiple_cycle_upload
        */
-      var save_raw_assessed_data = function (file_id, cycle_id, is_meter_data) {
+      var save_raw_assessed_data = function (file_id, cycle_id, is_meter_data, multiple_cycle_upload = false) {
         $scope.uploader.status_message = 'saving data';
         $scope.uploader.progress = 0;
-        uploader_service.save_raw_data(file_id, cycle_id).then(function (data) {
+        uploader_service.save_raw_data(file_id, cycle_id, multiple_cycle_upload).then(function (data) {
           var progress = _.clamp(data.progress, 0, 100);
           uploader_service.check_progress_loop(data.progress_key, progress, 1 - (progress / 100), function (progress_data) {
             $scope.uploader.status_message = 'saving complete';
             $scope.uploader.progress = 100;
             if (is_meter_data) {
+              $scope.import_meters_count = progress_data.message.length;
+              $scope.import_meters_count_string = $scope.import_meters_count > 1 ? `${$scope.import_meters_count} Meters` : `${$scope.import_meters_count} Meter`;
+              $scope.import_properties_count = new Set(progress_data.message.map((meter) => meter.pm_property_id)).size;
+              $scope.import_properties_count_string = $scope.import_properties_count > 1 ? `${$scope.import_properties_count} Properties` : `${$scope.import_properties_count} Property`;
               $scope.import_results_options = meter_import_results(progress_data.message);
               $scope.step.number = 16;
             } else {
@@ -664,6 +708,7 @@ angular.module('BE.seed.controller.data_upload_modal', [])
        * find_matches: finds matches for buildings within an import file
        */
       $scope.find_matches = function () {
+
         matching_service.start_system_matching($scope.dataset.import_file_id).then(function (data) {
           $scope.step_10_mapquest_api_error = false;
 
@@ -674,16 +719,29 @@ angular.module('BE.seed.controller.data_upload_modal', [])
             $scope.uploader.progress = 0;
             $scope.step.number = 10;
             $scope.step_10_style = 'danger';
-            $scope.step_10_error_message = data.message;
-            $scope.step_10_title = data.message;
+            $scope.step_10_error_message = data.progress_data.message;
+            $scope.step_10_title = data.progress_data.message;
           };
 
-          if (_.includes(['error', 'warning'], data.status)) {
+          if (_.includes(['error', 'warning'], data.progress_data.status)) {
             handleSystemMatchingError(data);
           } else {
-            uploader_service.check_progress_loop(data.progress_key, data.progress, 1, function (progress_data) {
+            const progress_argument = {
+              progress_key: data.progress_data.progress_key,
+              offset: data.progress_data.progress,
+              multiplier: 1,
+              progress_bar_obj: $scope.uploader
+            };
+            const sub_progress_argument = {
+              progress_key: data.sub_progress_data.progress_key,
+              offset: data.sub_progress_data.progress,
+              multiplier: 1,
+              progress_bar_obj: $scope.sub_uploader
+            };
+            uploader_service.check_progress_loop_main_sub(progress_argument, function (progress_data) {
               inventory_service.get_matching_and_geocoding_results($scope.dataset.import_file_id).then(function (result_data) {
                 $scope.import_file_records = result_data.import_file_records;
+                $scope.multipleCycleUpload = result_data.multiple_cycle_upload;
 
                 $scope.property_initial_incoming = result_data.properties.initial_incoming;
                 $scope.property_duplicates_against_existing = result_data.properties.duplicates_against_existing;
@@ -719,11 +777,19 @@ angular.module('BE.seed.controller.data_upload_modal', [])
                   // this only occurs in buildingsync, where we are not actually merging properties
                   // thus we will always end up at step 10
                   $scope.step_10_style = 'danger';
-                  $scope.step_10_file_message = 'Warning(s)/Error(s) occurred while processing the file(s):\n' + JSON.stringify(progress_data.file_info, null, 2);
+                  $scope.step_10_file_message = 'Warnings and/or errors occurred while processing the file(s).';
+                  $scope.match_issues = [];
+                  for (let file_name in progress_data.file_info) {
+                    $scope.match_issues.push({
+                      file: file_name,
+                      errors: progress_data.file_info[file_name].errors,
+                      warnings: progress_data.file_info[file_name].warnings
+                    });
+                  }
                 }
 
                 // Toggle a meter import button if the imported file also has a meters tab
-                dataset_service.check_meters_tab_exists($scope.dataset.import_file_id).then(function(result) {
+                dataset_service.check_meters_tab_exists($scope.dataset.import_file_id).then(function (result) {
                   $scope.import_file_reusable_for_meters = result.data || false;
                 });
 
@@ -733,13 +799,14 @@ angular.module('BE.seed.controller.data_upload_modal', [])
                 } else {
                   $scope.step.number = 10;
                 }
+                $state.go('dataset_list');
               });
             }, function (response) {
               handleSystemMatchingError(response.data);
               if ($scope.step_10_error_message.includes('MapQuest')) {
                 $scope.step_10_mapquest_api_error = true;
               }
-            }, $scope.uploader);
+            }, sub_progress_argument);
           }
         });
       };
@@ -792,6 +859,40 @@ angular.module('BE.seed.controller.data_upload_modal', [])
           $scope.pm_buttons_enabled = true;
         });
       };
+
+      $scope.export_issues = function (issues) {
+        let data = ['File Name,Severity,Message'];
+        let allowed_severities = {
+          warnings: 'Warning',
+          use_case_warnings: 'Use Case Warning',
+          errors: 'Error',
+          use_case_errors: 'Use Case Error',
+          schema_errors: 'Schema Error'
+        };
+        for (const i in issues) {
+          for (const severity in allowed_severities) {
+            for (const issue in issues[i][severity]) {
+              data.push([
+                '"' + issues[i].file + '"',
+                allowed_severities[severity],
+                '"' + issues[i][severity][issue].replace(/\r?\n|\r/gm, ' ') + '"'
+              ].join(','));
+            }
+          }
+        }
+        saveAs(new Blob([data.join('\r\n')], {type: 'text/csv'}), 'import_issues.csv');
+      };
+
+      $scope.export_meter_data = function (results, new_file_name) {
+        let data = [results.columnDefs.map(c => c.displayName || c.name).join(',')];
+        let keys = results.columnDefs.map(c => c.name);
+        results.data.forEach(r => {
+          let row = [];
+          keys.forEach(k => row.push(r[k]));
+          data.push(row.join(','));
+        });
+        saveAs(new Blob([data.join('\n')], {type: 'text/csv'}), new_file_name);
+      }
 
       /**
        * init: ran upon the controller load

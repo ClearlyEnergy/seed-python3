@@ -1,32 +1,29 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 """
 # pylint:disable=too-few-public-methods
 from __future__ import unicode_literals
+
 import datetime
 
-# import logging
-
-from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.contrib.postgres.fields import JSONField
+from django.db import models
 from past.builtins import basestring
 
+from seed.landing.models import SEEDUser
 from seed.lib.superperms.orgs.models import Organization
+from seed.models import PropertyView
 from seed.models.auditlog import (
-    AUDIT_USER_EDIT,
     AUDIT_USER_CREATE,
+    AUDIT_USER_EDIT,
     DATA_UPDATE_TYPE
 )
-from seed.landing.models import SEEDUser
-from seed.models import PropertyView
 from seed.utils.strings import titlecase
 
 DEFAULT_GREEN_ASSESSEMENT_VALIDITY_DURATION = getattr(
@@ -155,7 +152,7 @@ class GreenAssessmentProperty(models.Model):
     view = models.ForeignKey(PropertyView, on_delete=models.CASCADE)
     # Describes certification
     assessment = models.ForeignKey(GreenAssessment, on_delete=models.PROTECT)
-    # Source of this certification e.g. assessor
+    # Source of this certification e.g., assessor
     source = models.CharField(max_length=50, null=True, blank=True)
     # optional field  to indicate status for multi-step processes
     status = models.CharField(max_length=50, null=True, blank=True)
@@ -177,7 +174,7 @@ class GreenAssessmentProperty(models.Model):
     # optional expiration date
     _expiration_date = models.DateField(null=True, blank=True)
     # Allow for use defined fields
-    extra_data = JSONField(default=dict, blank=True)
+    extra_data = models.JSONField(default=dict, blank=True)
 
     @property
     def expiration_date(self):
@@ -281,7 +278,7 @@ class GreenAssessmentProperty(models.Model):
             self.rating = value
 
     def initialize_audit_logs(self, **kwargs):
-        """Set up inital log."""
+        """Set up initial log."""
         kwargs.update({
             'organization': self.assessment.organization,
             'property_view': self.view,
@@ -329,7 +326,7 @@ class GreenAssessmentProperty(models.Model):
         """
         Return a dict where keys are RESO Green Verification compatible names.
         RESO Green Verification field names may optionally contain the type
-        (i.e. name). e.g. GreenVerification[Type]Body
+        (i.e., name). e.g., GreenVerification[Type]Body
         :param sub_name: add name to key
         :type sub_name: bool
         """

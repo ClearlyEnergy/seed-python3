@@ -1,25 +1,24 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import csv
 
 from celery.utils.log import get_task_logger
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse, JsonResponse
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import viewsets, status
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from unidecode import unidecode
 
 from seed.data_importer.tasks import do_checks
 from seed.decorators import ajax_request_class
 from seed.lib.superperms.orgs.decorators import has_perm_class
-from seed.models.data_quality import DataQualityCheck
 from seed.models import PropertyView, TaxLotView
-from seed.utils.api import api_endpoint_class, OrgMixin
+from seed.models.data_quality import DataQualityCheck
+from seed.utils.api import OrgMixin, api_endpoint_class
 from seed.utils.api_schema import AutoSchemaHelper
 from seed.utils.cache import get_cache_raw
 
@@ -35,7 +34,7 @@ class DataQualityCheckViewSet(viewsets.ViewSet, OrgMixin):
 
     # Remove lookup_field once data_quality_check_id is used and "pk" can be used
     lookup_field = 'organization_id'
-    # allow organization_id path id to be used for authorization (ie has_perm_class)
+    # allow organization_id path id to be used for authorization (i.e., has_perm_class)
     authz_org_id_kwarg = 'organization_id'
 
     @swagger_auto_schema(
@@ -95,7 +94,7 @@ class DataQualityCheckViewSet(viewsets.ViewSet, OrgMixin):
         return JsonResponse({
             'num_properties': len(property_state_ids),
             'num_taxlots': len(taxlot_state_ids),
-            # TODO #239: Deprecate progress_key from here and just use the 'progess.progress_key'
+            # TODO #239: Deprecate progress_key from here and just use the 'progress.progress_key'
             'progress_key': return_value['progress_key'],
             'progress': return_value,
         })

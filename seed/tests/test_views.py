@@ -1,14 +1,14 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 from datetime import datetime
 
-from django.urls import reverse, reverse_lazy
 from django.test import TestCase
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 
 from seed.data_importer.models import ImportFile, ImportRecord
@@ -17,6 +17,7 @@ from seed.lib.mcm.reader import ROW_DELIMITER
 from seed.lib.progress_data.progress_data import ProgressData
 from seed.lib.superperms.orgs.models import OrganizationUser
 from seed.models import (
+    VIEW_LIST_TAXLOT,
     Column,
     ColumnMapping,
     PropertyView,
@@ -24,17 +25,18 @@ from seed.models import (
     TaxLot,
     TaxLotProperty,
     TaxLotView,
-    Unit,
-    VIEW_LIST_TAXLOT)
+    Unit
+)
 from seed.test_helpers.fake import (
-    FakeCycleFactory,
     FakeColumnFactory,
+    FakeColumnListProfileFactory,
+    FakeCycleFactory,
     FakePropertyFactory,
     FakePropertyStateFactory,
-    FakeTaxLotStateFactory,
     FakeTaxLotFactory,
-    FakeColumnListProfileFactory,
+    FakeTaxLotStateFactory
 )
+from seed.tests.util import AssertDictSubsetMixin, DeleteModelsTestCase
 from seed.utils.organizations import create_organization
 
 DEFAULT_CUSTOM_COLUMNS = [
@@ -45,7 +47,6 @@ DEFAULT_CUSTOM_COLUMNS = [
     'state_province',
 ]
 
-from seed.tests.util import DeleteModelsTestCase, AssertDictSubsetMixin
 
 COLUMNS_TO_SEND = DEFAULT_CUSTOM_COLUMNS + ['postal_code', 'pm_parent_property_id',
                                             # 'calculated_taxlot_ids', 'primary',
@@ -106,7 +107,7 @@ class GetDatasetsViewsTests(TestCase):
         import_record.super_organization = self.org
         import_record.save()
         response = self.client.get(reverse('api:v3:datasets-count'),
-                                   {'organization_id': 666})
+                                   {'organization_id': 6666})
         self.assertEqual(403, response.status_code)
         j = response.json()
         self.assertEqual(j['status'], 'error')
@@ -627,6 +628,105 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
         self.assertNotIn(column_name_mappings['number of secret gadgets'], results)
         self.assertNotIn(column_name_mappings['paint color'], results)
 
+    def test_get_properties_select_all(self):
+        state1 = self.property_state_factory.get_property_state()
+        prprty = self.property_factory.get_property()
+        PropertyView.objects.create(
+            property=prprty, cycle=self.cycle, state=state1, id=1001
+        )
+        state = self.property_state_factory.get_property_state()
+        prprty = self.property_factory.get_property()
+        PropertyView.objects.create(
+            property=prprty, cycle=self.cycle, state=state, id=1004
+        )
+        state = self.property_state_factory.get_property_state()
+        prprty = self.property_factory.get_property()
+        PropertyView.objects.create(
+            property=prprty, cycle=self.cycle, state=state, id=1003
+        )
+        state = self.property_state_factory.get_property_state()
+        prprty = self.property_factory.get_property()
+        PropertyView.objects.create(
+            property=prprty, cycle=self.cycle, state=state, id=1002
+        )
+
+        column_name_mappings = {}
+        for c in Column.retrieve_all(self.org.pk, 'property'):
+            if not c['related']:
+                column_name_mappings[c['column_name']] = c['name']
+
+        response = self.client.post('/api/v3/properties/filter/?{}={}&{}={}'.format(
+            'organization_id', self.org.pk,
+            'ids_only', 'true',
+        ), data={}, content_type='application/json')
+        result = response.json()
+        results = result['results']
+        self.assertEqual(len(results), 4)
+        self.assertEqual(results, [1001, 1002, 1003, 1004])
+
+        response = self.client.post('/api/v3/properties/filter/?{}={}&{}={}'.format(
+            'organization_id', self.org.pk,
+            'ids_only', 'TrUE',
+        ), data={}, content_type='application/json')
+        result = response.json()
+        results = result['results']
+        self.assertEqual(len(results), 4)
+        self.assertEqual(results, [1001, 1002, 1003, 1004])
+
+        response = self.client.post('/api/v3/properties/filter/?{}={}&{}={}&{}={}&{}={}'.format(
+            'organization_id', self.org.pk,
+            'page', 1,
+            'per_page', 999999999,
+            'ids_only', 'not_true'
+        ), data={}, content_type='application/json')
+        result = response.json()
+        results = result['results'][0]
+        self.assertEqual(len(result['results']), 4)
+        self.assertEqual(results[column_name_mappings['address_line_1']], state1.address_line_1)
+
+        response = self.client.post('/api/v3/properties/filter/?{}={}&{}={}&{}={}'.format(
+            'organization_id', self.org.pk,
+            'page', 1,
+            'per_page', 999999999,
+        ), data={}, content_type='application/json')
+        result = response.json()
+        results = result['results'][0]
+        self.assertEqual(len(result['results']), 4)
+        self.assertEqual(results[column_name_mappings['address_line_1']], state1.address_line_1)
+
+    def test_get_properties_wrong_query_params(self):
+        state1 = self.property_state_factory.get_property_state()
+        prprty = self.property_factory.get_property()
+        PropertyView.objects.create(
+            property=prprty, cycle=self.cycle, state=state1, id=1001
+        )
+
+        response = self.client.post('/api/v3/properties/filter/?{}={}&{}={}&{}={}&{}={}'.format(
+            'organization_id', self.org.pk,
+            'page', 1,
+            'per_page', 999999999,
+            'ids_only', 'true'
+        ), data={}, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        result = response.json()
+        self.assertEqual(result['success'], False)
+        self.assertEqual(result['message'], 'Cannot pass query parameter "ids_only" with "per_page" or "page"')
+
+        response = self.client.post('/api/v3/properties/filter/?{}={}&{}={}&{}={}&{}={}'.format(
+            'organization_id', self.org.pk,
+            'page', 9999,
+            'per_page', 1,
+            'ids_only', 'true'
+        ), data={}, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post('/api/v3/properties/filter/?{}={}&{}={}&{}={}'.format(
+            'organization_id', self.org.pk,
+            'page', 'dog',
+            'ids_only', 'true'
+        ), data={}, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
     def test_get_properties_pint_fields(self):
         state = self.property_state_factory.get_property_state(
             self.org,
@@ -686,7 +786,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
 
     def test_get_properties_with_taxlots(self):
         property_state = self.property_state_factory.get_property_state()
-        property_property = self.property_factory.get_property(campus=True)
+        property_property = self.property_factory.get_property()
         property_view = PropertyView.objects.create(
             property=property_property, cycle=self.cycle, state=property_state
         )
@@ -719,7 +819,6 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
         results = response.json()
         self.assertEqual(len(results['results']), 1)
         result = results['results'][0]
-        self.assertTrue(result[column_name_mappings['campus']])
         self.assertEqual(len(result['related']), 1)
         related = result['related'][0]
         self.assertEqual(related[column_name_mappings_related['postal_code']],
@@ -731,7 +830,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             property_footprint="POLYGON ((0 0, 1 1, 1 0, 0 0))"
         )
 
-        property_property = self.property_factory.get_property(campus=True)
+        property_property = self.property_factory.get_property()
         property_view = PropertyView.objects.create(
             property=property_property, cycle=self.cycle, state=property_state
         )
@@ -765,7 +864,6 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
         results = response.json()
         self.assertEqual(len(results['results']), 1)
         result = results['results'][0]
-        self.assertTrue(result[column_name_mappings['campus']])
         self.assertEqual(len(result['related']), 1)
         related = result['related'][0]
         self.assertEqual(related[column_name_mappings_related['postal_code']],
@@ -899,7 +997,6 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
 
         expected_property = {
             'id': property_property.pk,
-            'campus': False,
             'organization': self.org.pk,
             'parent_property': None,
         }
@@ -974,6 +1071,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
         self.assertEqual(rcycle['organization'], self.org.pk)
 
         self.assertEqual(len(results['taxlots']), 2)
+        results['taxlots'].sort(key=lambda x: x['id'])
 
         rtaxlot_view_1 = results['taxlots'][0]
         self.assertEqual(rtaxlot_view_1['id'], taxlot_view_1.pk)
@@ -1010,7 +1108,6 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
         self.assertEqual(tstate_2['address_line_1'], taxlot_state_2.address_line_1)
 
         expected_property = {
-            'campus': False,
             'id': property_property.pk,
             'organization': self.org.pk,
             'parent_property': None,
@@ -1539,6 +1636,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'table_name': 'PropertyState',
             'column_name': 'pm_property_id',
             'display_name': 'PM Property ID',
+            'column_description': 'PM Property ID',
             'data_type': 'string',
             'geocoding_order': 0,
             'is_extra_data': False,
@@ -1551,6 +1649,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'is_matching_criteria': True,
             'recognize_empty': False,
             'comstock_mapping': None,
+            'derived_column': None,
         }
         self.assertIn(pm_property_id_col, results)
 
@@ -1558,6 +1657,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'table_name': 'PropertyState',
             'column_name': 'Property Extra Data Column',
             'display_name': 'Property Extra Data Column',
+            'column_description': 'Property Extra Data Column',
             'is_extra_data': True,
             'merge_protection': 'Favor New',
             'geocoding_order': 0,
@@ -1569,6 +1669,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'is_matching_criteria': False,
             'recognize_empty': False,
             'comstock_mapping': None,
+            'derived_column': None,
         }
         self.assertIn(expected_property_extra_data_column, results)
 
@@ -1576,6 +1677,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'table_name': 'TaxLotState',
             'column_name': 'Taxlot Extra Data Column',
             'display_name': 'Taxlot Extra Data Column (Tax Lot)',
+            'column_description': 'Taxlot Extra Data Column',
             'is_extra_data': True,
             'merge_protection': 'Favor New',
             'geocoding_order': 0,
@@ -1587,6 +1689,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'is_matching_criteria': False,
             'recognize_empty': False,
             'comstock_mapping': None,
+            'derived_column': None,
         }
         self.assertIn(expected_taxlot_extra_data_column, results)
 
@@ -1620,6 +1723,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'table_name': 'TaxLotState',
             'column_name': 'jurisdiction_tax_lot_id',
             'display_name': 'Jurisdiction Tax Lot ID',
+            'column_description': 'Jurisdiction Tax Lot ID',  # hoping this solves the error
             'is_extra_data': False,
             'merge_protection': 'Favor New',
             'data_type': 'string',
@@ -1632,13 +1736,16 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'is_matching_criteria': True,
             'recognize_empty': False,
             'comstock_mapping': None,
+            'derived_column': None,
         }
         self.assertIn(jurisdiction_tax_lot_id_col, results)
+        # breakpoint()
 
         expected_property_extra_data_column = {
             'table_name': 'PropertyState',
             'column_name': 'Property Extra Data Column',
             'display_name': 'Property Extra Data Column (Property)',
+            'column_description': 'Property Extra Data Column',  # for some reason this one uses column_name but the one above uses display_name
             'is_extra_data': True,
             'merge_protection': 'Favor New',
             'geocoding_order': 0,
@@ -1650,6 +1757,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'is_matching_criteria': False,
             'recognize_empty': False,
             'comstock_mapping': None,
+            'derived_column': None,
         }
         self.assertIn(expected_property_extra_data_column, results)
 
@@ -1657,6 +1765,7 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'table_name': 'TaxLotState',
             'column_name': 'Taxlot Extra Data Column',
             'display_name': 'Taxlot Extra Data Column',
+            'column_description': 'Taxlot Extra Data Column',  # Not sure which field this is based on since column_name and display_name are identical
             'is_extra_data': True,
             'merge_protection': 'Favor New',
             'geocoding_order': 0,
@@ -1668,5 +1777,6 @@ class InventoryViewTests(AssertDictSubsetMixin, DeleteModelsTestCase):
             'is_matching_criteria': False,
             'recognize_empty': False,
             'comstock_mapping': None,
+            'derived_column': None,
         }
         self.assertIn(expected_taxlot_extra_data_column, results)

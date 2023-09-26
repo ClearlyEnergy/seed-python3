@@ -14,4 +14,3 @@ media
 node_modules
 vendors/node_modules
 config/settings/local_untracked.py.dist
-oep

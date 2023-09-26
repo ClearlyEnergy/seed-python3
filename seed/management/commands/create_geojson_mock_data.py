@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import csv
 import json
@@ -33,7 +33,7 @@ class Command(BaseCommand):
             coords = [f"{coord[0]} {coord[1]}" for coord in geom['coordinates'][0]]
             return f"POLYGON (( {', '.join(coords)} ))"
         else:
-            raise Exception(f"Unknown type of Geomoetry in GeoJSON of {geom['type']}")
+            raise Exception(f"Unknown type of Geometry in GeoJSON of {geom['type']}")
 
     def handle(self, *args, **options):
         self.stdout.write('Parsing geojson files in %s' % (options['path']), ending='\n')
@@ -90,7 +90,7 @@ class Command(BaseCommand):
             'CITY': 'City',
             'STATE': 'State',
             'ZIP': 'Postal Code',
-            'UBID': 'ULID',
+            'UBID': 'UBID',
         }
 
         property_mapping = {

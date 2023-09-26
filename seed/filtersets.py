@@ -1,22 +1,20 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Fable Turas <fable@raintechpdx.com>
 
 FilterSet classes to provide advanced filtering API endpoints.
 """
-
 from datetime import datetime
 
 import pytz
 from dateutil.relativedelta import relativedelta
 from django.db.models import Q
 from django.utils.timezone import make_aware
-from django_filters import BaseInFilter, NumberFilter, CharFilter, DateFilter
+from django_filters import BaseInFilter, CharFilter, DateFilter, NumberFilter
 from django_filters.rest_framework import FilterSet
 
 from seed.models import (
@@ -25,9 +23,9 @@ from seed.models import (
     GreenAssessmentProperty,
     Measure,
     PropertyState,
-    PropertyView,
-    StatusLabel as Label
+    PropertyView
 )
+from seed.models import StatusLabel as Label
 
 # Oops! we override a builtin in some of the models
 property_decorator = property

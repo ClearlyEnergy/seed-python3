@@ -2,6 +2,7 @@
 question: When and how does SEED geocode my data?
 tags: [features, geocoding]
 ---
+
 SEED will attempt to geocode your data with latitude and longitude values only if the following are true:
 
 1. Your organization has a MapQuest API key. You can register for one through MapQuest's website and apply it on your organization settings page.
@@ -14,4 +15,4 @@ SEED will make this attempt in the following cases:
 
 - On either the properties page or the tax lots page, you can select records and use the "Geocode Selected" button under the Actions menu.
 
-Note: Valid UBID (properties) or ULID (tax lots) values can be parsed to provide a latitude and longitude value. On import, UBID/ULID is used instead of MapQuest if available. On the inventory pages, there's a separate Action menu button to "Decode UBID/ULID for Selected".
+Note: Valid UBID (properties or tax lots) values can be parsed to provide a latitude and longitude value. On import, UBID is used instead of MapQuest if available. On the inventory pages, there's a separate Action menu button to "Decode UBID for Selected".

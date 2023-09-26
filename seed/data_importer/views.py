@@ -1,33 +1,33 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import csv
 import datetime
 import logging
 import os
 
-from past.builtins import basestring
 import pint
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.storage import default_storage
 from django.http import HttpResponse, JsonResponse
+from past.builtins import basestring
 from rest_framework import serializers, status, viewsets
-from rest_framework.decorators import api_view, action, parser_classes, \
+from rest_framework.decorators import (
+    action,
+    api_view,
+    parser_classes,
     permission_classes
-from rest_framework.parsers import MultiPartParser, FormParser
-
-from seed.data_importer.models import (
-    ImportFile,
-    ImportRecord
 )
-from seed.data_importer.models import ROW_DELIMITER
+from rest_framework.parsers import FormParser, MultiPartParser
+
+from seed.data_importer.models import ROW_DELIMITER, ImportFile, ImportRecord
 from seed.data_importer.tasks import do_checks
+<<<<<<< HEAD
 from seed.data_importer.tasks import (
     map_data,
     geocode_buildings_task as task_geocode_buildings,
@@ -42,17 +42,34 @@ from seed.data_importer.tasks import (
 )
 from seed.decorators import ajax_request, ajax_request_class
 from seed.decorators import get_prog_key
+=======
+from seed.data_importer.tasks import \
+    geocode_buildings_task as task_geocode_buildings
+from seed.data_importer.tasks import \
+    map_additional_models as task_map_additional_models
+from seed.data_importer.tasks import map_data
+from seed.data_importer.tasks import match_buildings as task_match_buildings
+from seed.data_importer.tasks import save_raw_data as task_save_raw
+from seed.data_importer.tasks import \
+    validate_use_cases as task_validate_use_cases
+from seed.decorators import ajax_request, ajax_request_class, get_prog_key
+>>>>>>> merging_new_version
 from seed.lib.mappings import mapper as simple_mapper
 from seed.lib.mcm import mapper
-from seed.lib.xml_mapping import mapper as xml_mapper
 from seed.lib.superperms.orgs.decorators import has_perm_class
+<<<<<<< HEAD
 # from seed.lib.superperms.orgs.models import (
 #     Organization,
 # )
 from helix.models import HELIXOrganization as Organization
 from seed.lib.superperms.orgs.models import OrganizationUser
+=======
+from seed.lib.superperms.orgs.models import Organization, OrganizationUser
+>>>>>>> merging_new_version
 from seed.lib.superperms.orgs.permissions import SEEDOrgPermissions
+from seed.lib.xml_mapping import mapper as xml_mapper
 from seed.models import (
+<<<<<<< HEAD
     get_column_mapping,
 )
 from seed.models.data_quality import (
@@ -62,19 +79,26 @@ from seed.models import (
     obj_to_dict,
     PropertyState,
     TaxLotState,
+=======
+    AUDIT_USER_EDIT,
+>>>>>>> merging_new_version
     DATA_STATE_MAPPING,
     DATA_STATE_MATCHING,
-    MERGE_STATE_UNKNOWN,
-    MERGE_STATE_NEW,
     MERGE_STATE_MERGED,
-    Cycle,
-    Column,
-    PropertyAuditLog,
-    TaxLotAuditLog,
-    AUDIT_USER_EDIT,
-    TaxLotProperty,
+    MERGE_STATE_NEW,
+    MERGE_STATE_UNKNOWN,
+    PORTFOLIO_RAW,
     SEED_DATA_SOURCES,
-    PORTFOLIO_RAW)
+    Column,
+    Cycle,
+    PropertyAuditLog,
+    PropertyState,
+    TaxLotAuditLog,
+    TaxLotProperty,
+    TaxLotState,
+    get_column_mapping,
+    obj_to_dict
+)
 from seed.utils.api import api_endpoint, api_endpoint_class
 from seed.utils.cache import get_cache
 from seed.utils.geocode import MapQuestAPIKeyError
@@ -109,7 +133,7 @@ class LocalUploaderViewSet(viewsets.ViewSet):
               required: true
               paramType: body
             - name: source_type
-              description: the type of file (e.g. 'Portfolio Raw' or 'Assessed Raw')
+              description: the type of file (e.g., 'Portfolio Raw' or 'Assessed Raw')
               required: false
               paramType: body
             - name: source_program_version
@@ -370,7 +394,7 @@ class LocalUploaderViewSet(viewsets.ViewSet):
         f = ImportFile.objects.create(import_record=record,
                                       uploaded_filename=file_name,
                                       file=path,
-                                      source_type=SEED_DATA_SOURCES[PORTFOLIO_RAW],
+                                      source_type=SEED_DATA_SOURCES[PORTFOLIO_RAW][1],
                                       **{'source_program': 'PortfolioManager',
                                          'source_program_version': '1.0'})
 
@@ -399,14 +423,6 @@ def get_upload_details(request):
     return JsonResponse(ret)
 
 
-class MappingResultsPayloadSerializer(serializers.Serializer):
-    q = serializers.CharField(max_length=100)
-    order_by = serializers.CharField(max_length=100)
-    filter_params = JSONField()
-    page = serializers.IntegerField()
-    number_per_page = serializers.IntegerField()
-
-
 class MappingResultsPropertySerializer(serializers.Serializer):
     pm_property_id = serializers.CharField(max_length=100)
     address_line_1 = serializers.CharField(max_length=100)
@@ -430,11 +446,11 @@ def convert_first_five_rows_to_list(header, first_five_rows):
     Return the first five rows. This is a complicated method because it handles converting the
     persisted format of the first five rows into a list of dictionaries. It handles some basic
     logic if there are crlf in the fields. Note that this method does not cover all the use cases
-    and cannot due to the custom delimeter. See the tests in
+    and cannot due to the custom delimiter. See the tests in
     test_views.py:test_get_first_five_rows_newline_should_work to see the limitation
 
     :param header: list, ordered list of headers as strings
-    :param first_five_rows: string, long string with |#*#| delimeter.
+    :param first_five_rows: string, long string with |#*#| delimiter.
     :return: list
     """
     row_data = []
@@ -1431,7 +1447,7 @@ class ImportFileViewSet(viewsets.ViewSet):
         # Fix the table name, eventually move this to the build_column_mapping
         for m in suggested_mappings:
             table, _destination_field, _confidence = suggested_mappings[m]
-            # Do not return the campus, created, updated fields... that is force them to be in the property state
+            # Do not return the created, updated fields... that is force them to be in the property state
             if not table or table == 'Property':
                 suggested_mappings[m][0] = 'PropertyState'
             elif table == 'TaxLot':

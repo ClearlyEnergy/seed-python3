@@ -1,13 +1,15 @@
 .DS_Store
 .cache
 .env
+.hypothesis
 .idea
 .project
 .pydevproject
 .python-version
 .coverage
+.vscode
 coverage.protractor.json
-.noseids
+.vscode
 *~
 *~$*
 *.pyc
@@ -15,7 +17,6 @@ coverage.protractor.json
 *.swo
 *.swn
 seed_issues.csv
-package-lock.json
 web_root/css/compressed.*.css
 web_root/js/compressed.*.js
 web_root/collected_static
@@ -75,6 +76,7 @@ docs/build/
 docs/scripts/Gemfile.lock
 docs/scripts/.python-version
 docs/scripts/seed_issues.csv
+docs/htmlout
 
 lokalise.cfg
 lokalise.yml
@@ -85,7 +87,11 @@ docker-compose.*.yml
 !docker-compose.local.yml
 !docker-compose.build.yml
 !docker-compose.dev.yml
+docker-compose-dbs.yml
 
 # generated files
 /auto*.csv
+<<<<<<< HEAD
 /charts/helix/charts/
+=======
+>>>>>>> merging_new_version

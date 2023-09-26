@@ -1,10 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 """
 from collections import OrderedDict, Sequence
@@ -15,13 +14,18 @@ from past.builtins import basestring
 from rest_framework import serializers
 
 from seed.models import (
+<<<<<<< HEAD
+=======
+    GreenAssessment,
+    GreenAssessmentProperty,
+>>>>>>> merging_new_version
     GreenAssessmentURL,
     PropertyView
 )
 from helix.models import HELIXGreenAssessment as GreenAssessment
 from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
 from seed.models.auditlog import AUDIT_USER_CREATE
-from seed.utils.api import OrgValidator, OrgValidateMixin
+from seed.utils.api import OrgValidateMixin, OrgValidator
 from seed.utils.strings import titlecase
 
 ASSESSMENT_VALIDATOR = OrgValidator('assessment', 'organization_id')
@@ -149,7 +153,7 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin, serializers.ModelSeria
     rating = serializers.CharField(
         required=False, allow_null=True, max_length=100)
     expiration_date = serializers.DateField(allow_null=True, required=False)
-    # ensure reuqest.users org matches that of view and assessment
+    # ensure request.users org matches that of view and assessment
     org_validators = [ASSESSMENT_VALIDATOR, PROPERTY_VIEW_VALIDATOR]
 
     def __init__(self, *args, **kwargs):
@@ -296,7 +300,7 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin, serializers.ModelSeria
 
 
 class GreenAssessmentURLSerializer(OrgValidateMixin, serializers.ModelSerializer):
-    # ensure reuqest.users org matches that property_assessment
+    # ensure request.users org matches that property_assessment
     org_validators = [ASSESSMENT_PROPERTY_VALIDATOR]
 
     class Meta:

@@ -1,29 +1,29 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-from seed.models.derived_columns import DerivedColumn
 from django.forms.models import model_to_dict
 from quantityfield.units import ureg
 
 from seed.models import Column, DerivedColumnParameter, PropertyView
 from seed.models.data_quality import (
     DataQualityCheck,
+    DataQualityTypeCastError,
     Rule,
     StatusLabel,
-    DataQualityTypeCastError,
-    UnitMismatchError,
+    UnitMismatchError
 )
+from seed.models.derived_columns import DerivedColumn
 from seed.models.models import ASSESSED_RAW
 from seed.test_helpers.fake import (
     FakeDerivedColumnFactory,
     FakePropertyFactory,
     FakePropertyStateFactory,
-    FakeTaxLotStateFactory,
+    FakeTaxLotStateFactory
 )
-from seed.tests.util import DataMappingBaseTestCase, AssertDictSubsetMixin
+from seed.tests.util import AssertDictSubsetMixin, DataMappingBaseTestCase
 
 
 class DataQualityCheckTests(AssertDictSubsetMixin, DataMappingBaseTestCase):
@@ -107,7 +107,7 @@ class DataQualityCheckTests(AssertDictSubsetMixin, DataMappingBaseTestCase):
         }
         ps = self.property_state_factory.get_property_state(None, **ps_data)
 
-        # Add 3 additionals rule to default set
+        # Add 3 additional rules to default set
         dq = DataQualityCheck.retrieve(self.org.id)
         rule_info = {
             'field': 'custom_id_1',
@@ -391,7 +391,7 @@ class DataQualityCheckTests(AssertDictSubsetMixin, DataMappingBaseTestCase):
         self.assertFalse(rule.maximum_valid(150))
         self.assertFalse(rule.maximum_valid('150'))
 
-        # All of these should value since they are less than 10 (e.g. 5 kbtu/m2/year =~ 0.5 kbtu/ft2/year)
+        # All of these should value since they are less than 10 (e.g., 5 kbtu/m2/year =~ 0.5 kbtu/ft2/year)
         # different units on check data
         self.assertFalse(rule.minimum_valid(ureg.Quantity(5, "kBtu/ft**2/year")))
         self.assertFalse(rule.minimum_valid(ureg.Quantity(5, "kBtu/m**2/year")))  # ~ 0.5 kbtu/ft2/year

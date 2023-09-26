@@ -1,3 +1,7 @@
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 import logging
 import os
 import re
@@ -6,9 +10,15 @@ from django.conf import settings
 from django.http import HttpResponse
 from rest_framework import generics
 
-from seed.models import ImportFile, Organization, BuildingFile, Analysis, AnalysisOutputFile
+from seed.models import (
+    Analysis,
+    AnalysisOutputFile,
+    BuildingFile,
+    ImportFile,
+    InventoryDocument,
+    Organization
+)
 from seed.utils.api import OrgMixin
-
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -65,6 +75,13 @@ def check_file_permission(user, filepath):
         except AnalysisOutputFile.DoesNotExist:
             raise ModelForFileNotFound('AnalysisOutputFile not found')
         organization = analysis_property_view.cycle.organization
+
+    elif base_dir == 'inventory_documents':
+        try:
+            inventory_document = InventoryDocument.objects.get(file__in=[absolute_filepath, filepath])
+        except InventoryDocument.DoesNotExist:
+            raise ModelForFileNotFound('InventoryDocument not found')
+        organization = inventory_document.property.organization
     else:
         raise ModelForFileNotFound(f'Base directory for media file is not currently handled: "{base_dir}"')
 

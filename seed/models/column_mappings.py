@@ -1,10 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import logging
 
 from django.db import models
@@ -12,9 +11,6 @@ from django.utils.translation import gettext_lazy as _
 
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.models import Organization as SuperOrganization
-from seed.models.models import (
-    SEED_DATA_SOURCES,
-)
 
 # This is the inverse mapping of the property and tax lots that are prepended to the fields
 # for the other table.
@@ -116,13 +112,12 @@ class ColumnMapping(models.Model):
 
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
-    source_type = models.IntegerField(choices=SEED_DATA_SOURCES, null=True, blank=True)
     super_organization = models.ForeignKey(SuperOrganization, on_delete=models.CASCADE, verbose_name=_('SeedOrg'),
                                            blank=True, null=True, related_name='column_mappings')
     column_raw = models.ManyToManyField('Column', related_name='raw_mappings', blank=True, )
     column_mapped = models.ManyToManyField('Column', related_name='mapped_mappings', blank=True, )
 
-    # This field is the database column which allows checks for delimited values (e.g. a;b;c;d)
+    # This field is the database column which allows checks for delimited values (e.g., a;b;c;d)
     DELIMITED_FIELD = ('TaxLotState', 'jurisdiction_tax_lot_id', 'Jurisdiction Tax Lot ID', False)
 
     def is_direct(self):

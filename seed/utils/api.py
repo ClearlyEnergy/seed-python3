@@ -1,11 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import re
 from collections import namedtuple
@@ -20,16 +17,17 @@ from django.core.exceptions import (
 )
 from django.http import JsonResponse
 from past.builtins import basestring
-from rest_framework import status, exceptions
+from rest_framework import exceptions, status
 
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.permissions import get_org_id, get_user_org
 from seed.models import (
+    VIEW_LIST,
+    VIEW_LIST_PROPERTY,
     Column,
     ColumnListProfile,
-    ColumnListProfileColumn,
-    VIEW_LIST,
-    VIEW_LIST_PROPERTY)
+    ColumnListProfileColumn
+)
 
 OrgValidator = namedtuple('OrgValidator', ['key', 'field'])
 
@@ -167,8 +165,12 @@ def get_api_request_user(request):
     """
     Determines if this is an API request and returns the corresponding user if so.
     """
+<<<<<<< HEAD
     auth_header = request.META.get('HTTP_AUTHORIZATION')
     if auth_header is None and request.is_ajax():
+=======
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+>>>>>>> merging_new_version
         return False
 
     return User.process_header_request(request)
@@ -305,10 +307,10 @@ class OrgMixin(object):
 
     def get_organization(self, request, return_obj=False):
         """Get org from query param or request.user.
+
         :param request: request object.
         :param return_obj: bool. Set to True if obj vs pk is desired.
-        :return: int representing a valid organization pk or
-            organization object.
+        :return: int representing a valid organization pk or organization object.
         """
         # print("my return obj is set to %s" % return_obj)
         if not request.user:
@@ -369,7 +371,6 @@ class OrgCreateUpdateMixin(OrgCreateMixin, OrgUpdateMixin):
     """
     Mixin to add organization when creating/updating model instance
     """
-    pass
 
 
 class OrgValidateMixin(object):

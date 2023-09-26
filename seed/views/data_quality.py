@@ -1,22 +1,22 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import csv
 
 from celery.utils.log import get_task_logger
 from django.db import transaction
-from django.http import JsonResponse, HttpResponse
-from rest_framework import viewsets, serializers, status
+from django.http import HttpResponse, JsonResponse
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from unidecode import unidecode
 
 from seed.data_importer.tasks import do_checks
 from seed.decorators import ajax_request_class
 from seed.lib.superperms.orgs.decorators import has_perm_class
+<<<<<<< HEAD
 from seed.lib.superperms.orgs.models import (
     Organization,
 )
@@ -28,6 +28,11 @@ from seed.serializers.data_quality import (
     DataQualityCheckSerializer,
 )
 from seed.utils.api import api_endpoint_class, OrgMixin, OrgValidateMixin
+=======
+from seed.lib.superperms.orgs.models import Organization
+from seed.models.data_quality import DataQualityCheck, Rule
+from seed.utils.api import OrgMixin, api_endpoint_class
+>>>>>>> merging_new_version
 from seed.utils.cache import get_cache_raw
 from seed.utils.viewsets import SEEDOrgCreateUpdateModelViewSet
 
@@ -145,7 +150,7 @@ class DataQualityViews(viewsets.ViewSet, OrgMixin):
         return JsonResponse({
             'num_properties': len(property_state_ids),
             'num_taxlots': len(taxlot_state_ids),
-            # TODO #239: Deprecate progress_key from here and just use the 'progess.progress_key'
+            # TODO #239: Deprecate progress_key from here and just use the 'progress.progress_key'
             'progress_key': return_value['progress_key'],
             'progress': return_value,
         })

@@ -1,10 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 """
 # pylint:disable=no-name-in-module
@@ -13,18 +12,18 @@ from django.test import TestCase
 
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.models import (
-    Organization,
-    OrganizationUser,
-    ROLE_OWNER,
     ROLE_MEMBER,
+    ROLE_OWNER,
     ROLE_VIEWER,
+    Organization,
+    OrganizationUser
 )
 from seed.lib.superperms.orgs.permissions import (
-    get_org_or_id,
-    get_org_id,
-    get_user_org,
     SEEDOrgPermissions,
-    SEEDPublicPermissions
+    SEEDPublicPermissions,
+    get_org_id,
+    get_org_or_id,
+    get_user_org
 )
 from seed.utils.organizations import create_organization
 
@@ -62,7 +61,7 @@ class PermissionsFunctionsTests(TestCase):
     def test_get_org_id(self):
         """Test getting org id from request."""
         # Priority of id sources should be, in order:
-        # - request parser context (ie view kwarg matches an organization id keyword)
+        # - request parser context (i.e., view kwarg matches an organization id keyword)
         # - path (under `organizations` resource)
         # - query_params
         # - data
@@ -295,7 +294,7 @@ class SEEDPublicPermissionsTests(TestCase):
         permissions = SEEDPublicPermissions()
         mock_request = mock.MagicMock()
 
-        # assert can use safe methods if not autheticated
+        # assert can use safe methods if not authenticated
         mock_is_authenticated.return_value = False
         for view_type in ['GET', 'OPTIONS', 'HEAD']:
             mock_request.method = view_type

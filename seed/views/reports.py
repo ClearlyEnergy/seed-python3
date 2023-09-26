@@ -1,41 +1,31 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from collections import defaultdict
+from io import BytesIO
 
 import dateutil
 from django.http import HttpResponse
-from io import BytesIO
 from past.builtins import basestring
 from rest_framework import status
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
+from xlsxwriter import Workbook
 
-from seed.decorators import (
-    DecoratorMixin,
-)
-from seed.lib.superperms.orgs.models import (
-    Organization
-)
-from seed.models import (
-    Cycle,
-    PropertyView
-)
-from seed.serializers.pint import (
-    apply_display_unit_preferences,
-)
+from seed.decorators import DecoratorMixin
+from seed.lib.superperms.orgs.models import Organization
+from seed.models import Cycle, PropertyView
+from seed.serializers.pint import apply_display_unit_preferences
 from seed.utils.api import drf_api_endpoint
 from seed.utils.generic import median, round_down_hundred_thousand
 
-from xlsxwriter import Workbook
 
-
-class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
+class Report(DecoratorMixin(drf_api_endpoint), ViewSet):  # type: ignore[misc]
     renderer_classes = (JSONRenderer,)
     parser_classes = (JSONParser,)
 
@@ -47,7 +37,7 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
         try:
             start = int(start)
             end = int(end)
-        except ValueError as error:  # noqa
+        except ValueError:
             # assume string is JS date
             if isinstance(start, basestring):
                 start_datetime = dateutil.parser.parse(start)
@@ -80,8 +70,7 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
             }
         return result
 
-    def get_raw_report_data(self, organization_id, cycles, x_var, y_var,
-                            campus_only):
+    def get_raw_report_data(self, organization_id, cycles, x_var, y_var):
         all_property_views = PropertyView.objects.select_related(
             'property', 'state'
         ).filter(
@@ -97,21 +86,13 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
             data = []
             for property_view in property_views:
                 property_pk = property_view.property_id
-                if property_view.property.campus and campus_only:
-                    count_total.append(property_pk)
-                    result = self.get_data(property_view, x_var, y_var)
-                    if result:
-                        result['yr_e'] = cycle.end.strftime('%Y')
-                        data.append(result)
-                        count_with_data.append(property_pk)
-                elif not property_view.property.campus:
-                    count_total.append(property_pk)
-                    result = self.get_data(property_view, x_var, y_var)
-                    if result:
-                        result['yr_e'] = cycle.end.strftime('%Y')
-                        de_unitted_result = apply_display_unit_preferences(organization, result)
-                        data.append(de_unitted_result)
-                        count_with_data.append(property_pk)
+                count_total.append(property_pk)
+                result = self.get_data(property_view, x_var, y_var)
+                if result:
+                    result['yr_e'] = cycle.end.strftime('%Y')
+                    de_unitted_result = apply_display_unit_preferences(organization, result)
+                    data.append(de_unitted_result)
+                    count_with_data.append(property_pk)
             result = {
                 "cycle_id": cycle.pk,
                 "chart_data": data,
@@ -125,7 +106,6 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
         return results
 
     def get_property_report_data(self, request):
-        campus_only = request.query_params.get('campus_only', False)
         params = {}
         missing_params = []
         error = ''
@@ -146,7 +126,7 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
             cycles = self.get_cycles(params['start'], params['end'])
             data = self.get_raw_report_data(
                 params['organization_id'], cycles,
-                params['x_var'], params['y_var'], campus_only
+                params['x_var'], params['y_var']
             )
             for datum in data:
                 if datum['property_counts']['num_properties_w-data'] != 0:
@@ -218,7 +198,7 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
         cycles = self.get_cycles(params['start'], params['end'])
         data = self.get_raw_report_data(
             params['organization_id'], cycles,
-            params['x_var'], params['y_var'], False
+            params['x_var'], params['y_var']
         )
 
         base_row = data_row_start + 1
@@ -264,8 +244,7 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
         return response
 
     def get_aggregated_property_report_data(self, request):
-        campus_only = request.query_params.get('campus_only', False)
-        valid_y_values = ['gross_floor_area', 'use_description', 'year_built']
+        valid_y_values = ['gross_floor_area', 'property_type', 'year_built']
         params = {}
         missing_params = []
         empty = True
@@ -292,8 +271,7 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
             x_var = params['x_var']
             y_var = params['y_var']
             data = self.get_raw_report_data(
-                params['organization_id'], cycles, x_var, y_var,
-                campus_only
+                params['organization_id'], cycles, x_var, y_var
             )
             for datum in data:
                 if datum['property_counts']['num_properties_w-data'] != 0:
@@ -324,7 +302,7 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
 
     def aggregate_data(self, yr_e, y_var, buildings):
         aggregation_method = {
-            'use_description': self.aggregate_use_description,
+            'property_type': self.aggregate_property_type,
             'year_built': self.aggregate_year_built,
             'gross_floor_area': self.aggregate_gross_floor_area,
 
@@ -332,7 +310,7 @@ class Report(DecoratorMixin(drf_api_endpoint), ViewSet):
         }
         return aggregation_method[y_var](yr_e, buildings)
 
-    def aggregate_use_description(self, yr_e, buildings):
+    def aggregate_property_type(self, yr_e, buildings):
         # Group buildings in this year_ending group into uses
         chart_data = []
         grouped_uses = defaultdict(list)

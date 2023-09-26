@@ -1,8 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from __future__ import unicode_literals
 
@@ -28,7 +28,7 @@ class PropertyMeasure(models.Model):
     MEASURE_COMPLETED = 7
     MEASURE_MV = 8
     MEASURE_VERIFIED = 9
-    MEASURE_UNSATIFACTORY = 10
+    MEASURE_UNSATISFACTORY = 10
 
     IMPLEMENTATION_TYPES = (
         (MEASURE_PROPOSED, 'Proposed'),
@@ -40,7 +40,7 @@ class PropertyMeasure(models.Model):
         (MEASURE_COMPLETED, 'Completed'),
         (MEASURE_MV, 'MV'),
         (MEASURE_VERIFIED, 'Verified'),
-        (MEASURE_UNSATIFACTORY, 'Unsatisfactory'),
+        (MEASURE_UNSATISFACTORY, 'Unsatisfactory'),
     )
 
     SCALE_INDIVIDUAL_SYSTEM = 1

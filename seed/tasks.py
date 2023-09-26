@@ -1,21 +1,23 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from __future__ import absolute_import
 
+import math
 import sys
+from datetime import datetime
 
-from celery import chord, chain
-from celery import shared_task
+import pytz
+from celery import chain, chord, shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
+from django.template import Context, Template, loader
 from django.urls import reverse_lazy
-from django.template import Template, Context, loader
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
@@ -24,17 +26,20 @@ from seed.lib.mcm.utils import batch
 from seed.lib.progress_data.progress_data import ProgressData
 from seed.lib.superperms.orgs.models import Organization
 from seed.models import (
+    DATA_STATE_MATCHING,
     Column,
     ColumnMapping,
     Cycle,
-    DATA_STATE_MATCHING,
+    DerivedColumn,
     Property,
     PropertyState,
     PropertyView,
+    SalesforceConfig,
     TaxLot,
     TaxLotState,
     TaxLotView
 )
+from seed.utils.salesforce import auto_sync_salesforce_properties
 
 logger = get_task_logger(__name__)
 
@@ -59,7 +64,11 @@ def invite_new_user_to_seed(protocol, domain, email_address, token, user_pk, fir
     context = {
         'email': email_address,
         'domain': domain,
+<<<<<<< HEAD
         'protocol': protocol,
+=======
+        'protocol': settings.PROTOCOL,
+>>>>>>> merging_new_version
         'first_name': first_name,
         'signup_url': signup_url
     }
@@ -92,7 +101,11 @@ def invite_to_seed(protocol, domain, email_address, token, organization, user_pk
     Returns: nothing
     """
     sign_up_url = Template("{{protocol}}://{{domain}}{{sign_up_url}}").render(Context({
+<<<<<<< HEAD
         'protocol': protocol,
+=======
+        'protocol': settings.PROTOCOL,
+>>>>>>> merging_new_version
         'domain': domain,
         'sign_up_url': reverse_lazy('landing:signup', kwargs={
             'uidb64': urlsafe_base64_encode(force_bytes(user_pk)),
@@ -135,7 +148,11 @@ def invite_to_organization(protocol, domain, new_user, requested_by, new_org):
         'new_user': new_user,
         'first_name': new_user.first_name,
         'domain': domain,
+<<<<<<< HEAD
         'protocol': protocol,
+=======
+        'protocol': settings.PROTOCOL,
+>>>>>>> merging_new_version
         'new_org': new_org,
         'requested_by': requested_by,
     }
@@ -154,6 +171,26 @@ def invite_to_organization(protocol, domain, new_user, requested_by, new_org):
         pass
 
 
+def send_salesforce_error_log(org_pk, errors):
+    """ send salesforce error log to logging email when errors are encountered during scheduled sync """
+    sf_conf = SalesforceConfig.objects.get(organization_id=org_pk)
+    org = Organization.objects.get(pk=org_pk)
+
+    if sf_conf.logging_email:
+
+        context = {
+            'organization_name': org.name,
+            'errors': errors
+        }
+
+        subject = 'Salesforce Automatic Update Errors'
+        email_body = loader.render_to_string(
+            'seed/salesforce_update_errors.html',
+            context
+        )
+        send_mail(subject, email_body, settings.SERVER_EMAIL, [sf_conf.logging_email])
+
+
 def delete_organization(org_pk):
     """delete_organization_buildings"""
     progress_data = ProgressData(func_name='delete_organization', unique_id=org_pk)
@@ -170,6 +207,8 @@ def delete_organization(org_pk):
 @shared_task
 @lock_and_track
 def _delete_organization_related_data(org_pk, prog_key):
+    # Derived columns use protected foreign keys, they must be deleted first
+    DerivedColumn.objects.filter(organization_id=org_pk).delete()
     Organization.objects.get(pk=org_pk).delete()
 
     # TODO: Delete measures in BRICR branch
@@ -186,8 +225,7 @@ def _finish_delete(results, org_pk, prog_key):
     return progress_data.finish_with_success()
 
 
-@shared_task
-def _finish_delete_column(results, column_id, prog_key):
+def _finish_delete_column(column_id, prog_key):
     # Delete all mappings from raw column names to the mapped column, then delete the mapped column
     column = Column.objects.get(id=column_id)
     ColumnMapping.objects.filter(column_mapped=column).delete()
@@ -323,49 +361,46 @@ def _finish_delete_cycle(cycle_id, prog_key):
 @lock_and_track
 def delete_organization_column(column_pk, org_pk, prog_key=None, chunk_size=100, *args, **kwargs):
     """Deletes an extra_data column from all merged property/taxlot states."""
-
-    column = Column.objects.get(id=column_pk, organization_id=org_pk)
-
     progress_data = ProgressData.from_key(prog_key) if prog_key else ProgressData(
         func_name='delete_organization_column', unique_id=column_pk)
 
-    ids = []
-
-    if column.table_name == 'PropertyState':
-        ids = list(
-            PropertyState.objects.filter(organization_id=org_pk, data_state=DATA_STATE_MATCHING,
-                                         extra_data__has_key=column.column_name).values_list('id', flat=True)
-        )
-    elif column.table_name == 'TaxLotState':
-        ids = list(
-            TaxLotState.objects.filter(organization_id=org_pk, data_state=DATA_STATE_MATCHING,
-                                       extra_data__has_key=column.column_name).values_list('id', flat=True)
-        )
-
-    total = len(ids)
-
-    # total is the number of records divided by the chunk size
-    progress_data.total = total / float(chunk_size)
-    progress_data.data['completed_records'] = 0
-    progress_data.data['total_records'] = total
-    progress_data.save()
-
-    tasks = []
-    # we could also use .s instead of .subtask and not wrap the *args
-    for chunk_ids in batch(ids, chunk_size):
-        tasks.append(
-            _delete_organization_column_chunk.subtask(
-                (chunk_ids, column.column_name, column.table_name, progress_data.key)
-            )
-        )
-    chord(tasks, interval=15)(_finish_delete_column.subtask([column.id, progress_data.key]))
+    _evaluate_delete_organization_column.subtask((column_pk, org_pk, progress_data.key, chunk_size)).apply_async()
 
     return progress_data.result()
 
 
 @shared_task
+def _evaluate_delete_organization_column(column_pk, org_pk, prog_key, chunk_size, *args, **kwargs):
+    """ Find -States with column to be deleted """
+    column = Column.objects.get(id=column_pk, organization_id=org_pk)
+
+    ids = []
+
+    if column.table_name == 'PropertyState':
+        ids = PropertyState.objects.filter(organization_id=org_pk, data_state=DATA_STATE_MATCHING,
+                                           extra_data__has_key=column.column_name).values_list('id', flat=True)
+    elif column.table_name == 'TaxLotState':
+        ids = TaxLotState.objects.filter(organization_id=org_pk, data_state=DATA_STATE_MATCHING,
+                                         extra_data__has_key=column.column_name).values_list('id', flat=True)
+
+    progress_data = ProgressData.from_key(prog_key)
+    total = len(ids)
+    progress_data.total = total / float(chunk_size) + 1
+    progress_data.data['completed_records'] = 0
+    progress_data.data['total_records'] = total
+    progress_data.save()
+
+    for chunk_ids in batch(ids, chunk_size):
+        _delete_organization_column_chunk(
+            chunk_ids, column.column_name, column.table_name, progress_data.key
+        )
+
+    _finish_delete_column(column_pk, progress_data.key)
+
+
 def _delete_organization_column_chunk(chunk_ids, column_name, table_name, prog_key, *args, **kwargs):
     """updates a list of ``chunk_ids`` and increments the cache"""
+
     if table_name == 'PropertyState':
         states = PropertyState.objects.filter(id__in=chunk_ids)
     else:
@@ -411,3 +446,46 @@ def _delete_organization_taxlot_state_chunk(del_ids, prog_key, org_pk, *args, **
     TaxLotState.objects.filter(organization_id=org_pk, pk__in=del_ids).delete()
     progress_data = ProgressData.from_key(prog_key)
     progress_data.step()
+
+
+@shared_task
+def sync_salesforce(org_id):
+    status, messages = auto_sync_salesforce_properties(org_id)
+    if not status:
+        # send email with errors
+        send_salesforce_error_log(org_id, messages)
+
+
+@shared_task
+def update_inventory_metadata(ids, states, inventory_type, progress_key):
+    now = datetime.now(pytz.UTC)
+    progress_data = ProgressData.from_key(progress_key)
+    progress_data.total = 100
+    id_count = len(ids)
+    batch_size = math.ceil(id_count / 100)
+
+    # Find related Properties and PropertyStates
+    if inventory_type == 'properties':
+        properties = Property.objects.filter(id__in=ids)
+        states = PropertyState.objects.filter(id__in=states)
+        inventory = list(properties) + list(states)
+
+    elif inventory_type == 'taxlots':
+        taxlots = TaxLot.objects.filter(id__in=ids)
+        states = TaxLotState.objects.filter(id__in=states)
+        inventory = list(taxlots) + list(states)
+
+    else:
+        return
+
+    # Iterates across Properties (or Taxlots) and -States and refreshes each 'updated' attribute
+    # Updating Properties (or Taxlots)
+    # Updating -States for UI feedback on inventory list
+    for idx, state in enumerate(inventory):
+        state.updated = now
+        state.save()
+        if batch_size > 0 and idx % batch_size == 0:
+            progress_data.step(f'Refreshing ({idx}/{id_count})')
+
+    progress_data.finish_with_success()
+    return progress_data.result()['progress']

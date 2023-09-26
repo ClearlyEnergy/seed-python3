@@ -1,62 +1,64 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import ast
-import os
 import json
+import os
+import pathlib
 import unittest
-
-from config.settings.common import TIME_ZONE
-
 from datetime import datetime
+from unittest import skip
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from django.urls import reverse
-from django.utils.timezone import (
-    get_current_timezone,
-    make_aware,  # make_aware is used because inconsistencies exist in creating datetime with tzinfo
-)
-
+from django.utils.timezone import \
+    make_aware  # make_aware is used because inconsistencies exist in creating datetime with tzinfo
+from django.utils.timezone import get_current_timezone
 from pytz import timezone
 
-from seed.landing.models import SEEDUser as User
-from seed.data_importer.models import (
-    ImportFile,
-    ImportRecord,
+from config.settings.common import TIME_ZONE
+from seed.data_importer.models import ImportFile, ImportRecord
+from seed.data_importer.tasks import (
+    geocode_and_match_buildings_task,
+    save_raw_data
 )
-from seed.data_importer.tasks import geocode_and_match_buildings_task, save_raw_data
+from seed.landing.models import SEEDUser as User
 from seed.lib.xml_mapping.mapper import default_buildingsync_profile_mappings
-
 from seed.models import (
     DATA_STATE_MAPPING,
+    GREEN_BUTTON,
+    PORTFOLIO_METER_USAGE,
+    SEED_DATA_SOURCES,
+    BuildingFile,
+    Column,
+    ColumnMappingProfile,
     Meter,
     MeterReading,
     Note,
+    Organization,
     Property,
     PropertyState,
     PropertyView,
-    TaxLotView,
-    TaxLotProperty,
-    Column,
-    BuildingFile,
     Scenario,
-    ColumnMappingProfile,
-    Organization,
+    TaxLotProperty,
+    TaxLotView
 )
+from seed.models.sensors import DataLogger, Sensor, SensorReading
 from seed.test_helpers.fake import (
-    FakeCycleFactory,
     FakeColumnFactory,
+    FakeColumnListProfileFactory,
+    FakeCycleFactory,
+    FakeNoteFactory,
     FakePropertyFactory,
     FakePropertyStateFactory,
-    FakeNoteFactory,
+    FakePropertyViewFactory,
     FakeStatusLabelFactory,
     FakeTaxLotFactory,
-    FakeTaxLotStateFactory,
-    FakePropertyViewFactory,
-    FakeColumnListProfileFactory,
+    FakeTaxLotStateFactory
 )
 from seed.tests.util import DataMappingBaseTestCase
 from seed.utils.organizations import create_organization
@@ -141,6 +143,38 @@ class PropertyViewTests(DataMappingBaseTestCase):
         )
         self.assertGreater(datetime.strptime(data['property']['updated'], "%Y-%m-%dT%H:%M:%S.%fZ"),
                            datetime.strptime(db_updated_time, "%Y-%m-%dT%H:%M:%S.%fZ"))
+
+    def test_upload_inventory_document_and_delete(self):
+        state = self.property_state_factory.get_property_state()
+        prprty = self.property_factory.get_property()
+        view = PropertyView.objects.create(
+            property=prprty, cycle=self.cycle, state=state
+        )
+        location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        test_filepath = os.path.relpath(os.path.join(location, 'data', 'test-document.pdf'))
+        url = reverse('api:v3:properties-detail', args=[view.id]) + f'upload_inventory_document/?organization_id={self.org.pk}'
+
+        document = open(test_filepath, 'rb')
+        response = self.client.put(
+            path=url,
+            data=encode_multipart(data=dict(
+                file=document,
+                file_type='PDF',
+                name='unused-name'),
+                boundary=BOUNDARY),
+            content_type=MULTIPART_CONTENT
+        )
+
+        data = response.json()
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(data['success'])
+
+        # verify that the object in on the property
+        url = reverse('api:v3:properties-detail', args=[view.id]) + f'?organization_id={self.org.pk}'
+        response = self.client.get(url)
+        self.assertEqual(len(response.json()['property']['inventory_documents']), 1)
+        self.assertEqual(response.json()['property']['inventory_documents'][0]['filename'], 'test-document.pdf')
+        self.assertEqual(response.json()['property']['inventory_documents'][0]['file_type'], 'PDF')
 
     def test_edit_properties_creates_notes_after_initial_edit(self):
         state = self.property_state_factory.get_property_state()
@@ -430,10 +464,8 @@ class PropertyViewTests(DataMappingBaseTestCase):
         self.property_view_factory.get_property_view(cycle=self.cycle, custom_id_1='123456')
         self.property_view_factory.get_property_view(cycle=self.cycle, custom_id_1='987654 Long Street')
         self.property_view_factory.get_property_view(cycle=self.cycle, address_line_1='123 Main Street')
-        self.property_view_factory.get_property_view(cycle=self.cycle, address_line_1='Hamilton Road',
-                                                     analysis_state=PropertyState.ANALYSIS_STATE_QUEUED)
-        self.property_view_factory.get_property_view(cycle=self.cycle, custom_id_1='long road',
-                                                     analysis_state=PropertyState.ANALYSIS_STATE_QUEUED)
+        self.property_view_factory.get_property_view(cycle=self.cycle, address_line_1='Hamilton Road')
+        self.property_view_factory.get_property_view(cycle=self.cycle, custom_id_1='long road')
 
         # Typically looks like this
         # http://localhost:8000/api/v3/properties/search?organization_id=265&cycle=219&identifier=09-IS
@@ -459,41 +491,15 @@ class PropertyViewTests(DataMappingBaseTestCase):
 
         self.assertEqual(len(results), 2)
 
-        # check the analysis states
-        query_params = "?cycle={}&organization_id={}&analysis_state={}".format(self.cycle.pk, self.org.pk, 'Completed')
-        url = reverse('api:v3:properties-search') + query_params
-        response = self.client.get(url)
-        results = json.loads(response.content)
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(len(results), 0)
-
-        query_params = "?cycle={}&organization_id={}&analysis_state={}".format(
-            self.cycle.pk, self.org.pk, 'Not Started'
-        )
-        url = reverse('api:v3:properties-search') + query_params
-        response = self.client.get(url)
-        results = json.loads(response.content)
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(len(results), 3)
-
-        query_params = "?cycle={}&organization_id={}&analysis_state={}".format(
-            self.cycle.pk, self.org.pk, 'Queued'
+        # check the combination of both the identifier and the analysis state
+        query_params = "?cycle={}&organization_id={}&identifier={}".format(
+            self.cycle.pk, self.org.pk, 'Long'
         )
         url = reverse('api:v3:properties-search') + query_params
         response = self.client.get(url)
         results = json.loads(response.content)
         self.assertEqual(200, response.status_code)
         self.assertEqual(len(results), 2)
-
-        # check the combination of both the identifier and the analysis state
-        query_params = "?cycle={}&organization_id={}&identifier={}&analysis_state={}".format(
-            self.cycle.pk, self.org.pk, 'Long', 'Queued'
-        )
-        url = reverse('api:v3:properties-search') + query_params
-        response = self.client.get(url)
-        results = json.loads(response.content)
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(len(results), 1)
 
     def test_meters_exist(self):
         # Create a property set with meters
@@ -508,9 +514,12 @@ class PropertyViewTests(DataMappingBaseTestCase):
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/data/" + filename
         import_file = ImportFile.objects.create(
             import_record=import_record,
-            source_type="GreenButton",
+            source_type=SEED_DATA_SOURCES[GREEN_BUTTON][1],
             uploaded_filename=filename,
-            file=SimpleUploadedFile(name=filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle,
             matching_results_data={"property_id": property_1.id}  # this is how target property is specified
         )
@@ -564,7 +573,7 @@ class PropertyMergeViewTests(DataMappingBaseTestCase):
 
         self.state_1 = self.property_state_factory.get_property_state(
             address_line_1='1 property state',
-            pm_property_id='5766973'  # this allows the Property to be targetted for PM meter additions
+            pm_property_id='5766973'  # this allows the Property to be targeted for PM meter additions
         )
         self.property_1 = self.property_factory.get_property()
         self.view_1 = PropertyView.objects.create(
@@ -683,9 +692,12 @@ class PropertyMergeViewTests(DataMappingBaseTestCase):
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/data/" + filename
         import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="GreenButton",
+            source_type=SEED_DATA_SOURCES[GREEN_BUTTON][1],
             uploaded_filename=filename,
-            file=SimpleUploadedFile(name=filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle,
             matching_results_data={"property_id": self.property_1.id}  # this is how target property is specified
         )
@@ -715,9 +727,12 @@ class PropertyMergeViewTests(DataMappingBaseTestCase):
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/data/" + filename
         import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="GreenButton",
+            source_type=SEED_DATA_SOURCES[GREEN_BUTTON][1],
             uploaded_filename=filename,
-            file=SimpleUploadedFile(name=filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle,
             matching_results_data={"property_id": self.property_2.id}  # this is how target property is specified
         )
@@ -742,15 +757,18 @@ class PropertyMergeViewTests(DataMappingBaseTestCase):
         self.assertEqual(PropertyView.objects.first().property.meters.first().meter_readings.count(), 2)
 
     def test_properties_merge_without_losing_meters_from_different_sources_nonoverlapping(self):
-        # For first Property, PM Meters containing 2 readings for each Electricty and Natural Gas for property_1
+        # For first Property, PM Meters containing 2 readings for each Electricity and Natural Gas for property_1
         # This file has multiple tabs
         pm_filename = "example-pm-monthly-meter-usage.xlsx"
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/data/" + pm_filename
         pm_import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="PM Meter Usage",
+            source_type=SEED_DATA_SOURCES[PORTFOLIO_METER_USAGE][1],
             uploaded_filename=pm_filename,
-            file=SimpleUploadedFile(name=pm_filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=pm_filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle,
         )
         pm_import_url = reverse("api:v3:import_files-start-save-data", args=[pm_import_file.id])
@@ -765,9 +783,12 @@ class PropertyMergeViewTests(DataMappingBaseTestCase):
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/data/" + gb_filename
         gb_import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="GreenButton",
+            source_type=SEED_DATA_SOURCES[GREEN_BUTTON][1],
             uploaded_filename=gb_filename,
-            file=SimpleUploadedFile(name=gb_filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=gb_filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle,
             matching_results_data={"property_id": self.property_2.id}  # this is how target property is specified
         )
@@ -806,9 +827,12 @@ class PropertyMergeViewTests(DataMappingBaseTestCase):
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/data/" + gb_filename
         gb_import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="GreenButton",
+            source_type=SEED_DATA_SOURCES[GREEN_BUTTON][1],
             uploaded_filename=gb_filename,
-            file=SimpleUploadedFile(name=gb_filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=gb_filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle,
             matching_results_data={"property_id": self.property_1.id}  # this is how target property is specified
         )
@@ -819,14 +843,17 @@ class PropertyMergeViewTests(DataMappingBaseTestCase):
         }
         self.client.post(gb_import_url, gb_import_post_params)
 
-        # For second Property, add GreenButton Meters containing 2 Electricitiy readings: 1 overlapping
+        # For second Property, add GreenButton Meters containing 2 Electricity readings: 1 overlapping
         gb_overlapping_filename = "example-GreenButton-data-1-overlapping.xml"
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/data/" + gb_overlapping_filename
         gb_overlapping_import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="GreenButton",
+            source_type=SEED_DATA_SOURCES[GREEN_BUTTON][1],
             uploaded_filename=gb_overlapping_filename,
-            file=SimpleUploadedFile(name=gb_overlapping_filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=gb_overlapping_filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle,
             matching_results_data={"property_id": self.property_2.id}  # this is how target property is specified
         )
@@ -912,15 +939,18 @@ class PropertyMergeViewTests(DataMappingBaseTestCase):
     @unittest.skip("TODO: fix merging of PM and BSync meters")
     def test_properties_merge_combining_bsync_and_pm_sources(self):
         # -- SETUP
-        # For first Property, PM Meters containing 2 readings for each Electricty and Natural Gas for property_1
+        # For first Property, PM Meters containing 2 readings for each Electricity and Natural Gas for property_1
         # This file has multiple tabs
         pm_filename = "example-pm-monthly-meter-usage.xlsx"
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/data/" + pm_filename
         pm_import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="PM Meter Usage",
+            source_type=SEED_DATA_SOURCES[PORTFOLIO_METER_USAGE][1],
             uploaded_filename=pm_filename,
-            file=SimpleUploadedFile(name=pm_filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=pm_filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle,
         )
         pm_import_url = reverse("api:v3:import_files-start-save-data", args=[pm_import_file.id])
@@ -933,8 +963,7 @@ class PropertyMergeViewTests(DataMappingBaseTestCase):
         # For second Property, add BuildingSync file containing 6 meters
         bs_filename = "buildingsync_v2_0_bricr_workflow.xml"
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/../building_sync/tests/data/" + bs_filename
-        bs_file = open(filepath, 'rb')
-        uploaded_file = SimpleUploadedFile(bs_file.name, bs_file.read())
+        uploaded_file = SimpleUploadedFile(filepath, pathlib.Path(filepath).read_bytes())
         bs_buildingfile = BuildingFile.objects.create(
             file=uploaded_file,
             filename=bs_filename,
@@ -1006,7 +1035,7 @@ class PropertyUnmergeViewTests(DataMappingBaseTestCase):
 
         self.state_1 = self.property_state_factory.get_property_state(
             address_line_1='1 property state',
-            pm_property_id='5766973'  # this allows the Property to be targetted for PM meter additions
+            pm_property_id='5766973'  # this allows the Property to be targeted for PM meter additions
         )
         self.property_1 = self.property_factory.get_property()
         self.view_1 = PropertyView.objects.create(
@@ -1026,9 +1055,12 @@ class PropertyUnmergeViewTests(DataMappingBaseTestCase):
         filepath = os.path.dirname(os.path.abspath(__file__)) + "/data/" + gb_filename
         gb_import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="GreenButton",
+            source_type=SEED_DATA_SOURCES[GREEN_BUTTON][1],
             uploaded_filename=gb_filename,
-            file=SimpleUploadedFile(name=gb_filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=gb_filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle,
             matching_results_data={"property_id": self.property_1.id}  # this is how target property is specified
         )
@@ -1171,7 +1203,7 @@ class PropertyViewExportTests(DataMappingBaseTestCase):
 
         # -- Act
         url = reverse('api:v3:properties-building-sync', args=[view.id])
-        response = self.client.get(url, {'profile_id': profile.id})
+        response = self.client.get(url, {'profile_id': profile.id, "organization_id": prprty.organization.id})
 
         # -- Assert
         self.assertEqual(200, response.status_code, response.content)
@@ -1211,9 +1243,9 @@ class PropertyViewExportTests(DataMappingBaseTestCase):
 
         # -- Act
         url = reverse('api:v3:properties-building-sync', args=[view.id])
-        default_export_response = self.client.get(url, {'profile_id': default_profile.id})
+        default_export_response = self.client.get(url, {'profile_id': default_profile.id, "organization_id": prprty.organization.id})
         url = reverse('api:v3:properties-building-sync', args=[view.id])
-        custom_export_response = self.client.get(url, {'profile_id': custom_profile.id})
+        custom_export_response = self.client.get(url, {'profile_id': custom_profile.id, "organization_id": prprty.organization.id})
 
         # -- Assert
         self.assertEqual(200, default_export_response.status_code, default_export_response.content)
@@ -1226,6 +1258,197 @@ class PropertyViewExportTests(DataMappingBaseTestCase):
         expected_diffs = ['<auc:Latitude>5555.0</auc:Latitude>', '<auc:Longitude>4444.0</auc:Longitude>',
                           '<auc:Latitude>4444.0</auc:Latitude>', '<auc:Longitude>5555.0</auc:Longitude>']
         self.assertCountEqual(expected_diffs, diffs)
+
+
+class PropertySensorViewTests(DataMappingBaseTestCase):
+    def setUp(self):
+        self.user_details = {
+            'username': 'test_user@demo.com',
+            'password': 'test_pass',
+        }
+        self.user = User.objects.create_superuser(
+            email='test_user@demo.com', **self.user_details
+        )
+        self.org, _, _ = create_organization(self.user)
+
+        # For some reason, defaults weren't established consistently for each test.
+        self.org.display_meter_units = Organization._default_display_meter_units.copy()
+        self.org.save()
+        self.client.login(**self.user_details)
+
+        self.property_state_factory = FakePropertyStateFactory(organization=self.org)
+        property_details = self.property_state_factory.get_details()
+        property_details['organization_id'] = self.org.id
+
+        # pm_property_ids must match those within example-monthly-meter-usage.xlsx
+        self.pm_property_id_1 = '5766973'
+        self.pm_property_id_2 = '5766975'
+
+        property_details['pm_property_id'] = self.pm_property_id_1
+        state_1 = PropertyState(**property_details)
+        state_1.save()
+        self.state_1 = PropertyState.objects.get(pk=state_1.id)
+
+        property_details['pm_property_id'] = self.pm_property_id_2
+        state_2 = PropertyState(**property_details)
+        state_2.save()
+        self.state_2 = PropertyState.objects.get(pk=state_2.id)
+
+        self.cycle_factory = FakeCycleFactory(organization=self.org, user=self.user)
+        self.cycle = self.cycle_factory.get_cycle(start=datetime(2010, 10, 10, tzinfo=get_current_timezone()))
+
+        self.property_factory = FakePropertyFactory(organization=self.org)
+        self.property_1 = self.property_factory.get_property()
+        self.property_2 = self.property_factory.get_property()
+
+        self.property_view_1 = PropertyView.objects.create(property=self.property_1, cycle=self.cycle, state=self.state_1)
+        self.property_view_2 = PropertyView.objects.create(property=self.property_2, cycle=self.cycle, state=self.state_2)
+
+    def test_property_sensors_endpoint_returns_a_list_of_sensors_of_a_view(self):
+        dl_a = DataLogger.objects.create(**{
+            "property_id": self.property_1.id,
+            "display_name": "moo",
+        })
+        Sensor.objects.create(**{
+            "data_logger": dl_a,
+            "display_name": "s1",
+            "sensor_type": "first",
+            "units": "one",
+            "column_name": "sensor 1"
+        })
+        Sensor.objects.create(**{
+            "data_logger": dl_a,
+            "display_name": "s2",
+            "sensor_type": "second",
+            "units": "two",
+            "column_name": "sensor 2"
+        })
+
+        dl_b = DataLogger.objects.create(**{
+            "property_id": self.property_2.id,
+            "display_name": "boo",
+        })
+        Sensor.objects.create(**{
+            "data_logger": dl_b,
+            "display_name": "s3",
+            "sensor_type": "third",
+            "units": "three",
+            "column_name": "sensor 3"
+        })
+
+        url = reverse('api:v3:properties-sensors', kwargs={'pk': self.property_view_1.id})
+        url += f'?organization_id={self.org.pk}'
+
+        result = self.client.get(url)
+        result_dict = json.loads(result.content)
+
+        self.assertCountEqual([r["column_name"] for r in result_dict], ["sensor 1", "sensor 2"])
+
+        url = reverse('api:v3:properties-sensors', kwargs={'pk': self.property_view_2.id})
+        url += f'?organization_id={self.org.pk}'
+
+        result = self.client.get(url)
+        result_dict = json.loads(result.content)
+
+        self.assertCountEqual([r["column_name"] for r in result_dict], ["sensor 3"])
+
+    def test_property_sensor_usage_returns_sensor_readings(self):
+        dl = DataLogger.objects.create(**{
+            "property_id": self.property_1.id,
+            "display_name": "moo",
+        })
+        s1 = Sensor.objects.create(**{
+            "data_logger": dl,
+            "display_name": "s1",
+            "sensor_type": "first",
+            "units": "one",
+            "column_name": "sensor 1"
+        })
+        s2 = Sensor.objects.create(**{
+            "data_logger": dl,
+            "display_name": "s2",
+            "sensor_type": "second",
+            "units": "two",
+            "column_name": "sensor 2"
+        })
+
+        tz_obj = timezone(TIME_ZONE)
+        timestamps = [
+            make_aware(datetime(year, month, day), timezone=tz_obj)
+            for day in [10, 20]
+            for month in [1, 2]
+            for year in [2000, 2100]
+        ]
+
+        s1_reading = 0.0
+        s2_reading = 10.0
+        except_results = []
+        for timestamp in timestamps:
+            SensorReading.objects.create(**{
+                "reading": s1_reading,
+                "timestamp": timestamp,
+                "sensor": s1,
+                "is_occupied": False
+            })
+            SensorReading.objects.create(**{
+                "reading": s2_reading,
+                "timestamp": timestamp,
+                "sensor": s2,
+                "is_occupied": False
+            })
+            except_results.append({
+                "timestamp": str(timestamp.replace(tzinfo=None)),
+                f"{s1.display_name} ({dl.display_name})": s1_reading,
+                f"{s2.display_name} ({dl.display_name})": s2_reading
+            })
+            s1_reading += 1
+            s2_reading += 1
+
+        url = reverse('api:v3:properties-sensor-usage', kwargs={'pk': self.property_view_1.id})
+        url += f'?organization_id={self.org.pk}'
+        post_params = json.dumps({
+            'interval': 'Exact',
+            'excluded_sensor_ids': [],
+        })
+        result = self.client.post(url, post_params, content_type="application/json")
+        result_dict = json.loads(result.content)
+        self.assertCountEqual(result_dict["readings"], except_results)
+
+        url = reverse('api:v3:properties-sensor-usage', kwargs={'pk': self.property_view_1.id})
+        url += f'?organization_id={self.org.pk}'
+        post_params = json.dumps({
+            'interval': 'Month',
+            'excluded_sensor_ids': [],
+        })
+        result = self.client.post(url, post_params, content_type="application/json")
+        result_dict = json.loads(result.content)
+
+        self.assertCountEqual(
+            result_dict["readings"],
+            [
+                {'month': 'January 2000', 's1 (moo)': 2.0, 's2 (moo)': 12.0},
+                {'month': 'February 2000', 's1 (moo)': 4.0, 's2 (moo)': 14.0},
+                {'month': 'January 2100', 's1 (moo)': 3.0, 's2 (moo)': 13.0},
+                {'month': 'February 2100', 's1 (moo)': 5.0, 's2 (moo)': 15.0}
+            ]
+        )
+
+        url = reverse('api:v3:properties-sensor-usage', kwargs={'pk': self.property_view_1.id})
+        url += f'?organization_id={self.org.pk}'
+        post_params = json.dumps({
+            'interval': 'Year',
+            'excluded_sensor_ids': [],
+        })
+        result = self.client.post(url, post_params, content_type="application/json")
+        result_dict = json.loads(result.content)
+
+        self.assertCountEqual(
+            result_dict["readings"],
+            [
+                {'year': 2000, 's1 (moo)': 3.0, 's2 (moo)': 13.0},
+                {'year': 2100, 's1 (moo)': 4.0, 's2 (moo)': 14.0},
+            ]
+        )
 
 
 class PropertyMeterViewTests(DataMappingBaseTestCase):
@@ -1280,9 +1503,12 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
 
         self.import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="PM Meter Usage",
+            source_type=SEED_DATA_SOURCES[PORTFOLIO_METER_USAGE][1],
             uploaded_filename=filename,
-            file=SimpleUploadedFile(name=filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle
         )
 
@@ -1292,15 +1518,14 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
 
         # create GB gas meter
         meter_details = {
+            'property_id': self.property_view_1.property.id,
+            'type': Meter.NATURAL_GAS,
             'source': Meter.GREENBUTTON,
             'source_id': '/v1/User/000/UsagePoint/123fakeID/MeterReading/000',
-            'type': Meter.NATURAL_GAS,
-            'property_id': self.property_view_1.property.id,
         }
         gb_gas_meter = Meter.objects.create(**meter_details)
 
-        url = reverse('api:v3:properties-meters', kwargs={'pk': self.property_view_1.id})
-        url += f'?organization_id={self.org.pk}'
+        url = reverse('api:v3:property-meters-list', kwargs={'property_pk': self.property_view_1.id})
 
         result = self.client.get(url)
         result_dict = json.loads(result.content)
@@ -1311,24 +1536,30 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
             {
                 'id': electric_meter.id,
                 'type': 'Electric - Grid',
-                'source': 'PM',
+                'source': 'Portfolio Manager',
                 'source_id': '5766973-0',
                 'scenario_id': None,
-                'scenario_name': None
+                'scenario_name': None,
+                'is_virtual': False,
+                'alias': 'Electric - Grid - Portfolio Manager - 5766973-0',
             }, {
                 'id': gas_meter.id,
                 'type': 'Natural Gas',
-                'source': 'PM',
+                'source': 'Portfolio Manager',
                 'source_id': '5766973-1',
                 'scenario_id': None,
-                'scenario_name': None
+                'scenario_name': None,
+                'is_virtual': False,
+                'alias': 'Natural Gas - Portfolio Manager - 5766973-1',
             }, {
                 'id': gb_gas_meter.id,
                 'type': 'Natural Gas',
-                'source': 'GB',
+                'source': 'GreenButton',
                 'source_id': '123fakeID',
                 'scenario_id': None,
-                'scenario_name': None
+                'scenario_name': None,
+                'is_virtual': False,
+                'alias': 'Natural Gas - GreenButton - 123fakeID',
             },
         ]
 
@@ -1376,15 +1607,15 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
                 {
                     'start_time': '2016-01-01 00:00:00',
                     'end_time': '2016-02-01 00:00:00',
-                    'Electric - Grid - PM - 5766973-0': (597478.9 / 3.41),
-                    'Natural Gas - PM - 5766973-1': 576000.2 / 1026,
-                    'Natural Gas - GB - 123fakeID': 1000 / 1026,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': (597478.9 / 3.41),
+                    'Natural Gas - Portfolio Manager - 5766973-1': 576000.2 / 1026,
+                    'Natural Gas - GreenButton - 123fakeID': 1000 / 1026,
                 },
                 {
                     'start_time': '2016-02-01 00:00:00',
                     'end_time': '2016-03-01 00:00:00',
-                    'Electric - Grid - PM - 5766973-0': (548603.7 / 3.41),
-                    'Natural Gas - PM - 5766973-1': 488000.1 / 1026,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': (548603.7 / 3.41),
+                    'Natural Gas - Portfolio Manager - 5766973-1': 488000.1 / 1026,
                 },
             ],
             'column_defs': [
@@ -1397,18 +1628,18 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
                     '_filter_type': 'datetime',
                 },
                 {
-                    'field': 'Electric - Grid - PM - 5766973-0',
-                    'displayName': 'Electric - Grid - PM - 5766973-0 (kWh (thousand Watt-hours))',
+                    'field': 'Electric - Grid - Portfolio Manager - 5766973-0',
+                    'displayName': 'Electric - Grid - Portfolio Manager - 5766973-0 (kWh (thousand Watt-hours))',
                     '_filter_type': 'reading',
                 },
                 {
-                    'field': 'Natural Gas - PM - 5766973-1',
-                    'displayName': 'Natural Gas - PM - 5766973-1 (kcf (thousand cubic feet))',
+                    'field': 'Natural Gas - Portfolio Manager - 5766973-1',
+                    'displayName': 'Natural Gas - Portfolio Manager - 5766973-1 (kcf (thousand cubic feet))',
                     '_filter_type': 'reading',
                 },
                 {
-                    'field': 'Natural Gas - GB - 123fakeID',
-                    'displayName': 'Natural Gas - GB - 123fakeID (kcf (thousand cubic feet))',
+                    'field': 'Natural Gas - GreenButton - 123fakeID',
+                    'displayName': 'Natural Gas - GreenButton - 123fakeID (kcf (thousand cubic feet))',
                     '_filter_type': 'reading',
                 },
             ]
@@ -1423,9 +1654,12 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
 
         cost_import_file = ImportFile.objects.create(
             import_record=self.import_record,
-            source_type="PM Meter Usage",
+            source_type=SEED_DATA_SOURCES[PORTFOLIO_METER_USAGE][1],
             uploaded_filename=filename,
-            file=SimpleUploadedFile(name=filename, content=open(filepath, 'rb').read()),
+            file=SimpleUploadedFile(
+                name=filename,
+                content=pathlib.Path(filepath).read_bytes()
+            ),
             cycle=self.cycle
         )
 
@@ -1447,18 +1681,18 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
                 {
                     'start_time': '2016-01-01 00:00:00',
                     'end_time': '2016-02-01 00:00:00',
-                    'Electric - Grid - PM - 5766973-0': 597478.9 / 3.41,
-                    'Cost - PM - 5766973-0': 100,
-                    'Natural Gas - PM - 5766973-1': 576000.2,
-                    'Cost - PM - 5766973-1': 300,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 597478.9 / 3.41,
+                    'Cost - Portfolio Manager - 5766973-0': 100,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 576000.2,
+                    'Cost - Portfolio Manager - 5766973-1': 300,
                 },
                 {
                     'start_time': '2016-02-01 00:00:00',
                     'end_time': '2016-03-01 00:00:00',
-                    'Electric - Grid - PM - 5766973-0': 548603.7 / 3.41,
-                    'Cost - PM - 5766973-0': 200,
-                    'Natural Gas - PM - 5766973-1': 488000.1,
-                    'Cost - PM - 5766973-1': 400,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 548603.7 / 3.41,
+                    'Cost - Portfolio Manager - 5766973-0': 200,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 488000.1,
+                    'Cost - Portfolio Manager - 5766973-1': 400,
                 },
             ],
             'column_defs': [
@@ -1471,23 +1705,23 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
                     '_filter_type': 'datetime',
                 },
                 {
-                    'field': 'Electric - Grid - PM - 5766973-0',
-                    'displayName': 'Electric - Grid - PM - 5766973-0 (kWh (thousand Watt-hours))',
+                    'field': 'Electric - Grid - Portfolio Manager - 5766973-0',
+                    'displayName': 'Electric - Grid - Portfolio Manager - 5766973-0 (kWh (thousand Watt-hours))',
                     '_filter_type': 'reading',
                 },
                 {
-                    'field': 'Natural Gas - PM - 5766973-1',
-                    'displayName': 'Natural Gas - PM - 5766973-1 (kBtu (thousand Btu))',
+                    'field': 'Natural Gas - Portfolio Manager - 5766973-1',
+                    'displayName': 'Natural Gas - Portfolio Manager - 5766973-1 (kBtu (thousand Btu))',
                     '_filter_type': 'reading',
                 },
                 {
-                    'field': 'Cost - PM - 5766973-0',
-                    'displayName': 'Cost - PM - 5766973-0 (US Dollars)',
+                    'field': 'Cost - Portfolio Manager - 5766973-0',
+                    'displayName': 'Cost - Portfolio Manager - 5766973-0 (US Dollars)',
                     '_filter_type': 'reading',
                 },
                 {
-                    'field': 'Cost - PM - 5766973-1',
-                    'displayName': 'Cost - PM - 5766973-1 (US Dollars)',
+                    'field': 'Cost - Portfolio Manager - 5766973-1',
+                    'displayName': 'Cost - Portfolio Manager - 5766973-1 (US Dollars)',
                     '_filter_type': 'reading',
                 },
             ]
@@ -1551,8 +1785,8 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
             {
                 'start_time': '2016-01-01 00:00:00',
                 'end_time': '2016-02-01 00:00:00',
-                'Diesel - PM - 123fakeID': 10 / 36.30,
-                'Coke - PM - 456fakeID': 100 / 12.39,
+                'Diesel - Portfolio Manager - 123fakeID': 10 / 36.30,
+                'Coke - Portfolio Manager - 456fakeID': 100 / 12.39,
             },
         ]
 
@@ -1600,23 +1834,23 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
             'readings': [
                 {
                     'month': 'January 2016',
-                    'Electric - Grid - PM - 5766973-0': 597478.9 / 3.41,
-                    'Natural Gas - PM - 5766973-1': 576000.2,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': round(597478.9 / 3.41, 2),
+                    'Natural Gas - Portfolio Manager - 5766973-1': 576000.2,
                 },
                 {
                     'month': 'February 2016',
-                    'Electric - Grid - PM - 5766973-0': 548603.7 / 3.41,
-                    'Natural Gas - PM - 5766973-1': 488000.1,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': round(548603.7 / 3.41, 2),
+                    'Natural Gas - Portfolio Manager - 5766973-1': 488000.1,
                 },
                 {
                     'month': 'March 2016',
-                    'Electric - Grid - PM - 5766973-0': 100 / 3.41,
-                    'Natural Gas - PM - 5766973-1': 100,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': round(100 / 3.41, 2),
+                    'Natural Gas - Portfolio Manager - 5766973-1': 100,
                 },
                 {
                     'month': 'May 2016',
-                    'Electric - Grid - PM - 5766973-0': 200 / 3.41,
-                    'Natural Gas - PM - 5766973-1': 200,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': round(200 / 3.41, 2),
+                    'Natural Gas - Portfolio Manager - 5766973-1': 200,
                 },
             ],
             'column_defs': [
@@ -1625,13 +1859,13 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
                     '_filter_type': 'datetime',
                 },
                 {
-                    'field': 'Electric - Grid - PM - 5766973-0',
-                    'displayName': 'Electric - Grid - PM - 5766973-0 (kWh (thousand Watt-hours))',
+                    'field': 'Electric - Grid - Portfolio Manager - 5766973-0',
+                    'displayName': 'Electric - Grid - Portfolio Manager - 5766973-0 (kWh (thousand Watt-hours))',
                     '_filter_type': 'reading',
                 },
                 {
-                    'field': 'Natural Gas - PM - 5766973-1',
-                    'displayName': 'Natural Gas - PM - 5766973-1 (kBtu (thousand Btu))',
+                    'field': 'Natural Gas - Portfolio Manager - 5766973-1',
+                    'displayName': 'Natural Gas - Portfolio Manager - 5766973-1 (kBtu (thousand Btu))',
                     '_filter_type': 'reading',
                 },
             ]
@@ -1645,7 +1879,7 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
         save_raw_data(self.import_file.id)
 
         property_1_electric_meter = Meter.objects.get(source_id='5766973-0')
-        # add additional sub-montly entries for each initial meter
+        # add additional sub-monthly entries for each initial meter
         tz_obj = timezone(TIME_ZONE)
         for meter in Meter.objects.all():
             # November 2019 reading between DST transition
@@ -1686,15 +1920,15 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
             'readings': [
                 {
                     'month': 'January 2016',
-                    'Natural Gas - PM - 5766973-1': 576000.2,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 576000.2,
                 },
                 {
                     'month': 'February 2016',
-                    'Natural Gas - PM - 5766973-1': 488000.1,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 488000.1,
                 },
                 {
                     'month': 'November 2019',
-                    'Natural Gas - PM - 5766973-1': 300,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 300,
                 },
             ],
             'column_defs': [
@@ -1703,8 +1937,8 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
                     '_filter_type': 'datetime',
                 },
                 {
-                    'field': 'Natural Gas - PM - 5766973-1',
-                    'displayName': 'Natural Gas - PM - 5766973-1 (kBtu (thousand Btu))',
+                    'field': 'Natural Gas - Portfolio Manager - 5766973-1',
+                    'displayName': 'Natural Gas - Portfolio Manager - 5766973-1 (kBtu (thousand Btu))',
                     '_filter_type': 'reading',
                 },
             ]
@@ -1713,6 +1947,7 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
         self.assertCountEqual(result_dict['readings'], expectation['readings'])
         self.assertCountEqual(result_dict['column_defs'], expectation['column_defs'])
 
+    @skip('Overlapping data is not valid through ESPM. This test is no longer valid')
     def test_property_meter_usage_can_return_monthly_meter_readings_and_column_defs_of_overlapping_submonthly_data_aggregating_monthly_data_to_maximize_total(self):
         # add initial meters and readings
         save_raw_data(self.import_file.id)
@@ -1795,21 +2030,21 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
             'readings': [
                 {
                     'month': 'January 2016',
-                    'Electric - Grid - PM - 5766973-0': 100000000000000 / 3.41,
-                    'Natural Gas - PM - 5766973-1': 576000.2,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 100000000000000 / 3.41,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 576000.2,
                 },
                 {
                     'month': 'February 2016',
-                    'Electric - Grid - PM - 5766973-0': 548603.7 / 3.41,
-                    'Natural Gas - PM - 5766973-1': 488000.1,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 548603.7 / 3.41,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 488000.1,
                 },
                 {
                     'month': 'March 2016',
-                    'Electric - Grid - PM - 5766973-0': 1100 / 3.41,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 1100 / 3.41,
                 },
                 {
                     'month': 'April 2016',
-                    'Electric - Grid - PM - 5766973-0': 200 / 3.41,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 200 / 3.41,
                 },
             ],
             'column_defs': [
@@ -1818,18 +2053,17 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
                     '_filter_type': 'datetime',
                 },
                 {
-                    'field': 'Electric - Grid - PM - 5766973-0',
-                    'displayName': 'Electric - Grid - PM - 5766973-0 (kWh (thousand Watt-hours))',
+                    'field': 'Electric - Grid - Portfolio Manager - 5766973-0',
+                    'displayName': 'Electric - Grid - Portfolio Manager - 5766973-0 (kWh (thousand Watt-hours))',
                     '_filter_type': 'reading',
                 },
                 {
-                    'field': 'Natural Gas - PM - 5766973-1',
-                    'displayName': 'Natural Gas - PM - 5766973-1 (kBtu (thousand Btu))',
+                    'field': 'Natural Gas - Portfolio Manager - 5766973-1',
+                    'displayName': 'Natural Gas - Portfolio Manager - 5766973-1 (kBtu (thousand Btu))',
                     '_filter_type': 'reading',
                 },
             ]
         }
-
         self.assertCountEqual(result_dict['readings'], expectation['readings'])
         self.assertCountEqual(result_dict['column_defs'], expectation['column_defs'])
 
@@ -1875,13 +2109,13 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
             'readings': [
                 {
                     'year': 2016,
-                    'Electric - Grid - PM - 5766973-0': (597478.9 + 548603.7) / 3.41,
-                    'Natural Gas - PM - 5766973-1': 576000.2 + 488000.1,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': (597478.9 + 548603.7) / 3.41,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 576000.2 + 488000.1,
                 },
                 {
                     'year': 2018,
-                    'Electric - Grid - PM - 5766973-0': (100 + 200) / 3.41,
-                    'Natural Gas - PM - 5766973-1': 100 + 200,
+                    'Electric - Grid - Portfolio Manager - 5766973-0': (100 + 200) / 3.41,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 100 + 200,
                 },
             ],
             'column_defs': [
@@ -1890,13 +2124,128 @@ class PropertyMeterViewTests(DataMappingBaseTestCase):
                     '_filter_type': 'datetime',
                 },
                 {
-                    'field': 'Electric - Grid - PM - 5766973-0',
-                    'displayName': 'Electric - Grid - PM - 5766973-0 (kWh (thousand Watt-hours))',
+                    'field': 'Electric - Grid - Portfolio Manager - 5766973-0',
+                    'displayName': 'Electric - Grid - Portfolio Manager - 5766973-0 (kWh (thousand Watt-hours))',
                     '_filter_type': 'reading',
                 },
                 {
-                    'field': 'Natural Gas - PM - 5766973-1',
-                    'displayName': 'Natural Gas - PM - 5766973-1 (kBtu (thousand Btu))',
+                    'field': 'Natural Gas - Portfolio Manager - 5766973-1',
+                    'displayName': 'Natural Gas - Portfolio Manager - 5766973-1 (kBtu (thousand Btu))',
+                    '_filter_type': 'reading',
+                },
+            ]
+        }
+
+        self.assertCountEqual(result_dict['readings'], expectation['readings'])
+        self.assertCountEqual(result_dict['column_defs'], expectation['column_defs'])
+
+    def test_property_meter_usage_can_filter_when_usages_span_a_single_month(self):
+        save_raw_data(self.import_file.id)
+
+        # add additional entries for the Electricity meter
+        tz_obj = timezone(TIME_ZONE)
+        meter = Meter.objects.get(property_id=self.property_view_1.property.id, type=Meter.type_lookup['Electric - Grid'])
+
+        # 2020 January-February reading has 1 full day in January 1 full day in February.
+        # The reading should be split 1/2 January (50) and 1/2 February (50)
+        reading_details = {
+            'meter_id': meter.id,
+            'start_time': make_aware(datetime(2020, 1, 31, 0, 0, 0), timezone=tz_obj),
+            'end_time': make_aware(datetime(2020, 2, 2, 0, 0, 0), timezone=tz_obj),
+            'reading': 100 * 3.41,
+            'source_unit': 'kBtu (thousand Btu)',
+            'conversion_factor': 1
+        }
+        MeterReading.objects.create(**reading_details)
+
+        # 2020 March to April reading has 1 day in march, and 2 days in april.
+        # The reading should be split 1/3 march (100) and 2/3 april (200)
+        reading_details = {
+            'meter_id': meter.id,
+            'start_time': make_aware(datetime(2020, 3, 31, 0, 0, 0), timezone=tz_obj),
+            'end_time': make_aware(datetime(2020, 4, 3, 0, 0, 0), timezone=tz_obj),
+            'reading': 300 * 3.41,
+            'source_unit': 'kBtu (thousand Btu)',
+            'conversion_factor': 1
+        }
+        MeterReading.objects.create(**reading_details)
+
+        # 2020 May to July shows readings can span multiple months.
+        # The reading should be split 1/32 May (10), 30/32 June (300), 1/32 July (10)
+        reading_details = {
+            'meter_id': meter.id,
+            'start_time': make_aware(datetime(2020, 5, 31, 0, 0, 0), timezone=tz_obj),
+            'end_time': make_aware(datetime(2020, 7, 2, 0, 0, 0), timezone=tz_obj),
+            'reading': 320 * 3.41,
+            'source_unit': 'kBtu (thousand Btu)',
+            'conversion_factor': 1
+        }
+        MeterReading.objects.create(**reading_details)
+
+        url = reverse('api:v3:properties-meter-usage', kwargs={'pk': self.property_view_1.id})
+        url += f'?organization_id={self.org.pk}'
+
+        post_params = json.dumps({
+            'interval': 'Month',
+            'excluded_meter_ids': [],
+        })
+        result = self.client.post(url, post_params, content_type="application/json")
+        result_dict = ast.literal_eval(result.content.decode("utf-8"))
+
+        expectation = {
+            'readings': [
+                {
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 175213.75,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 576000.2,
+                    'month': 'January 2016'
+                },
+                {
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 160880.85,
+                    'Natural Gas - Portfolio Manager - 5766973-1': 488000.1,
+                    'month': 'February 2016'
+                },
+                {
+                    'month': 'January 2020',
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 50,
+                },
+                {
+                    'month': 'February 2020',
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 50,
+                },
+                {
+                    'month': 'March 2020',
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 100,
+                },
+                {
+                    'month': 'April 2020',
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 200,
+                },
+                {
+                    'month': 'May 2020',
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 10,
+                },
+                {
+                    'month': 'June 2020',
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 300,
+                },
+                {
+                    'month': 'July 2020',
+                    'Electric - Grid - Portfolio Manager - 5766973-0': 10,
+                },
+            ],
+            'column_defs': [
+                {
+                    'field': 'month',
+                    '_filter_type': 'datetime',
+                },
+                {
+                    'field': 'Electric - Grid - Portfolio Manager - 5766973-0',
+                    'displayName': 'Electric - Grid - Portfolio Manager - 5766973-0 (kWh (thousand Watt-hours))',
+                    '_filter_type': 'reading',
+                },
+                {
+                    'field': 'Natural Gas - Portfolio Manager - 5766973-1',
+                    'displayName': 'Natural Gas - Portfolio Manager - 5766973-1 (kBtu (thousand Btu))',
                     '_filter_type': 'reading',
                 },
             ]

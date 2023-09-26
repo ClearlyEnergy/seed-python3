@@ -1,13 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import json
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -18,18 +14,17 @@ from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
 from rest_framework.viewsets import ViewSet
 
-from seed.utils.match import match_merge_link
 from seed.decorators import ajax_request_class
 from seed.lib.superperms.orgs.decorators import has_perm_class
-from seed.lib.superperms.orgs.models import (
-    Organization
-)
+from seed.lib.superperms.orgs.models import Organization
 from seed.models import (
     AUDIT_USER_EDIT,
     DATA_STATE_MATCHING,
-    MERGE_STATE_NEW,
-    MERGE_STATE_MERGED,
     MERGE_STATE_DELETE,
+    MERGE_STATE_MERGED,
+    MERGE_STATE_NEW,
+    VIEW_LIST,
+    VIEW_LIST_TAXLOT,
     Column,
     ColumnListProfile,
     ColumnListProfileColumn,
@@ -37,26 +32,24 @@ from seed.models import (
     Note,
     PropertyView,
     StatusLabel,
+    TaxLot,
     TaxLotAuditLog,
     TaxLotProperty,
     TaxLotState,
-    TaxLotView,
-    TaxLot,
-    VIEW_LIST,
-    VIEW_LIST_TAXLOT)
+    TaxLotView
+)
 from seed.serializers.pint import (
-    apply_display_unit_preferences,
-    add_pint_unit_suffix
+    add_pint_unit_suffix,
+    apply_display_unit_preferences
 )
-from seed.serializers.properties import (
-    PropertyViewSerializer
-)
+from seed.serializers.properties import PropertyViewSerializer
 from seed.serializers.taxlots import (
     TaxLotSerializer,
     TaxLotStateSerializer,
     TaxLotViewSerializer
 )
-from seed.utils.api import api_endpoint_class, ProfileIdMixin
+from seed.utils.api import ProfileIdMixin, api_endpoint_class
+from seed.utils.match import match_merge_link
 from seed.utils.merge import merge_taxlots
 from seed.utils.properties import (
     get_changed_fields,
@@ -80,8 +73,12 @@ class TaxLotViewSet(ViewSet, ProfileIdMixin):
         per_page = request.query_params.get('per_page', 1)
         org_id = request.query_params.get('organization_id', None)
         cycle_id = request.query_params.get('cycle')
+<<<<<<< HEAD
         show_sub_org_data = request.query_params.get('show_sub_org_data', 'false') == 'true'
         # check if there is a query paramater for the profile_id. If so, then use that one
+=======
+        # check if there is a query parameter for the profile_id. If so, then use that one
+>>>>>>> merging_new_version
         profile_id = request.query_params.get('profile_id', profile_id)
         if not org_id:
             return JsonResponse(
@@ -165,8 +162,8 @@ class TaxLotViewSet(ViewSet, ProfileIdMixin):
             except ColumnListProfile.DoesNotExist:
                 show_columns = None
 
-        related_results = TaxLotProperty.get_related(taxlot_views, show_columns,
-                                                     columns_from_database)
+        related_results = TaxLotProperty.serialize(taxlot_views, show_columns,
+                                                   columns_from_database)
 
         # collapse units here so we're only doing the last page; we're already a
         # realized list by now and not a lazy queryset
@@ -210,7 +207,7 @@ class TaxLotViewSet(ViewSet, ProfileIdMixin):
     @has_perm_class('requires_viewer')
     def list(self, request):
         """
-        List all the properties
+        List all the taxlots
         ---
         parameters:
             - name: organization_id
@@ -318,7 +315,7 @@ class TaxLotViewSet(ViewSet, ProfileIdMixin):
     def merge(self, request):
         """
         Merge multiple tax lot records into a single new record, and run this
-        new record through a match and merge round within it's current Cycle.
+        new record through a match and merge round within its current Cycle.
         ---
         parameters:
             - name: organization_id
@@ -473,7 +470,7 @@ class TaxLotViewSet(ViewSet, ProfileIdMixin):
         new_view1.save()
         new_view2.save()
 
-        # Asssociate labels
+        # Associate labels
         label_objs = StatusLabel.objects.filter(pk__in=label_ids)
         new_view1.labels.set(label_objs)
         new_view2.labels.set(label_objs)
@@ -801,7 +798,7 @@ class TaxLotViewSet(ViewSet, ProfileIdMixin):
     def update(self, request, pk):
         """
         Update a taxlot and run the updated record through a match and merge
-        round within it's current Cycle.
+        round within its current Cycle.
         ---
         parameters:
             - name: organization_id
@@ -848,10 +845,10 @@ class TaxLotViewSet(ViewSet, ProfileIdMixin):
                         data=taxlot_state_data
                     )
                     if new_taxlot_state_serializer.is_valid():
-                        # create the new property state, and perform an initial save / moving relationships
+                        # create the new taxlot state, and perform an initial save / moving relationships
                         new_state = new_taxlot_state_serializer.save()
 
-                        # then assign this state to the property view and save the whole view
+                        # then assign this state to the taxlot view and save the whole view
                         taxlot_view.state = new_state
                         taxlot_view.save()
 
@@ -869,9 +866,6 @@ class TaxLotViewSet(ViewSet, ProfileIdMixin):
                         result.update(
                             {'state': new_taxlot_state_serializer.data}
                         )
-
-                        # save the property view so that the datetime gets updated on the property.
-                        taxlot_view.save()
                     else:
                         result.update({
                             'status': 'error',
@@ -915,7 +909,7 @@ class TaxLotViewSet(ViewSet, ProfileIdMixin):
                             {'state': updated_taxlot_state_serializer.data}
                         )
 
-                        # save the property view so that the datetime gets updated on the property.
+                        # save the taxlot view so that the datetime gets updated on the taxlot.
                         taxlot_view.save()
 
                         Note.create_from_edit(request.user.id, taxlot_view, new_taxlot_state_data, previous_data)

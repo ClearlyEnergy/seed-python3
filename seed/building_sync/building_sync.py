@@ -1,32 +1,35 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author nicholas.long@nrel.gov
 """
-
 import copy
 import logging
 import os
 import re
-from io import StringIO, BytesIO
+from datetime import datetime
+from io import BytesIO, StringIO
 
-from django.core.exceptions import FieldDoesNotExist
-from quantityfield.units import ureg
-from lxml import etree
 import xmlschema
+from buildingsync_asset_extractor.processor import BSyncProcessor as BAE
+from django.core.exceptions import FieldDoesNotExist
+from lxml import etree
+from quantityfield.units import ureg
 
 from config.settings.common import BASE_DIR
-from seed.models.meters import Meter
 from seed.building_sync.mappings import (
     BASE_MAPPING_V2,
     BUILDINGSYNC_URI,
     NAMESPACES,
-    merge_mappings,
     apply_mapping,
-    update_tree,
+    merge_mappings,
     table_mapping_to_buildingsync_mapping,
+    update_tree
 )
+from seed.models.meters import Meter
 
 _log = logging.getLogger(__name__)
 
@@ -46,10 +49,12 @@ class BuildingSync(object):
     BUILDINGSYNC_V2_1_0 = '2.1.0'
     BUILDINGSYNC_V2_2_0 = '2.2.0'
     BUILDINGSYNC_V2_3_0 = '2.3.0'
+    BUILDINGSYNC_V2_4_0 = '2.4.0'
     VERSION_MAPPINGS_DICT = {
         BUILDINGSYNC_V2_0: BASE_MAPPING_V2,
         BUILDINGSYNC_V2_2_0: BASE_MAPPING_V2,
-        BUILDINGSYNC_V2_3_0: BASE_MAPPING_V2
+        BUILDINGSYNC_V2_3_0: BASE_MAPPING_V2,
+        BUILDINGSYNC_V2_4_0: BASE_MAPPING_V2
     }
 
     def __init__(self):
@@ -64,6 +69,10 @@ class BuildingSync(object):
         """
         parser = etree.XMLParser(remove_blank_text=True)
         etree.set_default_parser(parser)
+
+        # save filename
+        self.source_filename = source
+
         # save element tree
         if isinstance(source, str):
             if not os.path.isfile(source):
@@ -160,12 +169,15 @@ class BuildingSync(object):
             xml_element_xpath = mapping['from_field']
             xml_element_value = mapping['from_field_value']
             seed_value = None
-            try:
-                property_state._meta.get_field(field)
-                seed_value = getattr(property_state, field)
-            except FieldDoesNotExist:
-                _log.debug("Field {} is not a db field, trying read from extra data".format(field))
-                seed_value = property_state.extra_data.get(field, None)
+            if mapping['to_field'] != mapping['from_field']:
+                # only do this for non BAE assets
+                try:
+                    property_state._meta.get_field(field)
+                    seed_value = getattr(property_state, field)
+                except FieldDoesNotExist:
+                    _log.debug("Field {} is not a db field, trying read from extra data".format(field))
+                    seed_value = property_state.extra_data.get(field, None)
+                    continue
 
             if seed_value is None:
                 continue
@@ -191,6 +203,7 @@ class BuildingSync(object):
             cls.BUILDINGSYNC_V2_1_0: 'BuildingSync_v2_1_0.xsd',
             cls.BUILDINGSYNC_V2_2_0: 'BuildingSync_v2_2_0.xsd',
             cls.BUILDINGSYNC_V2_3_0: 'BuildingSync_v2_3_0.xsd',
+            cls.BUILDINGSYNC_V2_4_0: 'BuildingSync_v2_4_0.xsd',
         }
         if version in schema_files:
             schema_path = os.path.join(schema_dir, schema_files[version])
@@ -262,7 +275,7 @@ class BuildingSync(object):
                         # readings for the same time period in SEED currently
                         # NOTE: to future reader, this problem seems to arise from the
                         # fact that SEED is unaware of the _type_ of reading,
-                        # e.g. see BuildingSync's ReadingType (point, median, average, peak, etc)
+                        # e.g., see BuildingSync's ReadingType (point, median, average, peak, etc)
 
                         # if the meter doesn't exist yet, copy it
                         original_meter = meters[meter_reading['source_id']]
@@ -283,10 +296,21 @@ class BuildingSync(object):
                 # End Audit Template weirdness
                 #
 
+            # clean up the meters so that we only include ones with readings
+            meters_with_readings = []
+            for meter_id, meter in meters.items():
+                if meter['readings']:
+                    meters_with_readings.append(meter)
+                else:
+                    messages['warnings'].append(
+                        f'Skipping meter {meter_id} because it had no valid readings.'
+                    )
+
             # create scenario
             seed_scenario = {
                 'id': scenario['id'],
                 'name': scenario['name'],
+                'temporal_status': scenario['temporal_status'],
                 'reference_case': scenario['reference_case'],
                 'annual_site_energy_savings': scenario['annual_site_energy_savings'],
                 'annual_source_energy_savings': scenario['annual_source_energy_savings'],
@@ -302,10 +326,42 @@ class BuildingSync(object):
                 'annual_peak_electricity_reduction': scenario['annual_peak_electricity_reduction'],
                 'annual_natural_gas_energy': scenario['annual_natural_gas_energy'],
                 'measures': [id['id'] for id in scenario['measure_ids']],
+                'meters': meters_with_readings,
             }
 
-            seed_scenario['meters'] = list(meters.values())
+            #
+            # Begin Audit Template weirdness
+            #
+            # Audit Template (AT) BuildingSync files include scenarios we don't want
+            # in SEED. For example, "Audit Template Annual Summary - Electricity"
+            # which doesn't contain measures or meter data so we want to skip it.
+            # Note that it's OK to skip scenarios without measures b/c AT does not
+            # have Baseline scenarios (the type of scenario where it's OK to not
+            # have measures.
+            #
+
+            if (
+                self._is_from_audit_template_tool()
+                and not seed_scenario['measures']
+                and not seed_scenario['meters']
+            ):
+                # Skip this scenario!
+                messages['warnings'].append(
+                    f'Skipping Scenario {scenario["id"]} because it doesn\'t include '
+                    'measures or meter data.'
+                )
+                continue
+
+            #
+            # End Audit Template weirdness
+            #
+
             scenarios.append(seed_scenario)
+
+        # get most recent audit date
+        audit_dates = result["audit_dates"]
+        audit_dates.sort(key=lambda x: datetime.strptime(x["date"], "%Y-%m-%d"))
+        most_recent_audit_date = {} if len(audit_dates) == 0 else audit_dates[-1]
 
         property_ = result['property']
         res = {
@@ -328,6 +384,9 @@ class BuildingSync(object):
             'gross_floor_area': property_['gross_floor_area'],
             'net_floor_area': property_['net_floor_area'],
             'footprint_floor_area': property_['footprint_floor_area'],
+            'audit_template_building_id': property_['audit_template_building_id'],
+            'audit_date': most_recent_audit_date.get("date"),
+            'audit_date_type': most_recent_audit_date.get("custom_date_type"),
         }
 
         return res
@@ -339,12 +398,22 @@ class BuildingSync(object):
         :param custom_mapping: dict, another mapping object which is given higher priority over base_mapping
         :return: list, [dict, dict], [results, dict of errors and warnings]
         """
+
         merged_mappings = merge_mappings(base_mapping, custom_mapping)
         messages = {'warnings': [], 'errors': []}
         result = apply_mapping(self.element_tree, merged_mappings, messages, NAMESPACES)
 
         # turn result into SEED structure
         seed_result = self.restructure_mapped_result(result, messages)
+
+        # BuildingSync Asset Extractor
+        bae = BAE(self.source_filename)
+        bae.extract()
+        assets = bae.get_assets()
+
+        # add to data and column headers
+        for item in assets:
+            seed_result[item['name']] = item['value']
 
         return seed_result, messages
 

@@ -1,23 +1,24 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :authors Paul Munday<paul@paulmunday.net> Fable Turas<fable@raintechpdx.com>
 
 Provides permissions classes for use in DRF views and viewsets to control
 access based on Organization and OrganizationUser.role_level.
 """
+from typing import Union
+
 from django import VERSION as DJANGO_VERSION
 from django.conf import settings
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 
 from seed.lib.superperms.orgs.models import (
-    ROLE_OWNER,
     ROLE_MEMBER,
+    ROLE_OWNER,
     ROLE_VIEWER,
     Organization,
     OrganizationUser
@@ -37,12 +38,16 @@ def is_authenticated(user):
     return user.is_authenticated
 
 
-def get_org_or_id(dictlike):
+def get_org_or_id(dictlike: dict) -> Union[int, None]:
     """Get value of organization or organization_id"""
     # while documentation should encourage the use of one consistent key choice
     # for supplying an organization to query_params, we check all reasonable
     # permutations of organization id.
     org_query_strings = ['organization', 'organization_id', 'org_id', 'org']
+    if isinstance(dictlike, list):
+        return None
+
+    # Check if there are any assigned organization values
     org_id = None
     for org_str in org_query_strings:
         org_id = dictlike.get(org_str)
@@ -58,7 +63,7 @@ def get_org_id(request):
     """Extract the organization ID from a request. Returns None if not found
 
     This function attempts to find the organization id by checking (in order):
-    - Path of the request (e.g. /organizations/<id>/...)
+    - Path of the request (e.g., /organizations/<id>/...)
     - Query parameters
     - Request body
 
@@ -71,7 +76,7 @@ def get_org_id(request):
         kwarg_name = request_view.authz_org_id_kwarg
         if kwarg_name:
             request_kwargs = request.parser_context.get('kwargs', {})
-            # some views might not include the ID in the path so we have to check (e.g. data quality)
+            # some views might not include the ID in the path so we have to check (e.g., data quality)
             kwarg_org_id = request_kwargs.get(kwarg_name, None)
             if kwarg_org_id is not None:
                 return kwarg_org_id
@@ -133,7 +138,7 @@ def get_user_org(user):
 class SEEDOrgPermissions(BasePermission):
     """
     Control API permissions based on OrganizationUser and HTTP Method
-    i.e. GET/POST etc.
+    i.e., GET/POST etc.
 
     Any method that can change data (POST, PUT, PATCH,  DELETE) requires
     ROLE_MEMBER, the rest (GET, OPTIONS, HEAD) require ROLE_VIEWER.

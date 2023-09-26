@@ -1,43 +1,65 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import logging
 
+import xlrd
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
-import xlrd
 
 from seed.data_importer.meters_parser import MetersParser
 from seed.data_importer.models import ROW_DELIMITER, ImportRecord
-from seed.data_importer.tasks import do_checks
-from seed.data_importer.tasks import geocode_and_match_buildings_task
-from seed.data_importer.tasks import map_data
+from seed.data_importer.sensor_readings_parser import SensorsReadingsParser
+from seed.data_importer.tasks import (
+    do_checks,
+    geocode_and_match_buildings_task,
+    map_data
+)
 from seed.data_importer.tasks import save_raw_data as task_save_raw
 from seed.data_importer.tasks import \
     validate_use_cases as task_validate_use_cases
 from seed.decorators import ajax_request_class
 from seed.lib.mappings import mapper as simple_mapper
-from seed.lib.mcm import mapper
+from seed.lib.mcm import mapper, reader
 from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.lib.superperms.orgs.models import OrganizationUser
 from seed.lib.xml_mapping import mapper as xml_mapper
-from seed.models import (AUDIT_USER_EDIT, DATA_STATE_MAPPING,
-                         DATA_STATE_MATCHING, MERGE_STATE_MERGED,
-                         MERGE_STATE_NEW, MERGE_STATE_UNKNOWN, Column, Cycle,
-                         ImportFile, Meter, Organization, PropertyAuditLog,
-                         PropertyState, PropertyView, TaxLotAuditLog,
-                         TaxLotProperty, TaxLotState, get_column_mapping,
-                         obj_to_dict)
+from seed.models import (
+    ASSESSED_RAW,
+    AUDIT_USER_EDIT,
+    DATA_STATE_MAPPING,
+    DATA_STATE_MATCHING,
+    MERGE_STATE_MERGED,
+    MERGE_STATE_NEW,
+    MERGE_STATE_UNKNOWN,
+    PORTFOLIO_METER_USAGE,
+    SEED_DATA_SOURCES,
+    Column,
+    Cycle,
+    ImportFile,
+    Meter,
+    Organization,
+    PropertyAuditLog,
+    PropertyState,
+    PropertyView,
+    TaxLotAuditLog,
+    TaxLotProperty,
+    TaxLotState,
+    get_column_mapping,
+    obj_to_dict
+)
 from seed.serializers.pint import apply_display_unit_preferences
-from seed.utils.api import api_endpoint_class, OrgMixin
-from seed.utils.api_schema import (AutoSchemaHelper,
-                                   swagger_auto_schema_org_query_param)
+from seed.utils.api import OrgMixin, api_endpoint_class
+from seed.utils.api_schema import (
+    AutoSchemaHelper,
+    swagger_auto_schema_org_query_param
+)
 
 _log = logging.getLogger(__name__)
 
@@ -65,11 +87,11 @@ def convert_first_five_rows_to_list(header, first_five_rows):
     Return the first five rows. This is a complicated method because it handles converting the
     persisted format of the first five rows into a list of dictionaries. It handles some basic
     logic if there are crlf in the fields. Note that this method does not cover all the use cases
-    and cannot due to the custom delimeter. See the tests in
+    and cannot due to the custom delimiter. See the tests in
     test_views.py:test_get_first_five_rows_newline_should_work to see the limitation
 
     :param header: list, ordered list of headers as strings
-    :param first_five_rows: string, long string with |#*#| delimeter.
+    :param first_five_rows: string, long string with |#*#| delimiter.
     :return: list
     """
     row_data = []
@@ -215,7 +237,7 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
                 id=import_file_id,
                 import_record__super_organization_id=org_id,
                 mapping_done=True,
-                source_type="Assessed Raw"
+                source_type=SEED_DATA_SOURCES[ASSESSED_RAW][1]
             )
         except ImportFile.DoesNotExist:
             resp = {
@@ -228,7 +250,7 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
             import_record=original_file.import_record,
             file=original_file.file,
             uploaded_filename=original_file.uploaded_filename,
-            source_type="PM Meter Usage",
+            source_type=SEED_DATA_SOURCES[PORTFOLIO_METER_USAGE][1],
         )
 
         return JsonResponse({
@@ -524,8 +546,8 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
     @action(detail=True, methods=['POST'])
     def start_data_quality_checks(self, request, pk=None):
         """
-        Starts a background task to attempt automatic matching between buildings
-        in an ImportFile with other existing buildings within the same org.
+        Runs the data quality rules against an import file to get a preliminary
+        assessment of issues before importing.
         """
         org_id = self.get_organization(request)
 
@@ -608,16 +630,11 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
                     pk)}, status=status.HTTP_400_BAD_REQUEST)
 
         cycle_id = body.get('cycle_id')
+        multiple_cycle_upload = body.get('multiple_cycle_upload', False)
         if not cycle_id:
             return JsonResponse({
                 'status': 'error',
                 'message': 'must pass cycle_id of the cycle to save the data'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        elif cycle_id == 'year_ending':
-            _log.error("NOT CONFIGURED FOR YEAR ENDING OPTION AT THE MOMENT")
-            return JsonResponse({
-                'status': 'error',
-                'message': 'SEED is unable to parse year_ending at the moment'
             }, status=status.HTTP_400_BAD_REQUEST)
         else:
             # find the cycle
@@ -625,6 +642,7 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
             if cycle:
                 # assign the cycle id to the import file object
                 import_file.cycle = cycle
+                import_file.multiple_cycle_upload = multiple_cycle_upload
                 import_file.save()
             else:
                 return JsonResponse({
@@ -800,6 +818,7 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
         return {
             'status': 'success',
             'import_file_records': import_file.matching_results_data.get('import_file_records', None),
+            'multiple_cycle_upload': import_file.multiple_cycle_upload,
             'properties': {
                 'initial_incoming': import_file.matching_results_data.get('property_initial_incoming', None),
                 'duplicates_against_existing': import_file.matching_results_data.get('property_duplicates_against_existing', None),
@@ -907,7 +926,8 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
         # Fix the table name, eventually move this to the build_column_mapping
         for m in suggested_mappings:
             table, _destination_field, _confidence = suggested_mappings[m]
-            # Do not return the campus, created, updated fields... that is force them to be in the property state
+            # Do not return the created or updated fields... that is force them
+            # to be in the property state. Not sure how this happens in this code though.
             if not table or table == 'Property':
                 suggested_mappings[m][0] = 'PropertyState'
             elif table == 'TaxLot':
@@ -1007,6 +1027,78 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
 
         return result
 
+    @ajax_request_class
+    @has_perm_class('requires_member')
+    @action(detail=True, methods=['GET'])
+    def sensors_preview(self, request, pk):
+        """
+        Returns validated type units and proposed imports
+        """
+        org_id = self.get_organization(request)
+        view_id = request.query_params.get('view_id')
+        data_logger_id = request.query_params.get('data_logger_id')
+
+        try:
+            import_file = ImportFile.objects.get(
+                pk=pk,
+                import_record__super_organization_id=org_id
+            )
+        except ImportFile.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Could not find import file with pk=' + str(
+                    pk)}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            PropertyView.objects.get(pk=view_id, cycle__organization_id=org_id).property_id
+        except PropertyView.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Could not find property with pk=' + str(
+                    view_id)}, status=status.HTTP_400_BAD_REQUEST)
+
+        parser = reader.MCMParser(import_file.local_file)
+        result = {
+            "proposed_imports": list(parser.data)
+        }
+
+        import_file.matching_results_data['data_logger_id'] = data_logger_id
+        import_file.save()
+
+        return result
+
+    @ajax_request_class
+    @has_perm_class('requires_member')
+    @action(detail=True, methods=['GET'])
+    def sensor_readings_preview(self, request, pk):
+        org_id = self.get_organization(request)
+        data_logger_id = request.query_params.get('data_logger_id')
+
+        try:
+            import_file = ImportFile.objects.get(
+                pk=pk,
+                import_record__super_organization_id=org_id
+            )
+        except ImportFile.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Could not find import file with pk=' + str(
+                    pk)}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            sensor_readings_parser = SensorsReadingsParser.factory(
+                import_file.local_file,
+                org_id,
+                data_logger_id=data_logger_id
+            )
+        except ValueError as e:
+            return JsonResponse(
+                {'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        result = sensor_readings_parser.get_validation_report()
+
+        import_file.matching_results_data['data_logger_id'] = data_logger_id
+        import_file.save()
+
+        return result
+
     @swagger_auto_schema(
         manual_parameters=[AutoSchemaHelper.query_org_id_field()]
     )
@@ -1024,12 +1116,14 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
                 pk=pk,
                 import_record__super_organization_id=org_id
             )
+            meters_parser = MetersParser.factory(import_file.local_file, org_id)
+            import_file.num_rows = len(meters_parser.proposed_imports)
+            import_file.save()
+
         except ImportFile.DoesNotExist:
             return JsonResponse(
                 {'status': 'error', 'message': 'Could not find import file with pk=' + str(
                     pk)}, status=status.HTTP_400_BAD_REQUEST)
-
-        meters_parser = MetersParser.factory(import_file.local_file, org_id)
 
         result = {}
         result["validated_type_units"] = meters_parser.validated_type_units()

@@ -1,23 +1,18 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
-# Local Imports
 from seed.lib.superperms.orgs.models import Organization
 from seed.models import (
+    VIEW_LIST,
+    VIEW_LIST_TAXLOT,
     Column,
     ColumnListProfile,
     ColumnListProfileColumn,
     TaxLotProperty,
-    TaxLotView,
-    VIEW_LIST,
-    VIEW_LIST_TAXLOT,
+    TaxLotView
 )
 from seed.serializers.pint import apply_display_unit_preferences
 
@@ -51,7 +46,7 @@ def taxlots_across_cycles(org_id, profile_id, cycle_ids=[]):
             .filter(taxlot__organization_id=org_id, cycle_id=cycle_id) \
             .order_by('id')
 
-        related_results = TaxLotProperty.get_related(taxlot_views, show_columns, columns_from_database)
+        related_results = TaxLotProperty.serialize(taxlot_views, show_columns, columns_from_database)
 
         org = Organization.objects.get(pk=org_id)
         unit_collapsed_results = [apply_display_unit_preferences(org, x) for x in related_results]

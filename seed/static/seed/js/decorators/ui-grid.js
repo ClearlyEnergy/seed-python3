@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 
 /**
@@ -192,13 +192,13 @@ angular.module('ui.grid').config(['$provide', function ($provide) {
           /*
            * Our basic approach here for event handlers is that we listen for a down event (mousedown or touchstart).
            * Once we have a down event, we need to work out whether we have a click, a drag, or a
-           * hold.  A click would sort the grid (if sortable).  A drag would be used by moveable, so
+           * hold.  A click would sort the grid (if sortable).  A drag would be used by movable, so
            * we ignore it.  A hold would open the menu.
            *
            * So, on down event, we put in place handlers for move and up events, and a timer.  If the
            * timer expires before we see a move or up, then we have a long press and hence a column menu open.
            * If the up happens before the timer, then we have a click, and we sort if the column is sortable.
-           * If a move happens before the timer, then we are doing column move, so we do nothing, the moveable feature
+           * If a move happens before the timer, then we are doing column move, so we do nothing, the movable feature
            * will handle it.
            *
            * To deal with touch enabled devices that also have mice, we only create our handlers when
@@ -303,7 +303,7 @@ angular.module('ui.grid').config(['$provide', function ($provide) {
 
           $scope.onDownEvents = function (type) {
             // If there is a previous event, then wait a while before
-            // activating the other mode - i.e. if the last event was a touch event then
+            // activating the other mode - i.e., if the last event was a touch event then
             // don't enable mouse events for a wee while (500ms or so)
             // Avoids problems with devices that emulate mouse events when you have touch events
 
@@ -405,7 +405,7 @@ angular.module('ui.grid').config(['$provide', function ($provide) {
              * @name enableColumnMenu
              * @propertyOf ui.grid.class:GridOptions.columnDef
              * @description if column menus are enabled, controls the column menus for this specific
-             * column (i.e. if gridOptions.enableColumnMenus, then you can control column menus
+             * column (i.e., if gridOptions.enableColumnMenus, then you can control column menus
              * using this option. If gridOptions.enableColumnMenus === false then you get no column
              * menus irrespective of the value of this option ).  Defaults to true.
              *
