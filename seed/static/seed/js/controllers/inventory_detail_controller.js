@@ -934,7 +934,6 @@ angular.module('BE.seed.controller.inventory_detail', [])
         return statusCount
       }
 
-<<<<<<< HEAD
       /**
        * open up modal to confirm delete of green assessment, refresh page
        */
@@ -1037,11 +1036,6 @@ angular.module('BE.seed.controller.inventory_detail', [])
           $scope.format_date_values($scope.item_state, inventory_service.property_state_date_columns);
         } else if ($scope.inventory_type === 'taxlots') {
           $scope.format_date_values($scope.item_state, inventory_service.taxlot_state_date_columns);
-=======
-      const setMeasureGridOptions = () => {
-        if (!$scope.historical_items) {
-          return
->>>>>>> seed_branch
         }
 
         $scope.measureGridOptionsByScenarioId = {}

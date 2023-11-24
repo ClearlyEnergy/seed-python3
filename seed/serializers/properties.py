@@ -19,23 +19,14 @@ from rest_framework.fields import empty
 from seed.models import (
     AUDIT_USER_CREATE,
     AUDIT_USER_EDIT,
-<<<<<<< HEAD
     PropertyAuditLog,
-=======
-    GreenAssessmentProperty,
->>>>>>> seed_branch
     Property,
-    PropertyAuditLog,
     PropertyState,
     PropertyView,
     TaxLotProperty,
     TaxLotView
 )
-<<<<<<< HEAD
 from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
-from seed.serializers.base import ChoiceField
-=======
->>>>>>> seed_branch
 from seed.serializers.building_file import BuildingFileSerializer
 from seed.serializers.certification import (
     GreenAssessmentPropertyReadOnlySerializer

@@ -27,7 +27,6 @@ from rest_framework.parsers import FormParser, MultiPartParser
 
 from seed.data_importer.models import ROW_DELIMITER, ImportFile, ImportRecord
 from seed.data_importer.tasks import do_checks
-<<<<<<< HEAD
 from seed.data_importer.tasks import (
     map_data,
     geocode_buildings_task as task_geocode_buildings,
@@ -40,48 +39,22 @@ from seed.data_importer.tasks import (
     helix_certification_create,
     helix_save_results
 )
-from seed.decorators import ajax_request, ajax_request_class
-from seed.decorators import get_prog_key
-=======
-from seed.data_importer.tasks import \
-    geocode_buildings_task as task_geocode_buildings
-from seed.data_importer.tasks import \
-    map_additional_models as task_map_additional_models
-from seed.data_importer.tasks import map_data
-from seed.data_importer.tasks import match_buildings as task_match_buildings
-from seed.data_importer.tasks import save_raw_data as task_save_raw
-from seed.data_importer.tasks import \
-    validate_use_cases as task_validate_use_cases
 from seed.decorators import ajax_request, ajax_request_class, get_prog_key
->>>>>>> seed_branch
 from seed.lib.mappings import mapper as simple_mapper
 from seed.lib.mcm import mapper
 from seed.lib.superperms.orgs.decorators import has_perm_class
-<<<<<<< HEAD
 # from seed.lib.superperms.orgs.models import (
 #     Organization,
 # )
 from helix.models import HELIXOrganization as Organization
 from seed.lib.superperms.orgs.models import OrganizationUser
-=======
-from seed.lib.superperms.orgs.models import Organization, OrganizationUser
->>>>>>> seed_branch
 from seed.lib.superperms.orgs.permissions import SEEDOrgPermissions
 from seed.lib.xml_mapping import mapper as xml_mapper
-from seed.models import (
-<<<<<<< HEAD
-    get_column_mapping,
-)
 from seed.models.data_quality import (
     DataQualityCheck,
 )
 from seed.models import (
-    obj_to_dict,
-    PropertyState,
-    TaxLotState,
-=======
     AUDIT_USER_EDIT,
->>>>>>> seed_branch
     DATA_STATE_MAPPING,
     DATA_STATE_MATCHING,
     MERGE_STATE_MERGED,

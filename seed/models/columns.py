@@ -10,7 +10,7 @@ import logging
 import os.path
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Callable, Literal, Optional, List
 
 from django.apps import apps
 from django.core.exceptions import ValidationError
@@ -141,18 +141,7 @@ class Column(models.Model):
         'extra_data',
         'lot_number',
         'normalized_address',
-<<<<<<< HEAD
         'organization',
-=======
-        'geocoded_address',
-        'geocoded_postal_code',
-        'geocoded_side_of_street',
-        'geocoded_country',
-        'geocoded_state',
-        'geocoded_county',
-        'geocoded_city',
-        'geocoded_neighborhood',
->>>>>>> seed_branch
         'updated',
     ]
 
@@ -183,7 +172,7 @@ class Column(models.Model):
         'PointField': 'geometry',
     }
 
-    DATA_TYPE_PARSERS: dict[str, Callable] = {
+    DATA_TYPE_PARSERS: [str, Callable] = {
         'number': lambda v: float(v.replace(',', '') if isinstance(v, basestring) else v),
         'float': lambda v: float(v.replace(',', '') if isinstance(v, basestring) else v),
         'integer': lambda v: int(v.replace(',', '') if isinstance(v, basestring) else v),
@@ -1473,8 +1462,8 @@ class Column(models.Model):
         only_used: bool = False,
         include_related: bool = True,
         exclude_derived: bool = False,
-        column_ids: Optional[list[int]] = None
-    ) -> list[dict]:
+        column_ids: Optional[List[int]] = None
+    ) -> List[dict]:
         """
         Retrieve all the columns for an organization. This method will query for all the columns in the
         database assigned to the organization. It will then go through and cleanup the names to ensure that

@@ -318,14 +318,10 @@ class PropertyState(models.Model):
     total_ghg_emissions_intensity = QuantityField('kgCO2e/ft**2/year', null=True, blank=True)
     total_marginal_ghg_emissions_intensity = QuantityField('kgCO2e/ft**2/year', null=True, blank=True)
 
-<<<<<<< HEAD
     # HELIX
     data_quality = models.IntegerField(choices=DATA_QUALITY_TYPES, null=True, blank=True)
 
-    extra_data = JSONField(default=dict, blank=True)
-=======
     extra_data = models.JSONField(default=dict, blank=True)
->>>>>>> seed_branch
     hash_object = models.CharField(max_length=32, null=True, blank=True, default=None)
     measures = models.ManyToManyField('Measure', through='PropertyMeasure')
 
@@ -675,15 +671,9 @@ class PropertyState(models.Model):
         # reduce this down to just the fields that were returned and convert to dict. This is
         # important because the fields that were not queried will be deferred and require a new
         # query to retrieve.
-<<<<<<< HEAD
-        keep_fields = ['id', 'pm_property_id', 'pm_parent_property_id', 'custom_id_1', 'ubid',
-                       'address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'county',
-                       'longitude', 'latitude',
-=======
         keep_fields = ['id', 'pm_property_id', 'pm_parent_property_id', 'custom_id_1',
                        'audit_template_building_id', 'ubid', 'address_line_1', 'address_line_2',
                        'city', 'state', 'postal_code', 'longitude', 'latitude',
->>>>>>> seed_branch
                        'lot_number', 'gross_floor_area', 'use_description', 'energy_score',
                        'site_eui', 'site_eui_modeled', 'total_ghg_emissions', 'total_marginal_ghg_emissions',
                        'total_ghg_emissions_intensity', 'total_marginal_ghg_emissions_intensity',

@@ -446,19 +446,12 @@
     "INCLUDE_SHARED_TAXLOTS": "Include in your Tax Lot List all tax lots shared with you.",
     "INDIVIDUAL_MATCH_MERGE_ROUND_ALERT": "This action will kick off a match and merge round for the resulting record. This record's values will be given precedence in the event that any merges occur. Multiple matching records are merged beforehand with precedence given to more recently imported records.",
     "INTERNAL": "INTERNAL",
-<<<<<<< HEAD
-    "INVALID_EXTENSION_ALERT": "<strong>Sorry!<\/strong> HELIX doesn't currently support that file format. Only <strong>.csv<\/strong>, <strong>.xls<\/strong>, <strong>.xlsx<\/strong>, and <strong>.xml<\/strong> files are supported.",
-    "INVALID_GEOJSON_EXTENSION_ALERT": "<strong>Sorry!<\/strong> HELIX doesn't currently support that file format. Only <strong>.geojson<\/strong> and <strong>.json<\/strong> files are supported.",
-    "INVALID_XML_EXTENSION_ALERT": "<strong>Sorry!<\/strong> HELIX doesn't currently support that file format. Only <strong>.xml<\/strong> files are supported.",
-    "INVALID_XML_ZIP_EXTENSION_ALERT": "<strong>Sorry!<\/strong> HELIX doesn't currently support that file format. Only <strong>.xml<\/strong> and <strong>.zip<\/strong> files are supported.",
-=======
     "INVALID_CSV_EXTENSION_ALERT": "<strong>Sorry!<\/strong> SEED doesn't currently support that file format. Only <strong>.csv<\/strong> files are supported.",
     "INVALID_DOC_FILE_EXTENSION_ALERT": "Invalid document type selected. Accepted file types are .dxf, .pdf, .idf, and .osm",
     "INVALID_EXTENSION_ALERT": "<strong>Sorry!<\/strong> SEED doesn't currently support that file format. Only <strong>.csv<\/strong>, <strong>.xls<\/strong>, <strong>.xlsx<\/strong>, and <strong>.xml<\/strong> files are supported.",
     "INVALID_GEOJSON_EXTENSION_ALERT": "<strong>Sorry!<\/strong> SEED doesn't currently support that file format. Only <strong>.geojson<\/strong> and <strong>.json<\/strong> files are supported.",
     "INVALID_XML_EXTENSION_ALERT": "<strong>Sorry!<\/strong> SEED doesn't currently support that file format. Only <strong>.xml<\/strong> files are supported.",
     "INVALID_XML_ZIP_EXTENSION_ALERT": "<strong>Sorry!<\/strong> SEED doesn't currently support that file format. Only <strong>.xml<\/strong> and <strong>.zip<\/strong> files are supported.",
->>>>>>> seed_branch
     "IRREVERSIBLE_OPERATION_WARNING": "This operation is irreversible.",
     "ITEMS_WILL_NOT_CHANGE": "these will not change",
     "Ignored duplicates of existing properties": "Ignored duplicates of existing properties",
@@ -485,12 +478,8 @@
     "Invite a New Member": "Invite a New Member",
     "Invite a new member": "Invite a new member",
     "Invite an Owner": "Invite an Owner",
-<<<<<<< HEAD
     "It is necessary to map your field names to SEED field names. You can select from the list that appears as you start to type, which is based on the Building Energy Data Exchange Specification (BEDES), or you can type in your own name, as well as typing in the field name from the original datafile.": "It is necessary to map your field names to HELIX field names. You can select from the list that appears as you start to type, which is based on the Building Energy Data Exchange Specification (BEDES), or you can type in your own name, as well as typing in the field name from the original datafile.",
-=======
-    "It is necessary to map your field names to SEED field names. You can select from the list that appears as you start to type, which is based on the Building Energy Data Exchange Specification (BEDES), or you can type in your own name, as well as typing in the field name from the original datafile.": "It is necessary to map your field names to SEED field names. You can select from the list that appears as you start to type, which is based on the Building Energy Data Exchange Specification (BEDES), or you can type in your own name, as well as typing in the field name from the original datafile.",
     "JACCARD_EXPLANATION": "The comparison relies on the Jaccard Index, which ranges from 0.0 (no overlap) to 1.0 (perfect match).",
->>>>>>> seed_branch
     "Jurisdiction Property ID": "Jurisdiction Property ID",
     "Jurisdiction Tax Lot ID": "Jurisdiction Tax Lot ID",
     "LINK_OUT_CYCLE_MATCHES": "Matches outside of this cycle will be linked.",
@@ -517,13 +506,8 @@
     "Loading labels...": "Loading labels...",
     "Loading...": "Loading...",
     "Log In": "Log In",
-    "Log in": "Log in",
-<<<<<<< HEAD
     "Log in to SEED Platform": "Log in to HELIX Platform",
-=======
-    "Log in to SEED Platform": "Log in to SEED Platform",
     "Logging Email": "Logging Email",
->>>>>>> seed_branch
     "Logout": "Logout",
     "Longitude": "Longitude",
     "MAPPING YOUR DATA TO SEED": "MAPPING YOUR DATA TO HELIX",
@@ -716,22 +700,12 @@
     "Please go to the following page and choose a new password:": "Please go to the following page and choose a new password:",
     "Please go to the following page and setup your account:": "Please go to the following page and setup your account:",
     "Please join the SEED-Platform Dev forum where you can connect with other developers.": "Please join the SEED-Platform Dev forum where you can connect with other developers.",
-<<<<<<< HEAD
     "Please review SEED headers.  Duplicate values are not allowed.": "Please review HELIX headers.  Duplicate values are not allowed.",
     "Please review SEED headers.  Empty values are not allowed.": "Please review HELIX headers.  Empty values are not allowed.",
     "Please review SEED column names or the column names of the file being imported. Duplicate values are not allowed in either case.": "Please review HELIX column names or the column names of the file being imported. Duplicate values are not allowed in either case.",
     "Please visit our User Support website for tutorials and documentation to help you learn how to use SEED-Platform.": "Please visit our User Support website for tutorials and documentation to help you learn how to use HELIX-Platform.",
     "Please wait while your data is loaded...": "Please wait while your data is loaded...",
     "Populate SEED Headers with best known matches": "Populate HELIX Headers with best known matches",
-=======
-    "Please review SEED column names or the column names of the file being imported. Column names that match an existing Derived Column name are not allowed.": "Please review SEED column names or the column names of the file being imported. Column names that match an existing Derived Column name are not allowed.",
-    "Please review SEED column names or the column names of the file being imported. Duplicate values are not allowed in either case.": "Please review SEED column names or the column names of the file being imported. Duplicate values are not allowed in either case.",
-    "Please review SEED headers.  Empty values are not allowed.": "Please review SEED headers.  Empty values are not allowed.",
-    "Please visit our User Support website for tutorials and documentation to help you learn how to use SEED-Platform.": "Please visit our User Support website for tutorials and documentation to help you learn how to use SEED-Platform.",
-    "Please wait while your data is loaded...": "Please wait while your data is loaded...",
-    "Populate SEED Headers with best known matches": "Populate SEED Headers with best known matches",
-    "Postal Code": "Postal Code",
->>>>>>> seed_branch
     "Postal Code (Property)": "Postal Code (Property)",
     "Postal Code (Tax Lot)": "Postal Code (Tax Lot)",
     "Potential Matches from Source": "Potential Matches from Source",
@@ -835,21 +809,11 @@
     "Run Duration": "Run Duration",
     "Run Id": "Run Id",
     "Run Status": "Run Status",
-<<<<<<< HEAD
     "SEED Header": "HELIX Header",
     "SEED Platform": "HELIX Platform",
     "SEED Platform™": "HELIX Platform™",
     "SEED doesn't currently support that file format": "HELIX doesn't currently support that file format",
     "SEED is easy, flexible, and cost effective software designed to help organizations clean, manage and share information about large portfolios of buildings. SEED is a free, open source web application that you can use privately.  While SEED was originally designed to help cities and States implement benchmarking programs for public or private buildings, it has the potential to be useful for many other activities by public entities, efficiency programs and private companies.": "HELIX is easy, flexible, and cost effective software designed to help organizations clean, manage and share information about large portfolios of buildings. HELIX is a free, open source web application that you can use privately.  While HELIX was originally designed to help cities and States implement benchmarking programs for public or private buildings, it has the potential to be useful for many other activities by public entities, efficiency programs and private companies.",
-=======
-    "SEED Field Name": "SEED Field Name",
-    "SEED Header": "SEED Header",
-    "SEED Platform": "SEED Platform",
-    "SEED Platform™": "SEED Platform™",
-    "SEED Unique Benchmark ID Fieldname": "SEED Unique Benchmark ID Fieldname",
-    "SEED doesn't currently support that file format": "SEED doesn't currently support that file format",
-    "SEED is easy, flexible, and cost effective software designed to help organizations clean, manage and share information about large portfolios of buildings. SEED is a free, open source web application that you can use privately.  While SEED was originally designed to help cities and States implement benchmarking programs for public or private buildings, it has the potential to be useful for many other activities by public entities, efficiency programs and private companies.": "SEED is easy, flexible, and cost effective software designed to help organizations clean, manage and share information about large portfolios of buildings. SEED is a free, open source web application that you can use privately.  While SEED was originally designed to help cities and States implement benchmarking programs for public or private buildings, it has the potential to be useful for many other activities by public entities, efficiency programs and private companies.",
->>>>>>> seed_branch
     "SELECT_DATA_SET_TITLE": "Select Data Set",
     "SELECT_DOC_UPLOAD_TITLE": "Select a document to upload",
     "SELECT_THE_TYPE_OF_FILE_TO_ADD_TO_DATASET": "Select the type of file(s) you would like to add to {dataset_name}.",
@@ -1016,22 +980,11 @@
     "Thank you for your interest in joining the Buildings Performance Database. Our site is in beta and your request is being reviewed for access.": "Thank you for your interest in joining the Buildings Performance Database. Our site is in beta and your request is being reviewed for access.",
     "Thank you!": "Thank you!",
     "The Building Energy Data Exchange Specification (BEDES, pronounced \"beads\" or \/bi:ds\/) is designed to support analysis of the measured energy performance of commercial, multifamily, and residential buildings, by providing a common data format, definitions, and an exchange protocol for building characteristics, efficiency measures, and energy use.": "The Building Energy Data Exchange Specification (BEDES, pronounced \"beads\" or \/bi:ds\/) is designed to support analysis of the measured energy performance of commercial, multifamily, and residential buildings, by providing a common data format, definitions, and an exchange protocol for building characteristics, efficiency measures, and energy use.",
-<<<<<<< HEAD
     "The DOE developed the Standard Energy Efficiency Data (SEED) Platform™ as a free software tool that provides a standardized format for collecting, storing and analyzing building energy performance information about large portfolios. Upload your buildings list to get started.": "HELIX is a free software tool that provides a standardized format for collecting, storing and analyzing building energy performance information about large portfolios. Upload your buildings list to get started.",
     "The Open Source code is available on the Github organization SEED-Platform:": "The Open Source code is available on the Github repoository ClearlyEnergy/seed-python3:",
     "The SEED Team": "The HELIX Team",
     "The SEED team": "The HELIX team",
     "The Standard Energy Efficiency Data (SEED)™ Platform is a software application that helps organizations easily manage data on the energy performance of large groups of buildings. Users can combine data from multiple sources, clean and validate it, and share the information with others. The software application provides an easy, flexible, and cost-effective method to improve the quality and availability of data to help demonstrate the economic and environmental benefits of energy efficiency, to implement programs, and to target investment activity.": "The HELIX Platform is a software application that helps organizations easily manage data on the energy performance of large groups of buildings. Users can combine data from multiple sources, clean and validate it, and share the information with others. The software application provides an easy, flexible, and cost-effective method to improve the quality and availability of data to help demonstrate the economic and environmental benefits of energy efficiency, to implement programs, and to target investment activity.",
-=======
-    "The DOE developed the Standard Energy Efficiency Data (SEED) Platform™ as a free software tool that provides a standardized format for collecting, storing and analyzing building energy performance information about large portfolios. Upload your buildings list to get started.": "The DOE developed the Standard Energy Efficiency Data (SEED) Platform™ as a free software tool that provides a standardized format for collecting, storing and analyzing building energy performance information about large portfolios. Upload your buildings list to get started.",
-    "The Open Source code is available on the Github organization SEED-Platform:": "The Open Source code is available on the Github organization SEED-Platform:",
-    "The SEED Team": "The SEED Team",
-    "The SEED team": "The SEED team",
-    "The Standard Energy Efficiency Data (SEED)™ Platform is a software application that helps organizations easily manage data on the energy performance of large groups of buildings. Users can combine data from multiple sources, clean and validate it, and share the information with others. The software application provides an easy, flexible, and cost-effective method to improve the quality and availability of data to help demonstrate the economic and environmental benefits of energy efficiency, to implement programs, and to target investment activity.": "The Standard Energy Efficiency Data (SEED)™ Platform is a software application that helps organizations easily manage data on the energy performance of large groups of buildings. Users can combine data from multiple sources, clean and validate it, and share the information with others. The software application provides an easy, flexible, and cost-effective method to improve the quality and availability of data to help demonstrate the economic and environmental benefits of energy efficiency, to implement programs, and to target investment activity.",
-    "The UBID Threshold defines the minimum Jaccard Index value required for a UBID Comparison to be considered acceptable. When the threshold is satisfied, the incoming property can be merged with the existing property.": "The UBID Threshold defines the minimum Jaccard Index value required for a UBID Comparison to be considered acceptable. When the threshold is satisfied, the incoming property can be merged with the existing property.",
-    "The comparison relies on the Jaccard Index, which ranges from 0.0 (no match) to 1.0 (perfect match).": "The comparison relies on the Jaccard Index, which ranges from 0.0 (no overlap) to 1.0 (perfect match).",
-    "The email supports brace templating to pull in data from the SEED property record. For example, the snippet below will replace the latitude and longitude from the SEED record. Other fields can be added, but make sure to use the SEED field name not the display name.": "The email supports brace templating to pull in data from the SEED property record. For example, the snippet below will replace the latitude and longitude from the SEED record. Other fields can be added, but make sure to use the SEED field name not the display name.",
->>>>>>> seed_branch
     "The following actions have destructive effects, please read all warnings after clicking an option.": "The following actions have destructive effects, please read all warnings after clicking an option.",
     "The following is a list of the fields we use to match up properties\/tax lots between different imported files. The more data you have in these four fields the better our\n                            system will auto-match your records.": "The following is a list of the fields we use to match up properties\/tax lots between different imported files. The more data you have in these four fields the better our\\n                            system will auto-match your records.",
     "The following is a list of the fields we use to match up properties\/tax lots between different imported files. The more data you have in these four fields the better our system will auto-match your records.": "The following is a list of the fields we use to match up properties\/tax lots between different imported files. The more data you have in these four fields the better our system will auto-match your records.",
@@ -1145,14 +1098,8 @@
     "Weather Norm. Source EUI": "Weather Norm. Source EUI",
     "Weather Normalized Site Energy Use Intensity": "Weather Normalized Site Energy Use Intensity",
     "Weather Normalized Source Energy Use Intensity": "Weather Normalized Source Energy Use Intensity",
-<<<<<<< HEAD
     "Welcome to SEED Platform™": "Welcome to HELIX Platform",
     "Welcome to SEED!": "Welcome to HELIX!",
-=======
-    "Welcome to SEED Platform™": "Welcome to SEED Platform™",
-    "Welcome to SEED!": "Welcome to SEED!",
-    "What is a Custom Report?": "What is a Custom Report?",
->>>>>>> seed_branch
     "What type of file would you like to upload?": "What type of file would you like to upload?",
     "When checked, properties\/taxlots will be matched to existing cycles based on the 'year_ending' column or the default cycle if there is no match": "When checked, properties\/taxlots will be matched to existing cycles based on the 'year_ending' column or the default cycle if there is no match",
     "Where would you like to move these buildings?": "Where would you like to move these buildings?",

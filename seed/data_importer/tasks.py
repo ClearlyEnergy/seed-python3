@@ -16,13 +16,8 @@ import traceback
 import zipfile
 from bisect import bisect_left
 from builtins import str
-<<<<<<< HEAD
-from collections import namedtuple
-from datetime import date, datetime, timedelta
-=======
 from collections import defaultdict, namedtuple
-from datetime import date, datetime
->>>>>>> seed_branch
+from datetime import date, datetime, timedelta
 from itertools import chain
 from math import ceil
 
@@ -30,11 +25,8 @@ from _csv import Error
 from celery import chain as celery_chain
 from celery import chord, group, shared_task
 from celery.utils.log import get_task_logger
-<<<<<<< HEAD
 from django.conf import settings
-=======
 from dateutil import parser
->>>>>>> seed_branch
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DataError, IntegrityError, connection, transaction
@@ -93,25 +85,9 @@ from seed.models import (
     TaxLotAuditLog,
     TaxLotProperty,
     TaxLotState,
-<<<<<<< HEAD
-    DATA_STATE_IMPORT,
-    DATA_STATE_MAPPING,
-    DATA_STATE_MATCHING,
-    DATA_STATE_DELETE,
-    DATA_STATE_UNKNOWN)
-from seed.models import BuildingFile
-from seed.models import PropertyAuditLog
-from seed.models import TaxLotAuditLog
-from seed.models import TaxLotProperty
-from seed.models.auditlog import AUDIT_IMPORT, AUDIT_USER_EXPORT
-from seed.models.data_quality import (
-    DataQualityCheck,
-    Rule,
-=======
     TaxLotView
->>>>>>> seed_branch
 )
-from seed.models.auditlog import AUDIT_IMPORT
+from seed.models.auditlog import AUDIT_IMPORT, AUDIT_USER_EXPORT
 from seed.models.data_quality import DataQualityCheck, Rule
 from seed.utils.buildings import get_source_type
 from seed.utils.geocode import (

@@ -23,14 +23,10 @@ angular.module('BE.seed.controller.inventory_list', [])
     'cycles',
     'profiles',
     'current_profile',
-<<<<<<< HEAD
     'data_qualities_payload',
-    'labels',
-=======
     'filter_groups',
     'current_filter_group',
     'filter_groups_service',
->>>>>>> seed_branch
     'all_columns',
     'derived_columns_payload',
     'urls',
@@ -62,14 +58,10 @@ angular.module('BE.seed.controller.inventory_list', [])
       cycles,
       profiles,
       current_profile,
-<<<<<<< HEAD
       data_qualities_payload,
-      labels,
-=======
       filter_groups,
       current_filter_group,
       filter_groups_service,
->>>>>>> seed_branch
       all_columns,
       derived_columns_payload,
       urls,
@@ -746,11 +738,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         return cache[record.id];
       };
 
-<<<<<<< HEAD
-      $scope.run_data_quality_check = function (data_quality_id) {
-=======
-      $scope.run_data_quality_check = function (selectedViewIds) {
->>>>>>> seed_branch
+      $scope.run_data_quality_check = function (data_quality_id, selectedViewIds) {
         spinner_utility.show();
 
         var property_view_ids = $scope.inventory_type === 'properties' ? selectedViewIds : [];
@@ -784,7 +772,6 @@ angular.module('BE.seed.controller.inventory_list', [])
         });
       };
 
-<<<<<<< HEAD
       $scope.generate_green_addendum = function () {
         spinner_utility.show();
 
@@ -837,9 +824,6 @@ angular.module('BE.seed.controller.inventory_list', [])
       }
 
       // Columns
-=======
-      // Column defaults. Column description popover
->>>>>>> seed_branch
       var defaults = {
         headerCellFilter: 'translate',
         headerCellTemplate: `<div role="columnheader" ng-class="{ 'sortable': sortable, 'ui-grid-header-cell-last-col': isLastCol }" ui-grid-one-bind-aria-labelledby-grid="col.uid + '-header-text ' + col.uid + '-sortdir-text'" aria-sort="{{col.sort.direction == asc ? 'ascending' : ( col.sort.direction == desc ? 'descending' : (!col.sort.direction ? 'none' : 'other'))}}"><div role="button" tabindex="0" ng-keydown="handleKeyDown($event)" class="ui-grid-cell-contents ui-grid-header-cell-primary-focus" col-index="renderIndex" uib-tooltip="{{ col.colDef.column_description }}" tooltip-append-to-body="true"><span class="ui-grid-header-cell-label" ui-grid-one-bind-id-grid="col.uid + '-header-text'">{{ col.displayName CUSTOM_FILTERS }}</span> <span ui-grid-one-bind-id-grid="col.uid + '-sortdir-text'" ui-grid-visible="col.sort.direction" aria-label="{{getSortDirectionAriaLabel()}}"><i ng-class="{ 'ui-grid-icon-up-dir': col.sort.direction == asc, 'ui-grid-icon-down-dir': col.sort.direction == desc, 'ui-grid-icon-blank': !col.sort.direction }" title="{{isSortPriorityVisible() ? i18n.headerCell.priority + ' ' + ( col.sort.priority + 1 )  : null}}" aria-hidden="true"></i> <sub ui-grid-visible="isSortPriorityVisible()" class="ui-grid-sort-priority-number">{{col.sort.priority + 1}}</sub></span></div><div role="button" tabindex="0" ui-grid-one-bind-id-grid="col.uid + '-menu-button'" class="ui-grid-column-menu-button" ng-if="grid.options.enableColumnMenus && !col.isRowHeader  && col.colDef.enableColumnMenu !== false" ng-click="toggleMenu($event)" ng-keydown="headerCellArrowKeyDown($event)" ui-grid-one-bind-aria-label="i18n.headerCell.aria.columnMenuButtonLabel" aria-expanded="{{col.menuShown}}" aria-haspopup="true"><i class="ui-grid-icon-angle-down" aria-hidden="true">&nbsp;</i></div><div ui-grid-filter ng-hide="col.filterContainer === 'columnMenu'"></div></div>`,
@@ -864,7 +848,6 @@ angular.module('BE.seed.controller.inventory_list', [])
 
         // Modify misc
         if (col.data_type === 'datetime') {
-<<<<<<< HEAD
           options.cellFilter = 'date:\'yyyy-MM-dd\'';
           options.filter = inventory_service.dateFilter();
         } else if (col.data_type === 'date') {
@@ -876,13 +859,6 @@ angular.module('BE.seed.controller.inventory_list', [])
         } else {
           options.filter = inventory_service.combinedFilter();
           options.sortingAlgorithm = naturalSort;
-=======
-          options.cellFilter = 'date:\'yyyy-MM-dd h:mm a\'';
-        } else if (['area', 'eui', 'float', 'number'].includes(col.data_type)) {
-          options.cellFilter = 'tolerantNumber: ' + $scope.organization.display_decimal_places;
-        } else if (col.is_derived_column) {
-          options.cellFilter = 'number: ' + $scope.organization.display_decimal_places;
->>>>>>> seed_branch
         }
 
         if (col.column_name === 'number_properties' && col.related) options.treeAggregationType = 'total';
@@ -1161,19 +1137,6 @@ angular.module('BE.seed.controller.inventory_list', [])
         } else if ($scope.inventory_type === 'taxlots') {
           fn = inventory_service.get_taxlots;
         }
-<<<<<<< HEAD
-//        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id')).then(function (data) {
-        return fn(page, chunk, $scope.cycle.selected_cycle, _.get($scope, 'currentProfile.id'), $scope.showSubOrgData).then(function (data) {
-          $scope.progress = {
-            current: data.pagination.end,
-            total: data.pagination.total,
-            percent: Math.round(data.pagination.end / data.pagination.total * 100)
-          };
-          if (data.pagination.has_next) {
-            return fetch(page + 1, chunk).then(function (data2) {
-              return data.results.concat(data2);
-            });
-=======
 
         // add label filtering
         let include_ids = undefined;
@@ -1186,7 +1149,6 @@ angular.module('BE.seed.controller.inventory_list', [])
             include_ids = _.union.apply(null, _.map($scope.selected_labels, 'is_applied'));
           } else if ($scope.labelLogic === 'exclude') {
             exclude_ids = _.intersection.apply(null, _.map($scope.selected_labels, 'is_applied'));
->>>>>>> seed_branch
           }
         }
         return fn(
@@ -1249,7 +1211,6 @@ angular.module('BE.seed.controller.inventory_list', [])
           // finally, update the data to include the calculated values
           $scope.data.forEach(row => {
             Object.entries(aggregated_results).forEach(([derived_column_id, results]) => {
-<<<<<<< HEAD
               const derived_column = visible_derived_columns.find(col => col.id == derived_column_id)
               const result = results.find(res => res.id == row.id) || {}
               row[derived_column.name] = result.value
@@ -1290,13 +1251,6 @@ angular.module('BE.seed.controller.inventory_list', [])
           $scope.gridApi.core.notifyDataChange(uiGridConstants.dataChange.EDIT);
           modalInstance.close();
           evaluateDerivedColumns();
-=======
-              const derived_column = attached_derived_columns.find(col => col.id == derived_column_id);
-              const result = results.find(res => res.id == row.id) || {};
-              row[column_name_lookup[derived_column.name]] = result.value;
-            });
-          });
->>>>>>> seed_branch
         });
       };
 
@@ -1365,7 +1319,6 @@ angular.module('BE.seed.controller.inventory_list', [])
         });
       };
 
-<<<<<<< HEAD
       $scope.toggle_sub_org_data = function() {
         refresh_objects();
       };
@@ -1373,9 +1326,6 @@ angular.module('BE.seed.controller.inventory_list', [])
       processData();
 
       $scope.open_ubid_modal = function () {
-=======
-      $scope.open_ubid_decode_modal = function (selectedViewIds) {
->>>>>>> seed_branch
         $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/ubid_decode_modal.html',
           controller: 'ubid_decode_modal_controller',
@@ -1390,7 +1340,6 @@ angular.module('BE.seed.controller.inventory_list', [])
         });
       };
 
-<<<<<<< HEAD
       $scope.open_pvwatts_modal = function () {
       var modalInstance = $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/pvwatts_modal.html',
@@ -1423,8 +1372,6 @@ angular.module('BE.seed.controller.inventory_list', [])
       });
       };
 
-      $scope.open_geocode_modal = function () {
-=======
       $scope.open_ubid_jaccard_index_modal = function (selectedViewIds) {
         $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/ubid_jaccard_index_modal.html',
@@ -1477,7 +1424,6 @@ angular.module('BE.seed.controller.inventory_list', [])
       };
 
       $scope.open_geocode_modal = function (selectedViewIds) {
->>>>>>> seed_branch
         var modalInstance = $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/geocode_modal.html',
           controller: 'geocode_modal_controller',

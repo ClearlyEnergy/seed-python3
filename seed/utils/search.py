@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
-from typing import Any, Union
+from typing import Any, Union, Dict, List, Tuple
 
 from django.db import models
 from django.db.models import Q
@@ -250,10 +250,10 @@ class QueryFilter:
 
 # represents a dictionary usable with a QuerySet annotation:
 #   `QuerySet.annotation(**AnnotationDict)`
-AnnotationDict = dict[str, models.Func]
+AnnotationDict = Dict[str, models.Func]
 
 
-def _build_extra_data_annotations(column_name: str, data_type: str) -> tuple[str, AnnotationDict]:
+def _build_extra_data_annotations(column_name: str, data_type: str) -> Tuple[str, AnnotationDict]:
     """Creates a dictionary of annotations which will cast the extra data column_name
     into the provided data_type, for usage like: `*View.annotate(**annotations)`
 
@@ -310,7 +310,7 @@ def _build_extra_data_annotations(column_name: str, data_type: str) -> tuple[str
     return final_field_name, annotations
 
 
-def _parse_view_filter(filter_expression: str, filter_value: Union[str, bool], columns_by_name: dict[str, dict]) -> tuple[Q, AnnotationDict]:
+def _parse_view_filter(filter_expression: str, filter_value: Union[str, bool], columns_by_name: Dict[str, dict]) -> Tuple[Q, AnnotationDict]:
     """Parse a filter expression into a Q object
 
     :param filter_expression: should be a valid Column.column_name, with an optional
@@ -347,7 +347,7 @@ def _parse_view_filter(filter_expression: str, filter_value: Union[str, bool], c
     return updated_filter.to_q(new_filter_value), annotations
 
 
-def _parse_view_sort(sort_expression: str, columns_by_name: dict[str, dict]) -> tuple[Union[None, str], AnnotationDict]:
+def _parse_view_sort(sort_expression: str, columns_by_name: Dict[str, dict]) -> Tuple[Union[None, str], AnnotationDict]:
     """Parse a sort expression
 
     :param sort_expression: should be a valid Column.column_name. Optionally prefixed
@@ -373,7 +373,7 @@ def _parse_view_sort(sort_expression: str, columns_by_name: dict[str, dict]) -> 
         return None, {}
 
 
-def build_view_filters_and_sorts(filters: QueryDict, columns: list[dict]) -> tuple[Q, AnnotationDict, list[str]]:
+def build_view_filters_and_sorts(filters: QueryDict, columns: List[dict]) -> Tuple[Q, AnnotationDict, List[str]]:
     """Build a query object usable for `*View.filter(...)` as well as a list of
     column names for usable for `*View.order_by(...)`.
 

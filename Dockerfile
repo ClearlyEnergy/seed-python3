@@ -11,18 +11,8 @@ RUN apt-get install -y -qq \
         python3-dev \
         python3-psycopg2 \
         nginx \
-<<<<<<< HEAD
         git \
         npm && \
-=======
-        openssl-dev \
-        geos-dev \
-        gdal \
-        gcc \
-        musl-dev \
-        cargo \
-        tzdata && \
->>>>>>> seed_branch
     ln -sf /usr/bin/python3 /usr/bin/python && \
     pip3 install --upgrade pip setuptools && \
     pip3 install supervisor==4.2.2 && \
@@ -47,7 +37,7 @@ WORKDIR /seed
 COPY ./requirements.txt /seed/requirements.txt
 COPY ./requirements/*.txt /seed/requirements/
 RUN pip uninstall -y enum34
-RUN --mount=type=secret,id=ssh-key,target=/home/uwsgi/.ssh/id_rsa pip3 install --prefer-binary -r requirements/aws.txt
+RUN pip3 install --prefer-binary -r requirements/aws.txt
 
 ### Install JavaScript requirements - do this first because they take awhile
 ### and the dependencies will probably change slower than python packages.
@@ -65,7 +55,7 @@ COPY ./docker/wait-for-it.sh /usr/local/wait-for-it.sh
 RUN git config --system --add safe.directory /seed
 
 # nginx configuration - replace the root/default nginx config file and add included files
-COPY ./docker/nginx/*.conf /etc/nginx/
+COPY /docker/nginx-seed.conf /etc/nginx/nginx.conf
 # symlink maintenance.html that nginx will serve in the case of a 503
 RUN ln -sf /seed/collected_static/maintenance.html /var/www/html/maintenance.html
 # set execute permissions on the maint script to toggle on and off

@@ -26,8 +26,7 @@ from seed.lib.superperms.orgs.models import (
     ROLE_MEMBER,
     ROLE_OWNER,
     ROLE_VIEWER,
-<<<<<<< HEAD
-    #    Organization,
+    Organization,
     OrganizationUser,
 )
 # Helix add
@@ -39,13 +38,6 @@ from seed.models.auditlog import (
 from seed.models.certification import GreenAssessmentProperty, GreenAssessment, GreenAssessmentPropertyAuditLog
 from seed.models import Cycle, PropertyView, TaxLotView, Column, Measure, PropertyMeasure
 # Helix end add
-# from seed.models import Cycle, PropertyView, TaxLotView, Column
-=======
-    Organization,
-    OrganizationUser
-)
-from seed.models import Column, Cycle, PropertyView, TaxLotView
->>>>>>> seed_branch
 from seed.tasks import invite_to_organization
 from seed.utils.api import api_endpoint_class
 from seed.utils.cache import get_cache_raw, set_cache_raw

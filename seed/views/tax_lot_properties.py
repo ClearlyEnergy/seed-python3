@@ -10,12 +10,8 @@ import io
 from collections import OrderedDict
 
 import xlsxwriter
-<<<<<<< HEAD
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
-=======
-from django.http import HttpResponse, JsonResponse
->>>>>>> seed_branch
 from quantityfield.units import ureg
 from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
@@ -29,26 +25,9 @@ from seed.models import (
     ColumnListProfile,
     PropertyView,
     TaxLotProperty,
-<<<<<<< HEAD
     TaxLotView,
     Cycle,
     ColumnListProfile
-)
-from seed.models.meters import (
-    Meter,
-    MeterReading
-)
-from seed.models.property_measures import (
-    PropertyMeasure
-)
-from seed.models.scenarios import (
-    Scenario
-)
-from seed.serializers.tax_lot_properties import (
-    TaxLotPropertySerializer
-=======
-    TaxLotView
->>>>>>> seed_branch
 )
 from seed.models.meters import Meter, MeterReading
 from seed.models.property_measures import PropertyMeasure

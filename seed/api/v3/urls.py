@@ -154,29 +154,19 @@ urlpatterns = [
         LabelInventoryViewSet.as_view(),
         {'inventory_type': 'taxlot'},
     ),
-<<<<<<< HEAD
-    url(r'^', include(organizations_router.urls)),
-    url(r'^', include(analysis_views_router.urls)),
-    url(r'^', include(analysis_messages_router.urls)),
-    url(r'^', include(analysis_view_messages_router.urls)),
-    url(r'^', include(properties_router.urls)),
-    url(r'^', include(taxlots_router.urls)),
-    url(r'media/(?P<filepath>.*)$', MediaViewSet.as_view()),
-    # helix routes
-    url(r'helix_csv_export/$', helix_csv_export, name='helix_csv_export'),
-    url(r'helix_dups_export/$', helix_dups_export, name='helix_dups_export'),
-    url(r'green_addendum/(?P<pk>\w+)/$', helix_green_addendum, name='green_addendum'),
-    url(r'massachusetts_scorecard/(?P<pk>\w+)/', helix_massachusetts_scorecard, name='massachusetts_scorecard'),
-=======
     re_path(r'^', include(organizations_router.urls)),
     re_path(r'^', include(analysis_views_router.urls)),
     re_path(r'^', include(analysis_messages_router.urls)),
     re_path(r'^', include(analysis_view_messages_router.urls)),
     re_path(r'^', include(properties_router.urls)),
+    re_path(r'^', include(taxlots_router.urls)),
+    re_path(r'media/(?P<filepath>.*)$', MediaViewSet.as_view()),
+    # helix routes
+    re_path(r'helix_csv_export/$', helix_csv_export, name='helix_csv_export'),
+    re_path(r'helix_dups_export/$', helix_dups_export, name='helix_dups_export'),
+    re_path(r'green_addendum/(?P<pk>\w+)/$', helix_green_addendum, name='green_addendum'),
+    re_path(r'massachusetts_scorecard/(?P<pk>\w+)/', helix_massachusetts_scorecard, name='massachusetts_scorecard'),
     re_path(r'^', include(meters_router.urls)),
     re_path(r'^', include(property_measures_router.urls)),
-    re_path(r'^', include(taxlots_router.urls)),
     re_path(r'^celery_queue/$', celery_queue, name='celery_queue'),
-    re_path(r'media/(?P<filepath>.*)$', MediaViewSet.as_view()),
->>>>>>> seed_branch
 ]

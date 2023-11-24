@@ -16,12 +16,9 @@ from seed.models import (
 #    GreenAssessmentProperty,
     GreenAssessmentURL
 )
-<<<<<<< HEAD
 from helix.models import HELIXGreenAssessment as GreenAssessment
 from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
 
-=======
->>>>>>> seed_branch
 from seed.serializers.certification import (
     GreenAssessmentPropertySerializer,
     GreenAssessmentSerializer,

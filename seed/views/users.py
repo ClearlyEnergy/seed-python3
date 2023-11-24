@@ -8,13 +8,8 @@ import logging
 
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
-<<<<<<< HEAD
-from django.core.exceptions import ObjectDoesNotExist
-from django.core.exceptions import ValidationError
 from django.conf import settings
-=======
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
->>>>>>> seed_branch
 from django.http import JsonResponse
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action

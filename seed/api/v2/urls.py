@@ -26,18 +26,13 @@ from seed.views.column_mapping_presets import ColumnMappingPresetViewSet
 from seed.views.column_mappings import ColumnMappingViewSet
 from seed.views.columns import ColumnViewSet
 from seed.views.cycles import CycleViewSet
-from seed.views.data_quality import DataQualityViews, DataQualityCheckViewSet
+from seed.views.data_quality import DataQualityViews
 from seed.views.datasets import DatasetViewSet
 from seed.views.geocode import GeocodeViews
 from seed.views.labels import LabelViewSet, UpdateInventoryLabelsAPIView
 from seed.views.main import version
-<<<<<<< HEAD
-from seed.views.measures import MeasureViewSet, PropertyMeasureViewSet
-from seed.views.meters import MeterViewSet
-=======
 from seed.views.measures import MeasureViewSet
 from seed.views.meters import MeterViewSetV2
->>>>>>> seed_branch
 from seed.views.organizations import OrganizationViewSet
 from seed.views.properties import (
     GBRPropertyViewSet,

@@ -19,9 +19,6 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
       total_taxlots_for_user: 0
     };
 
-<<<<<<< HEAD
-    inventory_service.get_properties = function (page, per_page, cycle, profile_id, show_sub_org_data, inventory_ids, save_last_cycle = true, organization_id = null) {
-=======
     const format_column_filters = function (column_filters) {
       // turn column filter objects into usable query parameters
       if (!column_filters) {
@@ -54,23 +51,19 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
     };
 
     inventory_service.get_properties = function (page, per_page, cycle, profile_id, include_view_ids, exclude_view_ids, save_last_cycle = true, organization_id = null, include_related = true, column_filters = null, column_sorts = null, ids_only = null, shown_column_ids = null) {
->>>>>>> seed_branch
       organization_id = organization_id == undefined ? user_service.get_organization().id : organization_id;
       if (show_sub_org_data == undefined) show_sub_org_data = false;
 
       var params = {
         organization_id: organization_id,
-<<<<<<< HEAD
         page: page,
         per_page: per_page || 999999999,
-        show_sub_org_data: show_sub_org_data
-=======
+        show_sub_org_data: show_sub_org_data,
         include_related: include_related,
         ids_only: ids_only,
         shown_column_ids: shown_column_ids,
         ...format_column_sorts(column_sorts),
         ...format_column_filters(column_filters)
->>>>>>> seed_branch
       };
 
       if (ids_only) {
@@ -94,12 +87,9 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         }
         return $http.post('/api/v3/properties/filter/', {
           // Pass the specific ids if they exist
-<<<<<<< HEAD
           property_view_ids: inventory_ids,
-=======
           include_view_ids: include_view_ids,
           exclude_view_ids: exclude_view_ids,
->>>>>>> seed_branch
           // Pass the current profile (if one exists) to limit the column data that is returned
           profile_id: profile_id
         }, {
@@ -378,27 +368,20 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
     };
 
 
-<<<<<<< HEAD
-    inventory_service.get_taxlots = function (page, per_page, cycle, profile_id, show_sub_org_data, inventory_ids, save_last_cycle = true, organization_id = null) {
-=======
     inventory_service.get_taxlots = function (page, per_page, cycle, profile_id, include_view_ids, exclude_view_ids, save_last_cycle = true, organization_id = null, include_related = true, column_filters = null, column_sorts = null, ids_only = null, shown_column_ids = null) {
->>>>>>> seed_branch
       organization_id = organization_id == undefined ? user_service.get_organization().id : organization_id;
       if (show_sub_org_data == undefined) show_sub_org_data = false;
 
       var params = {
         organization_id: organization_id,
-<<<<<<< HEAD
         page: page,
         per_page: per_page || 999999999,
-        show_sub_org_data: show_sub_org_data
-=======
+        show_sub_org_data: show_sub_org_data,
         include_related: include_related,
         ids_only: ids_only,
         shown_column_ids: shown_column_ids,
         ...format_column_sorts(column_sorts),
         ...format_column_filters(column_filters)
->>>>>>> seed_branch
       };
 
       if (ids_only) {
@@ -1255,7 +1238,6 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
       });
     };
 
-<<<<<<< HEAD
     inventory_service.generate_green_addendum = function (id) {
       return $http.get('/api/v2/green_addendum/'+id+'/', {
         params: {
@@ -1284,24 +1266,6 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         }).then(function(response) {
           return response.data
         })
-=======
-    inventory_service.refresh_metadata = function (ids, states, inventory_type, progress_key) {
-      return $http.post(`/api/v3/tax_lot_properties/refresh_metadata/`, {
-        ids: ids,
-        states: states,
-        inventory_type: inventory_type,
-        progress_key: progress_key,
-        organization_id: user_service.get_organization().id
-      });
-    };
-
-    inventory_service.start_refresh_metadata = function() {
-      return $http.get('/api/v3/tax_lot_properties/start_refresh_metadata/', {
-        params: {
-          organization_id: user_service.get_organization().id
-        }
-      });
->>>>>>> seed_branch
     };
 
     return inventory_service;

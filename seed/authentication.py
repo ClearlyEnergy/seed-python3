@@ -4,11 +4,8 @@
 SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
 See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-<<<<<<< HEAD
 
 from django.conf import settings
-=======
->>>>>>> seed_branch
 from rest_framework import authentication
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 from seed.landing.models import SEEDUser as User

@@ -16,13 +16,8 @@ from seed.lib.superperms.orgs.models import (
     ROLE_MEMBER,
     ROLE_OWNER,
     ROLE_VIEWER,
-<<<<<<< HEAD
-    OrganizationUser,
-    #    Organization
-=======
     Organization,
     OrganizationUser
->>>>>>> seed_branch
 )
 # Helix add
 from helix.models import HELIXOrganization as Organization

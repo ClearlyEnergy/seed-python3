@@ -8,15 +8,11 @@ from django.conf import settings
 from django.conf.urls import include, re_path
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-<<<<<<< HEAD
 from django.contrib import admin
-from django.urls import path
-=======
 from django.urls import path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
->>>>>>> seed_branch
 
 from config.views import robots_txt
 from seed.api.base.urls import urlpatterns as api
@@ -47,16 +43,8 @@ def trigger_error(request):
 
 
 urlpatterns = [
-<<<<<<< HEAD
-    # HELIX
-    url(r'^helix/', include(('helix.urls', 'helix'), namespace='helix')),
-
-    url(r'^accounts/password/reset/done/$', password_reset_done, name='password_reset_done'),
-    url(
-=======
     re_path(r'^accounts/password/reset/done/$', password_reset_done, name='password_reset_done'),
     re_path(
->>>>>>> seed_branch
         r'^accounts/password/reset/complete/$',
         password_reset_complete,
         name='password_reset_complete',
@@ -66,28 +54,14 @@ urlpatterns = [
         password_reset_confirm,
         name='password_reset_confirm'
     ),
-<<<<<<< HEAD
-    url(r'^oidc/', include('mozilla_django_oidc.urls')),
-=======
+    re_path(r'^oidc/', include('mozilla_django_oidc.urls')),
 
->>>>>>> seed_branch
     # Application
     re_path(r'^', include(('seed.landing.urls', "seed.landing"), namespace="landing")),
     re_path(r'^app/', include(('seed.urls', "seed"), namespace="seed")),
     re_path(r'^documentation/', include(('seed.docs.urls', 'seed.docs'), namespace='docs')),
 
     # root configuration items
-<<<<<<< HEAD
-    url(r'^eula/', include(('tos.urls', 'tos'), namespace='tos')),
-    url(r'^i18n/', include('django.conf.urls.i18n')),
-    url(r'^robots\.txt', robots_txt, name='robots_txt'),
-
-    # API
-    url(r'^api/swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    url(r'^api/version/$', version, name='version'),
-    url(r'^api/', include((api, "seed"), namespace='api')),
-    url(r'^oauth/', include('oauth2_provider.urls', namespace='oauth2_provider')),
-=======
     re_path(r'^i18n/', include('django.conf.urls.i18n')),
     re_path(r'^robots\.txt', robots_txt, name='robots_txt'),
 
@@ -99,7 +73,6 @@ urlpatterns = [
 
     # test sentry error
     path('sentry-debug/', trigger_error)
->>>>>>> seed_branch
 ]
 
 handler404 = 'seed.views.main.error404'
@@ -112,18 +85,14 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += [
         # test URLs
-<<<<<<< HEAD
-        url(r'^angular_js_tests/$', angular_js_tests, name='angular_js_tests'),
-=======
         re_path(r'^angular_js_tests/$', angular_js_tests, name='angular_js_tests'),
 
         # admin
         re_path(r'^admin/', admin.site.urls),
->>>>>>> seed_branch
     ]
 
 admin.autodiscover()
 # admin
 urlpatterns += [
-    url(r'^admin/', admin.site.urls),
+    re_path(r'^admin/', admin.site.urls),
 ]

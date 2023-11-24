@@ -91,7 +91,4 @@ docker-compose-dbs.yml
 
 # generated files
 /auto*.csv
-<<<<<<< HEAD
 /charts/helix/charts/
-=======
->>>>>>> seed_branch

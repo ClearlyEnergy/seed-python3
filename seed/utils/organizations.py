@@ -8,15 +8,9 @@ from json import load
 
 from seed.lib.superperms.orgs.exceptions import TooManyNestedOrgs
 from seed.lib.superperms.orgs.models import (
-<<<<<<< HEAD
-    #    Organization,
-    OrganizationUser,
-    ROLE_MEMBER
-=======
     ROLE_MEMBER,
     Organization,
     OrganizationUser
->>>>>>> seed_branch
 )
 from seed.lib.xml_mapping.mapper import default_buildingsync_profile_mappings
 from seed.models import Column, ColumnMappingProfile

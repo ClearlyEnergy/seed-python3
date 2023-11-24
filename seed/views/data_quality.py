@@ -16,23 +16,12 @@ from unidecode import unidecode
 from seed.data_importer.tasks import do_checks
 from seed.decorators import ajax_request_class
 from seed.lib.superperms.orgs.decorators import has_perm_class
-<<<<<<< HEAD
-from seed.lib.superperms.orgs.models import (
-    Organization,
-)
-from seed.models.data_quality import (
-    Rule,
-    DataQualityCheck,
-)
 from seed.serializers.data_quality import (
     DataQualityCheckSerializer,
 )
-from seed.utils.api import api_endpoint_class, OrgMixin, OrgValidateMixin
-=======
 from seed.lib.superperms.orgs.models import Organization
 from seed.models.data_quality import DataQualityCheck, Rule
-from seed.utils.api import OrgMixin, api_endpoint_class
->>>>>>> seed_branch
+from seed.utils.api import OrgMixin, api_endpoint_class, OrgValidateMixin
 from seed.utils.cache import get_cache_raw
 from seed.utils.viewsets import SEEDOrgCreateUpdateModelViewSet
 

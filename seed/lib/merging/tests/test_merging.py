@@ -80,11 +80,7 @@ class StateFieldsTest(TestCase):
                     ('conditioned_floor_area', 'conditioned_floor_area'),
                     ('county', 'county'),
                     ('custom_id_1', 'custom_id_1'),
-<<<<<<< HEAD
                     ('data_quality', 'data_quality'),
-=======
-                    ('egrid_subregion_code', 'egrid_subregion_code'),
->>>>>>> seed_branch
                     ('energy_alerts', 'energy_alerts'),
                     ('energy_score', 'energy_score'),
                     ('generation_date', 'generation_date'),

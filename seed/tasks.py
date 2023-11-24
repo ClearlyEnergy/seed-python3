@@ -44,7 +44,7 @@ from seed.utils.salesforce import auto_sync_salesforce_properties
 logger = get_task_logger(__name__)
 
 
-def invite_new_user_to_seed(protocol, domain, email_address, token, user_pk, first_name):
+def invite_new_user_to_seed(domain, email_address, token, user_pk, first_name):
     """Send invitation email to newly created user from the landing page.
     NOTE: this function is only used on the landing page because the user has not been assigned an organization
     domain -- The domain name of the running seed instance
@@ -64,11 +64,7 @@ def invite_new_user_to_seed(protocol, domain, email_address, token, user_pk, fir
     context = {
         'email': email_address,
         'domain': domain,
-<<<<<<< HEAD
-        'protocol': protocol,
-=======
         'protocol': settings.PROTOCOL,
->>>>>>> seed_branch
         'first_name': first_name,
         'signup_url': signup_url
     }
@@ -88,7 +84,7 @@ def invite_new_user_to_seed(protocol, domain, email_address, token, user_pk, fir
 
 
 @shared_task
-def invite_to_seed(protocol, domain, email_address, token, organization, user_pk, first_name):
+def invite_to_seed(domain, email_address, token, organization, user_pk, first_name):
     """Send invitation email to newly created user.
 
     domain -- The domain name of the running seed instance
@@ -101,11 +97,7 @@ def invite_to_seed(protocol, domain, email_address, token, organization, user_pk
     Returns: nothing
     """
     sign_up_url = Template("{{protocol}}://{{domain}}{{sign_up_url}}").render(Context({
-<<<<<<< HEAD
-        'protocol': protocol,
-=======
         'protocol': settings.PROTOCOL,
->>>>>>> seed_branch
         'domain': domain,
         'sign_up_url': reverse_lazy('landing:signup', kwargs={
             'uidb64': urlsafe_base64_encode(force_bytes(user_pk)),
@@ -133,7 +125,7 @@ def invite_to_seed(protocol, domain, email_address, token, organization, user_pk
 
 
 @shared_task
-def invite_to_organization(protocol, domain, new_user, requested_by, new_org):
+def invite_to_organization(domain, new_user, requested_by, new_org):
     """Send invitation to a newly created organization.
 
     domain -- The domain name of the running seed instance
@@ -148,11 +140,7 @@ def invite_to_organization(protocol, domain, new_user, requested_by, new_org):
         'new_user': new_user,
         'first_name': new_user.first_name,
         'domain': domain,
-<<<<<<< HEAD
-        'protocol': protocol,
-=======
         'protocol': settings.PROTOCOL,
->>>>>>> seed_branch
         'new_org': new_org,
         'requested_by': requested_by,
     }

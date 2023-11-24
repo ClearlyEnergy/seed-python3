@@ -12,14 +12,9 @@ import subprocess
 from django.contrib.auth import authenticate, login
 from django.conf import settings
 from django.contrib.auth.decorators import login_required, permission_required
-<<<<<<< HEAD
 from django.http import JsonResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse
-=======
-from django.http import JsonResponse
-from django.shortcuts import redirect, render
->>>>>>> seed_branch
 from past.builtins import basestring
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -74,7 +69,6 @@ def home(request):
         * **app_urls**: a json object of all the URLs that is loaded in the JS global namespace
         * **username**: the request user's username (first and last name)
     """
-<<<<<<< HEAD
     if not request.user.is_authenticated:
         user = authenticate(request)
         if user is None:
@@ -82,8 +76,6 @@ def home(request):
 
         login(request, user)
 
-=======
->>>>>>> seed_branch
     username = request.user.first_name + " " + request.user.last_name
     initial_org_id, initial_org_name, initial_org_user_role = _get_default_org(
         request.user

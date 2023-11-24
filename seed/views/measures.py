@@ -7,16 +7,11 @@ See also https://github.com/seed-platform/seed/main/LICENSE.md
 # import json
 
 from django.http import JsonResponse
-<<<<<<< HEAD
 from rest_framework import status
-=======
-from rest_framework import status, viewsets
->>>>>>> seed_branch
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser
 from rest_framework.renderers import JSONRenderer
 
-<<<<<<< HEAD
 from seed.models import (
     Measure,
 )
@@ -26,10 +21,6 @@ from seed.utils.viewsets import (
     SEEDOrgModelViewSet,
     SEEDOrgCreateUpdateModelViewSet
 )
-=======
-from seed.models import Measure
-from seed.serializers.measures import MeasureSerializer
->>>>>>> seed_branch
 
 
 # HELIX class MeasureViewSet(viewsets.ReadOnlyModelViewSet):

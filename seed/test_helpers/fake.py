@@ -25,10 +25,6 @@ from faker import Factory
 
 from seed.models import (
     VIEW_LIST,
-<<<<<<< HEAD
-    VIEW_LIST_PROPERTY)
-from helix.models import HELIXGreenAssessment as GreenAssessment
-=======
     VIEW_LIST_PROPERTY,
     Analysis,
     AnalysisPropertyView,
@@ -54,7 +50,6 @@ from helix.models import HELIXGreenAssessment as GreenAssessment
     TaxLotState,
     TaxLotView
 )
->>>>>>> seed_branch
 from seed.models.auditlog import AUDIT_IMPORT, AUDIT_USER_CREATE
 from seed.utils.strings import titlecase
 

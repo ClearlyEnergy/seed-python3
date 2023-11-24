@@ -121,23 +121,17 @@ angular.module('BE.seed.controllers', [
   'BE.seed.controller.pairing_settings',
   'BE.seed.controller.postoffice_modal',
   'BE.seed.controller.profile',
-<<<<<<< HEAD
   'BE.seed.controller.pvwatts_modal',
-=======
   'BE.seed.controller.program_setup',
->>>>>>> seed_branch
   'BE.seed.controller.record_match_merge_link_modal',
   'BE.seed.controller.refresh_metadata_modal',
   'BE.seed.controller.rename_column_modal',
   'BE.seed.controller.reset_modal',
   'BE.seed.controller.sample_data_modal',
   'BE.seed.controller.security',
-<<<<<<< HEAD
   'BE.seed.controller.settings_data_quality_modal',
-=======
   'BE.seed.controller.sensor_readings_upload_modal',
   'BE.seed.controller.sensors_upload_modal',
->>>>>>> seed_branch
   'BE.seed.controller.settings_profile_modal',
   'BE.seed.controller.show_populated_columns_modal',
   'BE.seed.controller.ubid_admin',
@@ -176,11 +170,8 @@ angular.module('BE.seed.services', [
   'BE.seed.service.analyses',
   'BE.seed.service.audit_template',
   'BE.seed.service.auth',
-<<<<<<< HEAD
   'BE.seed.service.data_quality',
   'BE.seed.service.certification',
-=======
->>>>>>> seed_branch
   'BE.seed.service.column_mappings',
   'BE.seed.service.columns',
   'BE.seed.service.compliance_metric',
@@ -200,25 +191,19 @@ angular.module('BE.seed.services', [
   'BE.seed.service.main',
   'BE.seed.service.mapping',
   'BE.seed.service.matching',
-<<<<<<< HEAD
   'BE.seed.service.measure',
-=======
   'BE.seed.service.meter',
->>>>>>> seed_branch
   'BE.seed.service.meters',
   'BE.seed.service.modified',
   'BE.seed.service.note',
   'BE.seed.service.organization',
   'BE.seed.service.pairing',
-<<<<<<< HEAD
   'BE.seed.service.pvwatts',
-=======
   'BE.seed.service.postoffice',
   'BE.seed.service.property_measure',
   'BE.seed.service.salesforce_config',
   'BE.seed.service.salesforce_mapping',
   'BE.seed.service.scenario',
->>>>>>> seed_branch
   'BE.seed.service.search',
   'BE.seed.service.sensor',
   'BE.seed.service.simple_modal',

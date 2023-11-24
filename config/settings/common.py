@@ -104,14 +104,11 @@ DJANGO_CORE_APPS = (
     'oauth2_jwt_provider',
     'crispy_forms',  # needed to squash warnings around collectstatic with rest_framework
     'post_office',
-<<<<<<< HEAD
     'tos',
     'mozilla_django_oidc',
     'corsheaders',
-    'storages'
-=======
+    'storages',
     'django_celery_beat',
->>>>>>> seed_branch
 )
 
 
@@ -140,19 +137,12 @@ POST_OFFICE = {
     'CELERY_ENABLED': True,
 }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> seed_branch
 # Apps with tables created by migrations, but which 3rd-party apps depend on.
 # Internal apps can resolve this via South's depends_on.
 HIGH_DEPENDENCY_APPS = ('seed.landing',)  # 'landing' contains SEEDUser
 
-<<<<<<< HEAD
-INSTALLED_APPS = HELIX_APPS + HIGH_DEPENDENCY_APPS + INSTALLED_APPS + SEED_CORE_APPS
-=======
-INSTALLED_APPS = HIGH_DEPENDENCY_APPS + DJANGO_CORE_APPS + SEED_CORE_APPS
->>>>>>> seed_branch
+INSTALLED_APPS = HIGH_DEPENDENCY_APPS + DJANGO_CORE_APPS + SEED_CORE_APPS + HELIX_APPS
 
 # apps to auto load name spaced URLs for JS use (see seed.urls)
 SEED_URL_APPS = (
@@ -377,12 +367,9 @@ BSYNCR_SERVER_PORT = os.environ.get('BSYNCR_SERVER_PORT', '80')
 
 # LBNL's BETTER tool host location
 BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better.lbl.gov')
-<<<<<<< HEAD
-=======
 
 # Audit Template Production Host
 AUDIT_TEMPLATE_HOST = os.environ.get('AUDIT_TEMPLATE_HOST', 'https://buildingenergyscore.energy.gov')
->>>>>>> seed_branch
 
 # Google reCAPTCHA env variable for self-registration. SITE_KEY defaults
 # to the key registered for SEED. Override it needing to test.

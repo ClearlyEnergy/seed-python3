@@ -22,14 +22,10 @@ from django.utils.encoding import force_text
 from django.utils.http import urlsafe_base64_decode
 
 from seed.landing.models import SEEDUser
-<<<<<<< HEAD
 from seed.tasks import (
     invite_new_user_to_seed,
 )
 from tos.models import has_user_agreed_latest_tos, TermsOfService, NoActiveTermsOfService
-=======
-from seed.tasks import invite_new_user_to_seed
->>>>>>> seed_branch
 
 from .forms import CustomCreateUserForm, LoginForm
 
@@ -39,13 +35,6 @@ logger = logging.getLogger(__name__)
 def landing_page(request):
     if request.user.is_authenticated:
         return HttpResponseRedirect(reverse('seed:home'))
-<<<<<<< HEAD
-    login_form = LoginForm()
-    context = {'self_registration': settings.INCLUDE_ACCT_REG}
-    return render(request, 'landing/oauth_home.html', locals())
-
-=======
->>>>>>> seed_branch
 
     if request.method == 'POST':
         redirect_to = request.POST.get('next', request.GET.get('next', False))
@@ -59,7 +48,6 @@ def landing_page(request):
                 password=form.cleaned_data['password']
             )
             if new_user is not None and new_user.is_active:
-<<<<<<< HEAD
                 # determine if user has accepted ToS, if one exists
                 try:
                     user_accepted_tos = has_user_agreed_latest_tos(new_user)
@@ -80,10 +68,6 @@ def landing_page(request):
                         'tos': TermsOfService.objects.get_current_tos()
                     }
                     return render(request, 'tos/tos_check.html', context)
-=======
-                login(request, new_user)
-                return HttpResponseRedirect(redirect_to)
->>>>>>> seed_branch
             else:
                 errors = ErrorList()
                 errors = form._errors.setdefault(NON_FIELD_ERRORS, errors)
@@ -91,26 +75,8 @@ def landing_page(request):
                 logger.error(f"User login failed: {form.cleaned_data['email']}")
     else:
         form = LoginForm()
-<<<<<<< HEAD
     context = {'self_registration': settings.INCLUDE_ACCT_REG}
     return render(request, 'landing/oauth_login.html', locals())
-=======
-
-    request.user = {
-        'first_name': '',
-        'last_name': '',
-        'email': ''
-    }
-    return render(request, 'landing/home.html', {
-        'context': {'self_registration': settings.INCLUDE_ACCT_REG},
-        'debug': settings.DEBUG,
-        'initial_org_id': 0,
-        'initial_org_user_role': 0,
-        'initial_org_name': '',
-        'login_form': form,
-        'username': ''
-    })
->>>>>>> seed_branch
 
 
 def password_set(request, uidb64=None, token=None):

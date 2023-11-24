@@ -17,11 +17,8 @@ angular.module('BE.seed.controller.admin', [])
     'users_payload',
     'Notification',
     '$window',
-<<<<<<< HEAD
     '$translate',
     'urls',
-=======
->>>>>>> seed_branch
     function (
       $scope,
       $log,
@@ -35,13 +32,9 @@ angular.module('BE.seed.controller.admin', [])
       user_profile_payload,
       users_payload,
       Notification,
-<<<<<<< HEAD
       $window,
       $translate,
       urls
-=======
-      $window
->>>>>>> seed_branch
     ) {
       $scope.roles = [{
         name: $translate.instant('Member'),

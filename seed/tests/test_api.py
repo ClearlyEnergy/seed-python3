@@ -145,11 +145,8 @@ class TestApi(TestCase):
         self.assertEqual(r['organizations'][0]['cycles'], [
             {
                 'name': str(date.today().year - 1) + ' Calendar Year',
-<<<<<<< HEAD
                 'num_certifications': 0,
                 'num_measures': 0,
-=======
->>>>>>> seed_branch
                 'num_properties': 0,
                 'num_taxlots': 0,
                 'cycle_id': self.default_cycle.pk,

@@ -16,7 +16,7 @@ vcrpy==4.2.1
 pytest==7.2.0
 pytest-django==4.5.2
 # Lock urllib3 to v1 until vcrpy supports it
-urllib3<2
+urllib3<3
 
 # static code analysis
 flake8==3.8.1

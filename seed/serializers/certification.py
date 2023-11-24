@@ -14,11 +14,8 @@ from past.builtins import basestring
 from rest_framework import serializers
 
 from seed.models import (
-<<<<<<< HEAD
-=======
     GreenAssessment,
     GreenAssessmentProperty,
->>>>>>> seed_branch
     GreenAssessmentURL,
     PropertyView
 )

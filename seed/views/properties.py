@@ -4,11 +4,8 @@
 SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
 See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-<<<<<<< HEAD
 
 import datetime
-=======
->>>>>>> seed_branch
 import json
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -53,16 +50,12 @@ from seed.models import (
     TaxLotProperty,
     TaxLotView
 )
-<<<<<<< HEAD
 from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
 from helix.models import HELIXPropertyMeasure as PropertyMeasure
 from helix.models import HelixMeasurement
 from helix.utils.address import normalize_address_str
 
 from seed.models import Property as PropertyModel
-from seed.serializers.pint import PintJSONEncoder
-=======
->>>>>>> seed_branch
 from seed.serializers.pint import (
     PintJSONEncoder,
     add_pint_unit_suffix,
@@ -72,7 +65,6 @@ from seed.serializers.properties import (
     PropertySerializer,
     PropertyStateSerializer,
     PropertyViewAsStateSerializer,
-<<<<<<< HEAD
     PropertyViewSerializer,
 )
 # HELIX add
@@ -80,13 +72,7 @@ from seed.serializers.certification import (
     GreenAssessmentPropertyReadOnlySerializer
 )
 from seed.serializers.measures import PropertyMeasureReadOnlySerializer
-# HELIX end add
-from seed.serializers.taxlots import (
-    TaxLotViewSerializer,
-=======
-    PropertyViewSerializer
->>>>>>> seed_branch
-)
+
 from seed.serializers.taxlots import TaxLotViewSerializer
 from seed.utils.api import ProfileIdMixin, api_endpoint_class
 from seed.utils.match import match_merge_link
@@ -238,12 +224,8 @@ class PropertyViewSet(ViewSet, ProfileIdMixin):
         per_page = request.query_params.get('per_page', 1)
         org_id = request.query_params.get('organization_id', None)
         cycle_id = request.query_params.get('cycle')
-<<<<<<< HEAD
         show_sub_org_data = request.query_params.get('show_sub_org_data', 'false') == 'true'
         # check if there is a query paramater for the profile_id. If so, then use that one
-=======
-        # check if there is a query parameter for the profile_id. If so, then use that one
->>>>>>> seed_branch
         profile_id = request.query_params.get('profile_id', profile_id)
 
         if not org_id:

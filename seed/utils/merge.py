@@ -14,11 +14,8 @@ from seed.models import (
     DATA_STATE_MATCHING,
     MERGE_STATE_MERGED,
     MERGE_STATE_UNKNOWN,
-<<<<<<< HEAD
     GreenAssessmentURL,
-=======
     Column,
->>>>>>> seed_branch
     Note,
     Property,
     PropertyAuditLog,
@@ -31,11 +28,8 @@ from seed.models import (
     TaxLotState,
     TaxLotView
 )
-<<<<<<< HEAD
 from seed.models.certification import GreenAssessmentPropertyAuditLog
-=======
 from seed.utils.ubid import merge_ubid_models
->>>>>>> seed_branch
 
 
 def merge_states_with_views(state_ids, org_id, log_name, StateClass):

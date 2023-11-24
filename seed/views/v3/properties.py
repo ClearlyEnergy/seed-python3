@@ -21,37 +21,14 @@ from seed.data_importer.utils import kbtu_thermal_conversion_factors
 from seed.decorators import ajax_request_class
 from seed.hpxml.hpxml import HPXML
 from seed.lib.superperms.orgs.decorators import has_perm_class
-<<<<<<< HEAD
-from seed.lib.superperms.orgs.models import Organization
-from seed.models import (AUDIT_USER_EDIT, DATA_STATE_MATCHING,
-                         MERGE_STATE_DELETE, MERGE_STATE_MERGED,
-                         MERGE_STATE_NEW, VIEW_LIST, VIEW_LIST_PROPERTY,
-                         BuildingFile, Column, ColumnListProfile,
-                         ColumnListProfileColumn, ColumnMappingProfile, Cycle,
-                         Meter, Note, Property, PropertyAuditLog,
-                         PropertyMeasure, PropertyState, PropertyView,
-                         Simulation)
 # HELIX add
-from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
-from helix.models import HELIXPropertyMeasure as PropertyMeasure
-from helix.models import HelixMeasurement
+from helix.models import HELIXGreenAssessmentProperty
 from seed.serializers.certification import (
     GreenAssessmentPropertyReadOnlySerializer
 )
 from seed.serializers.measures import PropertyMeasureReadOnlySerializer
 # HELIX end add
 
-from seed.models import StatusLabel as Label
-from seed.models import TaxLotProperty, TaxLotView
-from seed.serializers.certification import GreenAssessmentPropertySerializer
-from seed.serializers.pint import (PintJSONEncoder,
-                                   apply_display_unit_preferences)
-from seed.serializers.properties import (PropertySerializer,
-                                         PropertyStateSerializer,
-                                         PropertyViewAsStateSerializer,
-                                         PropertyViewSerializer,
-                                         UpdatePropertyPayloadSerializer)
-=======
 from seed.models import (
     AUDIT_USER_EDIT,
     DATA_STATE_MATCHING,
@@ -84,7 +61,6 @@ from seed.serializers.properties import (
     PropertyViewSerializer,
     UpdatePropertyPayloadSerializer
 )
->>>>>>> seed_branch
 from seed.serializers.taxlots import TaxLotViewSerializer
 from seed.utils.api import OrgMixin, ProfileIdMixin, api_endpoint_class
 from seed.utils.api_schema import (
