@@ -23,7 +23,7 @@ angular.module('BE.seed.service.measure', [])
       };
 
       measure_service.get_measures_for_org = function (params) {
-        return $http.get('/api/v2/measures/', {
+        return $http.get('/api/v3/measures/', {
           params: params
         }).then(function (response) {
   		return response.data;
@@ -43,7 +43,7 @@ angular.module('BE.seed.service.measure', [])
       };
 
       measure_service.get_measures_categories_for_org = function (org_id) {
-        return $http.get('/api/v2/measures/categories/', {
+        return $http.get('/api/v3/measures/', {
           params: {
             organization_id: org_id
           }
@@ -65,7 +65,7 @@ angular.module('BE.seed.service.measure', [])
       };
 
       measure_service.delete_property_measure_for_org = function (property_measure_id, org_id) {
-        return $http.delete('/api/v2/property_measures/' + property_measure_id + '/', {
+        return $http.delete('/api/v3/property_measures/' + property_measure_id + '/', {
   		params: {
             organization_id: org_id
           }
@@ -90,7 +90,7 @@ angular.module('BE.seed.service.measure', [])
 
       measure_service.create_property_measure_for_org = function (property_measure, org_id) {
 		  console.log(property_measure)
-        return $http.post('/api/v2/property_measures/', property_measure, {
+        return $http.post('/api/v3/property_measures/', property_measure, {
           params: {
             organization_id: org_id
           }

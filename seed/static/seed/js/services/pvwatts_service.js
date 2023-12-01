@@ -5,7 +5,7 @@ angular.module('BE.seed.service.pvwatts', [])
       var pvwatts_factory = {};
 
       pvwatts_factory.calculate_production = function (property_state_ids, taxlot_state_ids, org_id) {
-        return $http.post('/api/v2/pvwatts/pvwatts_by_ids/', {
+        return $http.post('/api/v3/pvwatts/', {
           property_ids: property_state_ids,
           taxlot_ids: taxlot_state_ids,
           org_id: org_id
@@ -15,7 +15,7 @@ angular.module('BE.seed.service.pvwatts', [])
       };
 
       pvwatts_factory.calculate_solar_npv = function (property_state_ids, taxlot_state_ids, org_id) {
-        return $http.post('/api/v2/pvwatts/solar_npv/', {
+        return $http.post('/api/v3/pvwatts/', {
           property_ids: property_state_ids,
           taxlot_ids: taxlot_state_ids,
           org_id: org_id
@@ -25,7 +25,7 @@ angular.module('BE.seed.service.pvwatts', [])
       };
 
       pvwatts_factory.calculate_solar_repl_cost = function (property_state_ids, taxlot_state_ids, org_id) {
-        return $http.post('/api/v2/pvwatts/solar_repl_cost/', {
+        return $http.post('/api/v3/pvwatts/', {
           property_ids: property_state_ids,
           taxlot_ids: taxlot_state_ids,
           org_id: org_id
