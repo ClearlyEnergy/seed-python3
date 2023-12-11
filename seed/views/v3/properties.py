@@ -7,7 +7,7 @@ import os
 from collections import namedtuple
 
 from django.db.models import Q, Subquery
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseNotFound
 from django_filters import CharFilter, DateFilter
 from django_filters import rest_framework as filters
 from drf_yasg.utils import no_body, swagger_auto_schema
@@ -37,7 +37,11 @@ from seed.models import (
     MERGE_STATE_NEW,
     BuildingFile,
     Column,
+    ColumnListProfile,
+    ColumnListProfileColumn,
     ColumnMappingProfile,
+    VIEW_LIST,
+    VIEW_LIST_PROPERTY,
     Cycle,
     DataLogger,
     InventoryDocument,
@@ -80,6 +84,20 @@ from seed.utils.properties import (
 )
 from seed.utils.salesforce import update_salesforce_properties
 from seed.utils.sensors import PropertySensorReadingsExporter
+from seed.lib.superperms.orgs.models import Organization
+from seed.views.cycles import find_org_cycle
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from seed.serializers.pint import (
+    apply_display_unit_preferences
+)
+from django.conf import settings
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, authenticate
+from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
+from helix.utils.address import normalize_address_str
+from helix.models import HelixMeasurement
+import datetime
+
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +197,122 @@ class PropertyViewSet(generics.GenericAPIView, viewsets.ViewSet, OrgMixin, Profi
             PropertyViewAsStateSerializer(list(qs), context={'request': request}, many=True).data,
             safe=False,
         )
+
+    def _get_filtered_results(self, request, profile_id):
+        page = request.query_params.get('page', 1)
+        per_page = request.query_params.get('per_page', 1)
+        org_id = request.query_params.get('organization_id', None)
+        cycle_id = request.query_params.get('cycle')
+        show_sub_org_data = request.query_params.get('show_sub_org_data', 'false') == 'true'
+        # check if there is a query paramater for the profile_id. If so, then use that one
+        profile_id = request.query_params.get('profile_id', profile_id)
+
+        if not org_id:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Need to pass organization_id as query parameter'},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        if cycle_id:
+            cycle = Cycle.objects.get(organization_id=org_id, pk=cycle_id)
+        else:
+            cycle = Cycle.objects.filter(organization_id=org_id).order_by('name')
+            if cycle:
+                cycle = cycle.first()
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Could not locate cycle',
+                    'pagination': {
+                        'total': 0
+                    },
+                    'cycle_id': None,
+                    'results': []
+                })
+
+        organization = Organization.objects.get(id=org_id)
+        org_filter = Q(property__organization_id=organization.id)
+        cycle_filter = Q(cycle=cycle)
+        # Matches cycles that start and end during the organization's current
+        # cycle
+        if show_sub_org_data:
+            for sub_org in organization.child_orgs.all():
+                org_filter = org_filter | Q(property__organization_id=sub_org.id)
+                sub_cycle = find_org_cycle(cycle, sub_org)
+                if sub_cycle:
+                    cycle_filter = cycle_filter | Q(cycle=sub_cycle)
+
+        final_filter = org_filter & cycle_filter
+
+        # Return property views limited to the 'inventory_ids' list.  Otherwise, if selected is empty, return all
+        if 'inventory_ids' in request.data and request.data['inventory_ids']:
+            final_filter = Q(property_id__in=request.data['inventory_ids']) & final_filter
+
+        property_views_list = PropertyView.objects.select_related('property', 'state', 'cycle') \
+            .filter(final_filter) \
+            .order_by('id')  # TODO: test adding .only(*fields['PropertyState'])
+
+        paginator = Paginator(property_views_list, per_page)
+
+        try:
+            property_views = paginator.page(page)
+            page = int(page)
+        except PageNotAnInteger:
+            property_views = paginator.page(1)
+            page = 1
+        except EmptyPage:
+            property_views = paginator.page(paginator.num_pages)
+            page = paginator.num_pages
+
+        org = Organization.objects.get(pk=org_id)
+
+        # Retrieve all the columns that are in the db for this organization
+        columns_from_database = Column.retrieve_all(org_id, 'property', False)
+
+        # This uses an old method of returning the show_columns. There is a new method that
+        # is preferred in v2.1 API with the ProfileIdMixin.
+        if profile_id is None:
+            show_columns = None
+        elif profile_id == -1:
+            show_columns = list(Column.objects.filter(
+                organization_id=org_id
+            ).values_list('id', flat=True))
+        else:
+            try:
+                profile = ColumnListProfile.objects.get(
+                    organization=org,
+                    id=profile_id,
+                    profile_location=VIEW_LIST,
+                    inventory_type=VIEW_LIST_PROPERTY
+                )
+                show_columns = list(ColumnListProfileColumn.objects.filter(
+                    column_list_profile_id=profile.id
+                ).values_list('column_id', flat=True))
+            except ColumnListProfile.DoesNotExist:
+                show_columns = None
+
+        related_results = TaxLotProperty.serialize(property_views, show_columns,
+                                                   columns_from_database)
+
+        # collapse units here so we're only doing the last page; we're already a
+        # realized list by now and not a lazy queryset
+        unit_collapsed_results = [apply_display_unit_preferences(org, x) for x in related_results]
+
+        response = {
+            'pagination': {
+                'page': page,
+                'start': paginator.page(page).start_index(),
+                'end': paginator.page(page).end_index(),
+                'num_pages': paginator.num_pages,
+                'has_next': paginator.page(page).has_next(),
+                'has_previous': paginator.page(page).has_previous(),
+                'total': paginator.count
+            },
+            'cycle_id': cycle.id,
+            'results': unit_collapsed_results
+        }
+
+        return JsonResponse(response)
+
 
     def _move_relationships(self, old_state, new_state):
         """
@@ -473,6 +607,31 @@ class PropertyViewSet(generics.GenericAPIView, viewsets.ViewSet, OrgMixin, Profi
     def filter(self, request):
         """
         List all the properties
+        ---
+        parameters:
+            - name: organization_id
+              description: The organization_id for this user's organization
+              required: true
+              paramType: query
+            - name: cycle
+              description: The ID of the cycle to get properties
+              required: true
+              paramType: query
+            - name: page
+              description: The current page of properties to return
+              required: false
+              paramType: query
+            - name: per_page
+              description: The number of items per page to return
+              required: false
+              paramType: query
+            - name: show_sub_org_data
+              description: Show data from sub-organizations as well
+              required: false
+              paramTpe: query
+            - name: profile_id
+              description: Either an id of a list settings profile, or undefined
+              paramType: body
         """
         if 'profile_id' not in request.data:
             profile_id = None
@@ -921,6 +1080,10 @@ class PropertyViewSet(generics.GenericAPIView, viewsets.ViewSet, OrgMixin, Profi
         :param cycle_pk: cycle
         :return:
         """
+        organization = Organization.objects.get(id=self.request.GET['organization_id'])
+        all_orgs = list(organization.child_orgs.values_list('id', flat=True))
+        all_orgs.append(organization.id)
+
         try:
             property_view = PropertyView.objects.select_related(
                 'property', 'cycle', 'state'
@@ -1573,3 +1736,238 @@ def diffupdate(old, new):
         changed_fields.remove('extra_data')
         changed_extra_data, _ = diffupdate(old['extra_data'], new['extra_data'])
     return changed_fields, changed_extra_data
+
+
+def _get_server_url(request):
+    protocol = request.scheme
+    if settings.FORCE_SSL_PROTOCOL:
+        protocol = 'https'
+    try:
+        server_name = settings.HELIX_SERVER_NAME
+    except AttributeError:
+        server_name = request.META['SERVER_NAME']
+    return f'{protocol}://{server_name}'
+
+def deep_list(request):
+    """
+    HELIX:
+    Generates a static view of a list of properties that can be used for
+    showing deep links into SEED on 3rd part websites
+    """
+    # Requires:
+    # columns - the list of columns in the table
+    # table_list - the list of properties as a dict mapping columns to content
+    # STATIC_URL - the absolute URL to /static/
+
+    user = authenticate(request)
+    if user is None:
+        redirect(settings.LOGIN_REDIRECT_URL)
+    login(request, user)
+    server_url = _get_server_url(request)
+
+    organization_ids = Organization.objects.filter(users__id=user.id).values_list('id', flat=True)
+    msg = ''
+    filters = {'property__organization_id__in': organization_ids}
+    qs = PropertyView.objects.select_related('state', 'property__organization').filter(**filters)
+    done_searching = False
+
+    if request.GET.get('state') is not None:
+        state = request.GET.get('state')
+        new_filters = {'state__state': state}
+        sub_qs = qs.filter(**new_filters)
+        if sub_qs.exists():
+            qs = sub_qs
+        else:
+            done_searching = True
+
+    if request.GET.get('zipcode') is not None:
+        zipcode = request.GET.get('zipcode')
+        new_filters = {'state__postal_code': zipcode}
+        sub_qs = qs.filter(**new_filters)
+        if sub_qs.exists():
+            qs = sub_qs
+        else:
+            done_searching = True
+
+    if request.GET.get('street') is not None:
+        street = request.GET.get('street')
+        normalized_address, extra_data = normalize_address_str(street, '', None, {})
+        sub_qs = PropertyView.objects.none()
+        if extra_data['StreetName']:
+            new_filters = {'state__normalized_address__icontains': normalized_address}
+            sub_qs = qs.filter(**new_filters)
+        if not sub_qs:
+            new_filters = {'state__extra_data__StreetName__icontains': extra_data['StreetName']}
+            sub_qs = qs.filter(**new_filters)
+
+        if sub_qs:
+            qs = sub_qs
+        else:
+            done_searching = True
+
+    if request.GET.get('parcel_id') is not None:
+        parcel_id = request.GET.get('parcel_id')
+        new_filters = {'state__custom_id_1__contains': parcel_id}
+        sub_qs = qs.filter(**new_filters)
+        if sub_qs.exists():
+            qs = sub_qs
+        else:
+            done_searching = True
+
+    if request.GET.get('latitude_1') and request.GET.get('longitude_1'):
+        lat1, lat2 = request.GET.get('latitude_1'), request.GET.get('latitude_2')
+        lon1, lon2 = request.GET.get('longitude_1'), request.GET.get('longitude_2')
+        new_filters = {'state__latitude__gte': lat1, 'state__latitude__lte': lat2,
+                       'state__longitude__gte': lon1, 'state__longitude__lte': lon2}
+        sub_qs = qs.filter(**new_filters)
+        if sub_qs.exists():
+            qs = sub_qs
+        else:
+            done_searching = True
+
+    if done_searching:
+        msg = 'No exact listings were found. Nearby Homes are displayed'
+
+    table_list = []
+    if qs.exists():
+        table_list = [{'Address Line 1': p.state.address_line_1,
+                       'Address Line 2': str(p.state.address_line_2 or ''),
+                       'City': str(p.state.city or ''),
+                       'State': p.state.state,
+                       'Postal Code': p.state.postal_code,
+                       'Tax/Parcel ID': str(p.state.custom_id_1 or ''),
+                       'DOE UBID': str(p.state.ubid or '')}
+                      for p in qs]
+
+        reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organization_ids,
+                                                                  is_reso_certification=True)
+
+        states = qs.values_list('state', flat=True)
+        measures = PropertyMeasure.objects.filter(property_state__in=states).prefetch_related('measure', 'measurements')
+
+        geo_states = sum([p.state.state in ['CT','NY','RI'] for p in qs])  # mandatory acknowledgement checkbox
+        opt_out = geo_states > 0
+        today = datetime.datetime.today()
+        certifications = HELIXGreenAssessmentProperty.objects.filter(view__in=qs) \
+            .filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)) \
+            .filter(opt_out=opt_out, assessment_id__in=reso_certifications.values_list('id', flat=True)) \
+            .exclude(status__in=['draft', 'test', 'preliminary']) \
+            .prefetch_related('assessment', 'urls', 'measurements')
+
+        for i, property_view in enumerate(qs):
+            pv_id = property_view.id
+            certs = certifications.filter(view_id=pv_id)
+            measure = measures.filter(property_state_id=property_view.state.id)
+            if certs:
+                table_list[i]['Certifications'] = []
+                for num, cert in enumerate(certs):
+                    gap = GreenAssessmentPropertyReadOnlySerializer(cert).data
+                    matching_measurements = HelixMeasurement.objects.filter(
+                        assessment_property__pk=cert.greenassessmentproperty_ptr_id
+                    )
+
+                    for match in matching_measurements:
+                        gap.update(match.to_reso_dict())
+                    table_list[i]['Certifications'].append(gap)
+
+            if measure:
+                table_list[i]['Measures'] = PropertyMeasureReadOnlySerializer(measure, many=True).data
+
+            table_list[i]['pk'] = pv_id
+            table_list[i]['is_certified'] = len(certs) > 0
+            table_list[i]['is_solar'] = len(measure) > 0
+    else:
+        msg = 'No records retrieved'
+        geo_states = 0
+
+    context = {
+        'disclaimer': geo_states,
+        'table_columns': ['Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Tax/Parcel ID', 'DOE UBID', 'Certified?', 'Solar?'],
+        'table_list': table_list,
+        'certification_columns': ['Body', 'Type', 'Rating/Metric', 'Year', 'Estimated Energy Cost', 'URL'],
+        'measures_columns': ['Type', 'Size (kw)', 'Year Install', 'Ownership', 'Source', 'Annual (kwh)', 'Annuel Status'],
+        'msg': msg,
+        'STATIC_URL': f'{server_url}{settings.STATIC_URL}'
+    }
+    return render(request, 'seed/helix/deep_list.html', context=context)
+
+def deep_detail(request, pk):
+    """
+    HELIX:
+    Generates a static view of a property that can be used for showing deep
+    links into SEED on 3rd part websites
+    """
+    # Requires:
+    # name - the property name
+    # certification_columns - the columns in the certifications table
+    # certifications - the certifications as a dict mapping columns to content
+    # measure_columns - the columns in the measures table
+    # measures - the measures as a dict mapping columns to content
+    # property_columns - the columns to show in the property fields table
+    # property_fields - the fields for the property as a dict mapping property columns to values
+    # STATIC_URL - the absolute URL to /static/
+
+    user = authenticate(request)
+    organizations = Organization.objects.filter(users=user)
+    if user is None:
+        redirect(settings.LOGIN_REDIRECT_URL)
+    login(request, user)
+
+    try:
+        property_view = PropertyView.objects.select_related(
+            'property', 'cycle', 'state'
+        ).get(
+            id=pk
+        )
+    except PropertyView.DoesNotExist:
+        return HttpResponseNotFound("Property not found")
+
+    state = property_view.state
+    # Address
+    name = state.address_line_1
+    if state.address_line_2 is not None:
+        name += " %s" % (state.address_line_2)
+    name += ", %s, %s %s" % (state.city, state.state, state.postal_code)
+
+    # Certifications
+    today = datetime.datetime.today()
+    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
+    certs = HELIXGreenAssessmentProperty.objects.filter(
+        view=property_view
+    ).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False).filter(assessment_id__in=reso_certifications).exclude(status__in=['draft','test','preliminary']).prefetch_related('assessment', 'urls', 'measurements')
+
+    certifications =  [
+        GreenAssessmentPropertyReadOnlySerializer(cert).data
+        for cert in certs
+    ]
+
+    certification_columns = ['Body', 'Type', 'Rating/Metric', 'Year', 'URL']
+
+    # Measures
+    meass = PropertyMeasure.objects.filter(
+        property_state=state
+    ).prefetch_related('measure', 'measurements')
+    measures = [
+        PropertyMeasureReadOnlySerializer(meas).data
+        for meas in meass
+    ]
+
+    measures_columns = ['Type', 'Size (kw)', 'Year Install', 'Ownership', 'Source', 'Annual (kwh)', 'Annuel Status']
+
+    property_fields_camel = property_view.state.to_dict()
+    property_fields = {}
+    for k,v in property_fields_camel.items():
+        key = k.replace('_', ' ')
+        property_fields[key] = v
+    server_url = _get_server_url(request)
+    context = {
+        'name': name,
+        'certification_columns': certification_columns,
+        'certifications': certifications,
+        'measures_columns': measures_columns,
+        'measures': measures,
+        'property_columns': ['Fields', 'Master',],
+        'property_fields': property_fields,
+        'STATIC_URL': f'{server_url}{settings.STATIC_URL}',
+    }
+    return render(request, 'seed/helix/deep_detail.html', context=context)

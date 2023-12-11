@@ -20,6 +20,11 @@ from seed.utils.api_schema import (
     AutoSchemaHelper,
     swagger_auto_schema_org_query_param
 )
+from helix.models import HELIXPropertyMeasure as PropertyMeasure
+from seed.serializers.measures import MeasureSerializer, PropertyMeasureSerializer
+from seed.utils.viewsets import (
+    SEEDOrgCreateUpdateModelViewSet
+)
 
 
 @method_decorator(name='retrieve', decorator=[
@@ -40,8 +45,11 @@ class MeasureViewSet(viewsets.ReadOnlyModelViewSet, OrgMixin):
 
     """
     serializer_class = MeasureSerializer
+    model  = Measure
+    orgfilter = 'organization_id'
     parser_classes = (JSONParser, FormParser,)
     renderer_classes = (JSONRenderer,)
+    filter_fields = ('category')
     pagination_class = None
 
     def get_queryset(self):
@@ -72,3 +80,35 @@ class MeasureViewSet(viewsets.ReadOnlyModelViewSet, OrgMixin):
 
         data['status'] = 'success'
         return JsonResponse(data)
+
+
+    @action(detail=False, methods=['GET'])
+    def categories(self, request):
+        """
+        Retrieves the categories of measures for an org.
+        ---
+        parameters:
+            - name: organization_id
+            description: The organization_id
+            required: true
+            paramType: query
+        type:
+            status:
+                description: success or error
+                type: string
+                required: true
+            categories:
+                description: Categories of measures
+                type: array of string
+                required: true
+        """
+        org_id = int(request.query_params.get('organization_id', None))
+
+        categories = list(Measure.objects.filter(organization_id=org_id).order_by('category').values_list('category', 'category_display_name').distinct())
+        return JsonResponse({'status': 'success', 'categories': categories})
+
+
+class PropertyMeasureViewSet(SEEDOrgCreateUpdateModelViewSet):
+    serializer_class = PropertyMeasureSerializer
+    model = PropertyMeasure
+    orgfilter = 'measure__organization_id'

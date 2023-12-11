@@ -106,3 +106,19 @@ class CycleViewSet(SEEDOrgNoPatchOrOrgCreateModelViewSet):
 
         result = tasks.delete_organization_cycle(pk, organization_id)
         return JsonResponse(result)
+
+
+def find_org_cycle(cycle, organization):
+    """
+    Matches the first cycle of a organization that starts and ends
+    within the range of the cycle provided
+
+    :param cycle: Cycle
+    :param organization: Organization
+    :return: Cycle, or None if there is no cycle that matches
+    """
+    range_start = cycle.start
+    range_end = cycle.end
+    cycles = organization.cycles.filter(start__gte=range_start,
+                                        end__gte=range_end)
+    return cycles.first()

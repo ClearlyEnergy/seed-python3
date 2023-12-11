@@ -27,18 +27,22 @@ from seed.models import (
     ColumnListProfile,
     PropertyView,
     TaxLotProperty,
-    TaxLotView
+    TaxLotView,
+    Cycle
 )
+from seed.lib.superperms.orgs.models import Organization
 from seed.models.meters import Meter, MeterReading
 from seed.models.property_measures import PropertyMeasure
 from seed.models.scenarios import Scenario
-from seed.serializers.meter_readings import MeterReadingSerializer
 from seed.serializers.meters import MeterSerializer
 from seed.serializers.tax_lot_properties import TaxLotPropertySerializer
 from seed.tasks import update_inventory_metadata
 from seed.utils.api import OrgMixin, api_endpoint_class
 from seed.utils.api_schema import AutoSchemaHelper
 from seed.utils.match import update_sub_progress_total
+from django.db.models import Q
+from seed.views.cycles import find_org_cycle
+
 
 _log = logging.getLogger(__name__)
 
@@ -89,6 +93,11 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
         """
         Download a collection of the TaxLot and Properties in multiple formats.
         """
+        cycle_pk = request.query_params.get('cycle_id', None)
+        if not cycle_pk:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Must pass in cycle_id as query parameter'})
+
         org_id = self.get_organization(request)
 
         if request.data.get('progress_key'):
@@ -118,11 +127,25 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
         column_name_mappings.update(add_column_name_mappings)
 
         select_related = ['state', 'cycle']
+        cycle_filter = Q(cycle=cycle_pk)
+        org_filter = Q(property__organization_id=org_id)
+        id_filter = Q()
+
+        cycle = Cycle.objects.get(organization_id=org_id, pk=cycle_pk)
+        organization = Organization.objects.get(id=org_id)
+        if hasattr(view_klass, 'property') or hasattr(view_klass, 'taxlot'):
+            for sub_org in organization.child_orgs.all():
+                org_filter = org_filter | Q(property__organization_id=sub_org.id)
+                sub_cycle = find_org_cycle(cycle, sub_org)
+                if sub_cycle:
+                    cycle_filter = cycle_filter | Q(cycle=sub_cycle)
+
         prefetch_related = ['labels']
         ids = request.data.get('ids', [])
         filter_str = {}
         if ids:
             filter_str['id__in'] = ids
+            id_filter = Q(property__id__in=ids)
         if hasattr(view_klass, 'property'):
             select_related.append('property')
             filter_str['property__organization_id'] = org_id
@@ -132,13 +155,15 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
 
         elif hasattr(view_klass, 'taxlot'):
             select_related.append('taxlot')
+            if ids:
+                id_filter = Q(taxlot__id__in=ids)
             filter_str['taxlot__organization_id'] = org_id
             # always export the labels and notes
             column_name_mappings['taxlot_notes'] = 'Tax Lot Notes'
             column_name_mappings['taxlot_labels'] = 'Tax Lot Labels'
 
         model_views = view_klass.objects.select_related(*select_related).prefetch_related(
-            *prefetch_related).filter(**filter_str).order_by('id')
+            *prefetch_related).filter(org_filter & id_filter & cycle_filter).order_by('id')
 
         # get the data in a dict which includes the related data
         progress_data.step('Exporting Inventory...')

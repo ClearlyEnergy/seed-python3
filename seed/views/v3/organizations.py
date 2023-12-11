@@ -9,6 +9,15 @@ from collections import defaultdict
 from io import BytesIO
 from pathlib import Path
 from random import randint
+from seed.models import Measure, PropertyMeasure
+from seed.models.certification import GreenAssessment, GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
+from rest_framework import serializers
+from seed.models.auditlog import (
+    AUDIT_USER_CREATE,
+    AUDIT_USER_EXPORT,
+)
+from seed.tasks import invite_to_organization
+
 
 import dateutil
 from celery import shared_task
@@ -91,13 +100,17 @@ def _dict_org(request, organizations):
     orgs = []
     for o in organizations:
         org_cycles = Cycle.objects.filter(organization=o).only('id', 'name').order_by('name')
+        org_measures = Measure.objects.filter(organization=o).only('id')
+        org_assessments = GreenAssessment.objects.filter(organization=o).only('id')
         cycles = []
         for c in org_cycles:
             cycles.append({
                 'name': c.name,
                 'cycle_id': c.pk,
                 'num_properties': PropertyView.objects.filter(cycle=c).count(),
-                'num_taxlots': TaxLotView.objects.filter(cycle=c).count()
+                'num_taxlots': TaxLotView.objects.filter(cycle=c).count(),
+                'num_certifications': GreenAssessmentProperty.objects.filter(assessment_id__in=org_assessments).count(),
+                'num_measures': PropertyMeasure.objects.filter(measure_id__in=org_measures).count()
             })
 
         # We don't wish to double count sub organization memberships.
@@ -223,6 +236,15 @@ def cache_match_merge_link_result(summary, identifier, progress_key):
 
     progress_data = ProgressData.from_key(progress_key)
     progress_data.finish_with_success()
+
+
+class OrganizationUserSerializer(serializers.Serializer):
+    email = serializers.CharField(max_length=100)
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    user_id = serializers.IntegerField()
+    role = serializers.CharField(max_length=100)
+    last_login = serializers.DateTimeField()
 
 
 class OrganizationViewSet(viewsets.ViewSet):
@@ -464,6 +486,54 @@ class OrganizationViewSet(viewsets.ViewSet):
     )
     @api_endpoint_class
     @ajax_request_class
+    @has_perm_class('requires_member')
+    @action(detail=True, methods=['GET'])
+    def users(self, request, pk=None):
+        """
+        Retrieve all users belonging to an org.
+        ---
+        response_serializer: OrganizationUsersSerializer
+        parameter_strategy: replace
+        parameters:
+            - name: pk
+              type: integer
+              description: Organization ID (primary key)
+              required: true
+              paramType: path
+        """
+        try:
+            org = Organization.objects.get(pk=pk)
+        except ObjectDoesNotExist:
+            return JsonResponse({'status': 'error',
+                                 'message': 'Could not retrieve organization at pk = ' + str(pk)},
+                                status=status.HTTP_404_NOT_FOUND)
+        users = []
+        for u in org.organizationuser_set.all():
+            user = u.user
+
+            user_orgs = OrganizationUser.objects.filter(user=user).count()
+
+            users.append({
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'number_of_orgs': user_orgs,
+                'user_id': user.pk,
+                'role': _get_js_role(u.role_level),
+                'last_login': user.last_login.strftime("%Y-%m-%d %I:%M %p") if user.last_login is not None else '',
+                'certifications': GreenAssessmentPropertyAuditLog.objects.filter(
+                    user=user, record_type=AUDIT_USER_CREATE
+                ).count(),
+                'certifications_exported': GreenAssessmentPropertyAuditLog.objects.filter(
+                    user=user, record_type=AUDIT_USER_EXPORT
+                ).count()
+            })
+
+        return JsonResponse({'status': 'success', 'users': users})
+
+
+    @api_endpoint_class
+    @ajax_request_class
     def create(self, request):
         """
         Creates a new organization.
@@ -492,6 +562,56 @@ class OrganizationViewSet(viewsets.ViewSet):
                 'organization': _dict_org(request, [org])[0]
             }
         )
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_owner')
+    @action(detail=True, methods=['PUT'])
+    def add_user(self, request, pk=None):
+        """
+        Adds an existing user to an organization.
+        ---
+        parameter_strategy: replace
+        parameters:
+            - name: pk
+              description: Organization ID (Primary key)
+              type: integer
+              required: true
+              paramType: path
+            - name: user_id
+              description: User ID (Primary key) of the user to add to the organization
+        type:
+            status:
+                type: string
+                description: success or error
+                required: true
+            message:
+                type: string
+                description: info/error message, if any
+                required: false
+        """
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        user = User.objects.get(pk=body['user_id'])
+
+        created = org.add_member(user)
+
+        if settings.FORCE_SSL_PROTOCOL:
+            protocol = 'https'
+        else:
+            protocol = request.scheme
+
+        # Send an email if a new user has been added to the organization
+        if created:
+            try:
+                domain = request.get_host()
+            except Exception:
+                domain = 'seed-platform.org'
+            invite_to_organization(
+                protocol, domain, user, request.user.username, org
+            )
+
+        return JsonResponse({'status': 'success'})
+
 
     @api_endpoint_class
     @ajax_request_class
@@ -503,6 +623,78 @@ class OrganizationViewSet(viewsets.ViewSet):
         in an org.
         """
         return JsonResponse(tasks.delete_organization_inventory(pk))
+
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_owner')
+    @action(detail=True, methods=['PUT'])
+    def add_hes(self, request, pk=None):
+        """
+        Adds Home Energy Score ID to an organization.
+        ---
+        parameters:
+            - name: pk
+              description: Organization ID (Primary key)
+              type: integer
+              required: true
+              paramType: path
+            - name: hes
+              description: Home Energy Score ID to add to the organization
+            - name: hes_partner_name
+              description: name of partner account
+            - name: hes_partner_password
+              description: password for partner account. Note: in clear text because it's passed to the API that way
+            - name: hes_start_date
+              description: date to start data retrieval
+            - name: hes_end_date
+              description: date to end data retrieval
+        type:
+            status:
+                type: string
+                description: success or error
+                required: true
+            message:
+                type: string
+                description: info/error message, if any
+                required: false
+        """
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        org.add_hes(body)
+        return JsonResponse({'status': 'success'})
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_owner')
+    @action(detail=True, methods=['PUT'])
+    def add_leed(self, request, pk=None):
+        """
+        Adds LEED Information to an organization.
+        ---
+        parameters:
+            - name: pk
+              description: Organization ID (Primary key)
+              type: integer
+              required: true
+              paramType: path
+            - name: leed_geo_id
+              description: LEED Geographic ID to add to the organization
+        type:
+            status:
+                type: string
+                description: success or error
+                required: true
+            message:
+                type: string
+                description: info/error message, if any
+                required: false
+        """
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        org.add_leed(body)
+        return JsonResponse({'status': 'success'})
+
 
     @swagger_auto_schema(
         request_body=SaveSettingsSerializer,

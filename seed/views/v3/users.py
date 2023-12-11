@@ -14,6 +14,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.status import HTTP_400_BAD_REQUEST
+from django.conf import settings
 
 from seed.decorators import ajax_request_class
 from seed.landing.models import SEEDUser as User
@@ -235,11 +236,16 @@ class UserViewSet(viewsets.ViewSet, OrgMixin):
             user.last_name = last_name
         user.save()
 
+        if settings.FORCE_SSL_PROTOCOL:
+            protocol = 'https'
+        else:
+            protocol = request.scheme
+
         try:
             domain = request.get_host()
         except Exception:
             domain = 'seed-platform.org'
-        invite_to_seed(domain, user.email, default_token_generator.make_token(user), org, user.pk, first_name)
+        invite_to_seed(protocol, domain, user.email, default_token_generator.make_token(user), org, user.pk, first_name)
 
         return JsonResponse({
             'status': 'success',
