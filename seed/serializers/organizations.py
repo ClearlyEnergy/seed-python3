@@ -65,6 +65,7 @@ class OrganizationUserSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=100)
     user_id = serializers.IntegerField()
     role = serializers.CharField(max_length=100)
+    last_login = serializers.DateTimeField()  # HELIX
 
 
 class OrganizationUsersSerializer(serializers.Serializer):

@@ -41,7 +41,7 @@ from seed.utils.api import OrgMixin, api_endpoint_class
 from seed.utils.api_schema import AutoSchemaHelper
 from seed.utils.match import update_sub_progress_total
 from django.db.models import Q
-from seed.views.cycles import find_org_cycle
+from seed.views.v3.cycles import find_org_cycle
 
 
 _log = logging.getLogger(__name__)

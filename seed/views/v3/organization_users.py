@@ -13,9 +13,14 @@ from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.lib.superperms.orgs.models import (
     ROLE_OWNER,
-    Organization,
+    Organization,  # todo should this be HELIXOrganization?
     OrganizationUser
 )
+from seed.models.auditlog import (
+    AUDIT_USER_CREATE,
+    AUDIT_USER_EXPORT,
+)
+from seed.models.certification import GreenAssessmentPropertyAuditLog
 from seed.tasks import invite_to_organization
 from seed.utils.api import api_endpoint_class
 from seed.views.v3.organizations import _get_js_role
@@ -50,7 +55,14 @@ class OrganizationUserViewSet(viewsets.ViewSet):
                 'last_name': user.last_name,
                 'number_of_orgs': user_orgs,
                 'user_id': user.pk,
-                'role': _get_js_role(u.role_level)
+                'role': _get_js_role(u.role_level),
+                'last_login': user.last_login.strftime("%Y-%m-%d %I:%M %p") if user.last_login is not None else '',
+                'certifications': GreenAssessmentPropertyAuditLog.objects.filter(
+                    user=user, record_type=AUDIT_USER_CREATE
+                ).count(),
+                'certifications_exported': GreenAssessmentPropertyAuditLog.objects.filter(
+                    user=user, record_type=AUDIT_USER_EXPORT
+                ).count()
             })
 
         return JsonResponse({'status': 'success', 'users': users})

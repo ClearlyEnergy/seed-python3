@@ -14,15 +14,14 @@ from rest_framework.renderers import JSONRenderer
 
 from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.models import Measure
-from seed.serializers.measures import MeasureSerializer
-from seed.utils.api import OrgMixin
+from seed.serializers.measures import MeasureSerializer, PropertyMeasureSerializer
 from seed.utils.api_schema import (
     AutoSchemaHelper,
     swagger_auto_schema_org_query_param
 )
 from helix.models import HELIXPropertyMeasure as PropertyMeasure
-from seed.serializers.measures import MeasureSerializer, PropertyMeasureSerializer
 from seed.utils.viewsets import (
+    SEEDOrgModelViewSet,
     SEEDOrgCreateUpdateModelViewSet
 )
 
@@ -35,7 +34,7 @@ from seed.utils.viewsets import (
     has_perm_class('can_view_data'),
     swagger_auto_schema_org_query_param,
 ])
-class MeasureViewSet(viewsets.ReadOnlyModelViewSet, OrgMixin):
+class MeasureViewSet(SEEDOrgModelViewSet):
     """
     list:
         Return a list of all measures

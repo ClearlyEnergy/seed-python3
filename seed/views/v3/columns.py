@@ -172,11 +172,12 @@ class ColumnViewSet(OrgValidateMixin, SEEDOrgNoPatchOrOrgCreateModelViewSet, Org
     @ajax_request_class
     @has_perm_class('requires_parent_org_owner')
     def create(self, request):
+        # todo - creates mappings, not the column. i fixed this in beam so go look that up
         mappings = request.data
         organization_id = request.query_params.get('organization_id', None)
         organization = Organization.objects.get(pk=organization_id)
         result = Column.create_mappings(mappings, organization, request.user)
-        
+
         if result:
             return JsonResponse({'status': 'success'})
         else:

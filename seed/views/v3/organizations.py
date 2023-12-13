@@ -10,15 +10,7 @@ from io import BytesIO
 from pathlib import Path
 from random import randint
 from seed.models import Measure, PropertyMeasure
-from seed.models.certification import GreenAssessment, GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
-from rest_framework import serializers
-from seed.models.auditlog import (
-    AUDIT_USER_CREATE,
-    AUDIT_USER_EXPORT,
-)
-from seed.tasks import invite_to_organization
-
-
+from seed.models.certification import GreenAssessment, GreenAssessmentProperty
 import dateutil
 from celery import shared_task
 from django.conf import settings
@@ -48,9 +40,9 @@ from seed.lib.superperms.orgs.models import (
     ROLE_MEMBER,
     ROLE_OWNER,
     ROLE_VIEWER,
-    Organization,
     OrganizationUser
 )
+from helix.models import HELIXOrganization as Organization
 from seed.models import (
     AUDIT_IMPORT,
     GREEN_BUTTON,
@@ -236,15 +228,6 @@ def cache_match_merge_link_result(summary, identifier, progress_key):
 
     progress_data = ProgressData.from_key(progress_key)
     progress_data.finish_with_success()
-
-
-class OrganizationUserSerializer(serializers.Serializer):
-    email = serializers.CharField(max_length=100)
-    first_name = serializers.CharField(max_length=100)
-    last_name = serializers.CharField(max_length=100)
-    user_id = serializers.IntegerField()
-    role = serializers.CharField(max_length=100)
-    last_login = serializers.DateTimeField()
 
 
 class OrganizationViewSet(viewsets.ViewSet):
@@ -486,54 +469,6 @@ class OrganizationViewSet(viewsets.ViewSet):
     )
     @api_endpoint_class
     @ajax_request_class
-    @has_perm_class('requires_member')
-    @action(detail=True, methods=['GET'])
-    def users(self, request, pk=None):
-        """
-        Retrieve all users belonging to an org.
-        ---
-        response_serializer: OrganizationUsersSerializer
-        parameter_strategy: replace
-        parameters:
-            - name: pk
-              type: integer
-              description: Organization ID (primary key)
-              required: true
-              paramType: path
-        """
-        try:
-            org = Organization.objects.get(pk=pk)
-        except ObjectDoesNotExist:
-            return JsonResponse({'status': 'error',
-                                 'message': 'Could not retrieve organization at pk = ' + str(pk)},
-                                status=status.HTTP_404_NOT_FOUND)
-        users = []
-        for u in org.organizationuser_set.all():
-            user = u.user
-
-            user_orgs = OrganizationUser.objects.filter(user=user).count()
-
-            users.append({
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'number_of_orgs': user_orgs,
-                'user_id': user.pk,
-                'role': _get_js_role(u.role_level),
-                'last_login': user.last_login.strftime("%Y-%m-%d %I:%M %p") if user.last_login is not None else '',
-                'certifications': GreenAssessmentPropertyAuditLog.objects.filter(
-                    user=user, record_type=AUDIT_USER_CREATE
-                ).count(),
-                'certifications_exported': GreenAssessmentPropertyAuditLog.objects.filter(
-                    user=user, record_type=AUDIT_USER_EXPORT
-                ).count()
-            })
-
-        return JsonResponse({'status': 'success', 'users': users})
-
-
-    @api_endpoint_class
-    @ajax_request_class
     def create(self, request):
         """
         Creates a new organization.
@@ -562,56 +497,6 @@ class OrganizationViewSet(viewsets.ViewSet):
                 'organization': _dict_org(request, [org])[0]
             }
         )
-    @api_endpoint_class
-    @ajax_request_class
-    @has_perm_class('requires_owner')
-    @action(detail=True, methods=['PUT'])
-    def add_user(self, request, pk=None):
-        """
-        Adds an existing user to an organization.
-        ---
-        parameter_strategy: replace
-        parameters:
-            - name: pk
-              description: Organization ID (Primary key)
-              type: integer
-              required: true
-              paramType: path
-            - name: user_id
-              description: User ID (Primary key) of the user to add to the organization
-        type:
-            status:
-                type: string
-                description: success or error
-                required: true
-            message:
-                type: string
-                description: info/error message, if any
-                required: false
-        """
-        body = request.data
-        org = Organization.objects.get(pk=pk)
-        user = User.objects.get(pk=body['user_id'])
-
-        created = org.add_member(user)
-
-        if settings.FORCE_SSL_PROTOCOL:
-            protocol = 'https'
-        else:
-            protocol = request.scheme
-
-        # Send an email if a new user has been added to the organization
-        if created:
-            try:
-                domain = request.get_host()
-            except Exception:
-                domain = 'seed-platform.org'
-            invite_to_organization(
-                protocol, domain, user, request.user.username, org
-            )
-
-        return JsonResponse({'status': 'success'})
-
 
     @api_endpoint_class
     @ajax_request_class

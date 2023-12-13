@@ -43,6 +43,9 @@ def trigger_error(request):
 
 
 urlpatterns = [
+    # HELIX
+    re_path(r'^helix/', include(('helix.urls', 'helix'), namespace='helix')),
+
     re_path(r'^accounts/password/reset/done/$', password_reset_done, name='password_reset_done'),
     re_path(
         r'^accounts/password/reset/complete/$',
@@ -62,6 +65,7 @@ urlpatterns = [
     re_path(r'^documentation/', include(('seed.docs.urls', 'seed.docs'), namespace='docs')),
 
     # root configuration items
+    re_path(r'^eula/', include(('tos.urls', 'tos'), namespace='tos')),
     re_path(r'^i18n/', include('django.conf.urls.i18n')),
     re_path(r'^robots\.txt', robots_txt, name='robots_txt'),
 
@@ -86,9 +90,6 @@ if settings.DEBUG:
     urlpatterns += [
         # test URLs
         re_path(r'^angular_js_tests/$', angular_js_tests, name='angular_js_tests'),
-
-        # admin
-        re_path(r'^admin/', admin.site.urls),
     ]
 
 admin.autodiscover()

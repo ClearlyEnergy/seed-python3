@@ -85,7 +85,7 @@ from seed.utils.properties import (
 from seed.utils.salesforce import update_salesforce_properties
 from seed.utils.sensors import PropertySensorReadingsExporter
 from seed.lib.superperms.orgs.models import Organization
-from seed.views.cycles import find_org_cycle
+from seed.views.v3.cycles import find_org_cycle
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from seed.serializers.pint import (
     apply_display_unit_preferences
@@ -197,122 +197,6 @@ class PropertyViewSet(generics.GenericAPIView, viewsets.ViewSet, OrgMixin, Profi
             PropertyViewAsStateSerializer(list(qs), context={'request': request}, many=True).data,
             safe=False,
         )
-
-    def _get_filtered_results(self, request, profile_id):
-        page = request.query_params.get('page', 1)
-        per_page = request.query_params.get('per_page', 1)
-        org_id = request.query_params.get('organization_id', None)
-        cycle_id = request.query_params.get('cycle')
-        show_sub_org_data = request.query_params.get('show_sub_org_data', 'false') == 'true'
-        # check if there is a query paramater for the profile_id. If so, then use that one
-        profile_id = request.query_params.get('profile_id', profile_id)
-
-        if not org_id:
-            return JsonResponse(
-                {'status': 'error', 'message': 'Need to pass organization_id as query parameter'},
-                status=status.HTTP_400_BAD_REQUEST)
-
-        if cycle_id:
-            cycle = Cycle.objects.get(organization_id=org_id, pk=cycle_id)
-        else:
-            cycle = Cycle.objects.filter(organization_id=org_id).order_by('name')
-            if cycle:
-                cycle = cycle.first()
-            else:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Could not locate cycle',
-                    'pagination': {
-                        'total': 0
-                    },
-                    'cycle_id': None,
-                    'results': []
-                })
-
-        organization = Organization.objects.get(id=org_id)
-        org_filter = Q(property__organization_id=organization.id)
-        cycle_filter = Q(cycle=cycle)
-        # Matches cycles that start and end during the organization's current
-        # cycle
-        if show_sub_org_data:
-            for sub_org in organization.child_orgs.all():
-                org_filter = org_filter | Q(property__organization_id=sub_org.id)
-                sub_cycle = find_org_cycle(cycle, sub_org)
-                if sub_cycle:
-                    cycle_filter = cycle_filter | Q(cycle=sub_cycle)
-
-        final_filter = org_filter & cycle_filter
-
-        # Return property views limited to the 'inventory_ids' list.  Otherwise, if selected is empty, return all
-        if 'inventory_ids' in request.data and request.data['inventory_ids']:
-            final_filter = Q(property_id__in=request.data['inventory_ids']) & final_filter
-
-        property_views_list = PropertyView.objects.select_related('property', 'state', 'cycle') \
-            .filter(final_filter) \
-            .order_by('id')  # TODO: test adding .only(*fields['PropertyState'])
-
-        paginator = Paginator(property_views_list, per_page)
-
-        try:
-            property_views = paginator.page(page)
-            page = int(page)
-        except PageNotAnInteger:
-            property_views = paginator.page(1)
-            page = 1
-        except EmptyPage:
-            property_views = paginator.page(paginator.num_pages)
-            page = paginator.num_pages
-
-        org = Organization.objects.get(pk=org_id)
-
-        # Retrieve all the columns that are in the db for this organization
-        columns_from_database = Column.retrieve_all(org_id, 'property', False)
-
-        # This uses an old method of returning the show_columns. There is a new method that
-        # is preferred in v2.1 API with the ProfileIdMixin.
-        if profile_id is None:
-            show_columns = None
-        elif profile_id == -1:
-            show_columns = list(Column.objects.filter(
-                organization_id=org_id
-            ).values_list('id', flat=True))
-        else:
-            try:
-                profile = ColumnListProfile.objects.get(
-                    organization=org,
-                    id=profile_id,
-                    profile_location=VIEW_LIST,
-                    inventory_type=VIEW_LIST_PROPERTY
-                )
-                show_columns = list(ColumnListProfileColumn.objects.filter(
-                    column_list_profile_id=profile.id
-                ).values_list('column_id', flat=True))
-            except ColumnListProfile.DoesNotExist:
-                show_columns = None
-
-        related_results = TaxLotProperty.serialize(property_views, show_columns,
-                                                   columns_from_database)
-
-        # collapse units here so we're only doing the last page; we're already a
-        # realized list by now and not a lazy queryset
-        unit_collapsed_results = [apply_display_unit_preferences(org, x) for x in related_results]
-
-        response = {
-            'pagination': {
-                'page': page,
-                'start': paginator.page(page).start_index(),
-                'end': paginator.page(page).end_index(),
-                'num_pages': paginator.num_pages,
-                'has_next': paginator.page(page).has_next(),
-                'has_previous': paginator.page(page).has_previous(),
-                'total': paginator.count
-            },
-            'cycle_id': cycle.id,
-            'results': unit_collapsed_results
-        }
-
-        return JsonResponse(response)
-
 
     def _move_relationships(self, old_state, new_state):
         """
@@ -1089,7 +973,7 @@ class PropertyViewSet(generics.GenericAPIView, viewsets.ViewSet, OrgMixin, Profi
                 'property', 'cycle', 'state'
             ).get(
                 id=pk,
-                property__organization_id=self.get_organization(self.request)
+                property__organization_id__in=all_orgs
             )
             result = {
                 'status': 'success',

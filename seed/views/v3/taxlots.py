@@ -18,7 +18,6 @@ from seed.serializers.pint import (
     apply_display_unit_preferences
 )
 
-
 from seed.decorators import ajax_request_class
 from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.models import (
@@ -74,6 +73,21 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
     parser_classes = (JSONParser,)
     _organization = None
 
+    def _find_org_cycle(self, cycle, organization):
+        """
+        Matches the first cycle of a organization that starts and ends
+        within the range of the cycle provided
+
+        :param cycle: Cycle
+        :param organization: Organization
+        :return: Cycle, or None if there is no cycle that matches
+        """
+        range_start = cycle.start
+        range_end = cycle.end
+        cycles = organization.cycles.filter(start__gte=range_start,
+                                            end__gte=range_end)
+        return cycles.first()
+
     @swagger_auto_schema(
         manual_parameters=[
             AutoSchemaHelper.query_org_id_field(required=True),
@@ -102,119 +116,6 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
         super_organization = self.get_organization(request)
         # TODO: refactor to avoid passing request here
         return get_labels(request, labels, super_organization, 'taxlot_view')
-
-    def _get_filtered_results(self, request, profile_id):
-        page = request.query_params.get('page', 1)
-        per_page = request.query_params.get('per_page', 1)
-        org_id = request.query_params.get('organization_id', None)
-        cycle_id = request.query_params.get('cycle')
-        show_sub_org_data = request.query_params.get('show_sub_org_data', 'false') == 'true'
-        # check if there is a query paramater for the profile_id. If so, then use that one
-        profile_id = request.query_params.get('profile_id', profile_id)
-        if not org_id:
-            return JsonResponse(
-                {'status': 'error', 'message': 'Need to pass organization_id as query parameter'},
-                status=status.HTTP_400_BAD_REQUEST)
-
-        if cycle_id:
-            cycle = Cycle.objects.get(organization_id=org_id, pk=cycle_id)
-        else:
-            cycle = Cycle.objects.filter(organization_id=org_id).order_by('name')
-            if cycle:
-                cycle = cycle.first()
-            else:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Could not locate cycle',
-                    'pagination': {
-                        'total': 0
-                    },
-                    'cycle_id': None,
-                    'results': []
-                })
-
-        organization = Organization.objects.get(id=org_id)
-        org_filter = Q(taxlot__organization_id=organization.id)
-        cycle_filter = Q(cycle=cycle)
-        # Matches cycles that start and end during the organization's current
-        # cycle
-        if show_sub_org_data:
-            for sub_org in organization.child_orgs.all():
-                org_filter = org_filter | Q(taxlot__organization_id=sub_org.id)
-                sub_cycle = self._find_org_cycle(cycle, sub_org)
-                if sub_cycle:
-                    cycle_filter = cycle_filter | Q(cycle=sub_cycle)
-
-        final_filter = org_filter & cycle_filter
-        # Return taxlot views limited to the 'inventory_ids' list.  Otherwise, if selected is empty, return all
-        if 'inventory_ids' in request.data and request.data['inventory_ids']:
-            final_filter = Q(taxlot_id__in=request.data['inventory_ids']) & final_filter
-
-        taxlot_views_list = TaxLotView.objects.select_related('taxlot', 'state', 'cycle') \
-            .filter(final_filter) \
-            .order_by('id')
-
-        paginator = Paginator(taxlot_views_list, per_page)
-
-        try:
-            taxlot_views = paginator.page(page)
-            page = int(page)
-        except PageNotAnInteger:
-            taxlot_views = paginator.page(1)
-            page = 1
-        except EmptyPage:
-            taxlot_views = paginator.page(paginator.num_pages)
-            page = paginator.num_pages
-
-        org = Organization.objects.get(pk=org_id)
-
-        # Retrieve all the columns that are in the db for this organization
-        columns_from_database = Column.retrieve_all(org_id, 'taxlot', False)
-
-        # This uses an old method of returning the show_columns. There is a new method that
-        # is preferred in v2.1 API with the ProfileIdMixin.
-        if profile_id is None:
-            show_columns = None
-        elif profile_id == -1:
-            show_columns = list(Column.objects.filter(
-                organization_id=org_id
-            ).values_list('id', flat=True))
-        else:
-            try:
-                profile = ColumnListProfile.objects.get(
-                    organization=org,
-                    id=profile_id,
-                    profile_location=VIEW_LIST,
-                    inventory_type=VIEW_LIST_TAXLOT
-                )
-                show_columns = list(ColumnListProfileColumn.objects.filter(
-                    column_list_profile_id=profile.id
-                ).values_list('column_id', flat=True))
-            except ColumnListProfile.DoesNotExist:
-                show_columns = None
-
-        related_results = TaxLotProperty.serialize(taxlot_views, show_columns,
-                                                   columns_from_database)
-
-        # collapse units here so we're only doing the last page; we're already a
-        # realized list by now and not a lazy queryset
-        unit_collapsed_results = [apply_display_unit_preferences(org, x) for x in related_results]
-
-        response = {
-            'pagination': {
-                'page': page,
-                'start': paginator.page(page).start_index(),
-                'end': paginator.page(page).end_index(),
-                'num_pages': paginator.num_pages,
-                'has_next': paginator.page(page).has_next(),
-                'has_previous': paginator.page(page).has_previous(),
-                'total': paginator.count
-            },
-            'cycle_id': cycle.id,
-            'results': unit_collapsed_results
-        }
-
-        return JsonResponse(response)
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -713,12 +614,16 @@ class TaxlotViewSet(viewsets.ViewSet, OrgMixin, ProfileIdMixin):
         return JsonResponse({'status': 'success', 'taxlots': resp[1]['seed.TaxLotState']})
 
     def _get_taxlot_view(self, taxlot_pk):
+        organization = Organization.objects.get(id=self.request.GET['organization_id'])
+        all_orgs = list(organization.child_orgs.values_list('id', flat=True))
+        all_orgs.append(organization.id)
+
         try:
             taxlot_view = TaxLotView.objects.select_related(
                 'taxlot', 'cycle', 'state'
             ).get(
                 id=taxlot_pk,
-                taxlot__organization_id=self.get_organization(self.request)
+                taxlot__organization_id__in=all_orgs
             )
             result = {
                 'status': 'success',
