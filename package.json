@@ -17,13 +17,13 @@
     "node": ">=8.10.0"
   },
   "devDependencies": {
-    "autoprefixer": "~9.7.6",
+    "autoprefixer": "~10.4.16",
     "eslint": "~6.8.0",
     "eslint-plugin-angular": "~4.0.1",
     "eslint-plugin-lodash": "~7.1.0",
     "eslint-plugin-protractor": "~2.1.1",
     "lodash": "~4.17.15",
-    "postcss-cli": "~7.1.1",
+    "postcss-cli": "~11.0.0",
     "protractor": "~7.0.0",
     "webdriver-manager": "~12.1.7"
   },
