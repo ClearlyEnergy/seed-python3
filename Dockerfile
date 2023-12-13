@@ -37,7 +37,7 @@ WORKDIR /seed
 COPY ./requirements.txt /seed/requirements.txt
 COPY ./requirements/*.txt /seed/requirements/
 RUN pip uninstall -y enum34
-RUN pip3 install --prefer-binary -r requirements/aws.txt
+RUN --mount=type=secret,id=ssh-key,target=/home/uwsgi/.ssh/id_rsa pip3 install --prefer-binary -r requirements/aws.txt
 
 ### Install JavaScript requirements - do this first because they take awhile
 ### and the dependencies will probably change slower than python packages.
