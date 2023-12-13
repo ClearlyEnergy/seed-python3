@@ -700,6 +700,18 @@ angular.module('BE.seed.controller.data_upload_modal', [])
         });
       };
 
+
+      // helper function to set scope parameters for when the task fails
+      const handleSystemMatchingError = function (data) {
+        $scope.uploader.complete = true;
+        $scope.uploader.in_progress = false;
+        $scope.uploader.progress = 0;
+        $scope.step.number = 10;
+        $scope.step_10_style = 'danger';
+        $scope.step_10_error_message = data.message;
+        $scope.step_10_title = data.message;
+      };
+
       /**
        * find_matches: finds matches for buildings within an import file
        */
@@ -803,8 +815,89 @@ angular.module('BE.seed.controller.data_upload_modal', [])
                 $scope.step_10_mapquest_api_error = true;
               }
             }, sub_progress_argument);
+          if (_.includes(['error', 'warning'], data.status)) {
+            handleSystemMatchingError(data);
+          } else {
+            uploader_service.check_progress_loop(data.progress_key, data.progress, 1, function () {
+              $scope.uploader.status_message = 'adding certifications';
+              mapping_service.add_certifications($scope.dataset.import_file_id).then(function (cert_data) {
+                monitor_certifications(cert_data.progress_key, $scope.dataset.import_file_id);
+              });
+            }, function () {
+              // Do nothing
+            }, $scope.uploader);
+
           }
         });
+      };
+
+      /**
+       * monitor_certifications: called by monitor_matching, updates progress bar
+       *   from 85% to 100%, then shows the PM upload completed
+       *
+       * @param {string} progress_key: key
+       */
+      var monitor_certifications = function (progress_key) {
+        uploader_service.check_progress_loop(progress_key, 87.5, 0.125, function (progress_data) {
+        // HELIX moved from
+          inventory_service.get_matching_and_geocoding_results($scope.dataset.import_file_id).then(function (result_data) {
+            $scope.import_file_records = result_data.import_file_records;
+
+            $scope.property_initial_incoming = result_data.properties.initial_incoming;
+            $scope.property_duplicates_against_existing = result_data.properties.duplicates_against_existing;
+            $scope.property_duplicates_within_file = result_data.properties.duplicates_within_file;
+            $scope.property_merges_against_existing = result_data.properties.merges_against_existing;
+            $scope.property_merges_between_existing = result_data.properties.merges_between_existing;
+            $scope.property_merges_within_file = result_data.properties.merges_within_file;
+            $scope.property_new = result_data.properties.new;
+
+            $scope.properties_geocoded_high_confidence = result_data.properties.geocoded_high_confidence;
+            $scope.properties_geocoded_low_confidence = result_data.properties.geocoded_low_confidence;
+            $scope.properties_geocoded_manually = result_data.properties.geocoded_manually;
+            $scope.properties_geocode_not_possible = result_data.properties.geocode_not_possible;
+
+            $scope.tax_lot_initial_incoming = result_data.tax_lots.initial_incoming;
+            $scope.tax_lot_duplicates_against_existing = result_data.tax_lots.duplicates_against_existing;
+            $scope.tax_lot_duplicates_within_file = result_data.tax_lots.duplicates_within_file;
+            $scope.tax_lot_merges_against_existing = result_data.tax_lots.merges_against_existing;
+            $scope.tax_lot_merges_between_existing = result_data.tax_lots.merges_between_existing;
+            $scope.tax_lot_merges_within_file = result_data.tax_lots.merges_within_file;
+            $scope.tax_lot_new = result_data.tax_lots.new;
+
+            $scope.tax_lots_geocoded_high_confidence = result_data.tax_lots.geocoded_high_confidence;
+            $scope.tax_lots_geocoded_low_confidence = result_data.tax_lots.geocoded_low_confidence;
+            $scope.tax_lots_geocoded_manually = result_data.tax_lots.geocoded_manually;
+            $scope.tax_lots_geocode_not_possible = result_data.tax_lots.geocode_not_possible;
+
+            $scope.uploader.complete = true;
+            $scope.uploader.in_progress = false;
+            $scope.uploader.progress = 0;
+            $scope.uploader.status_message = '';
+            if (progress_data.file_info !== undefined) {
+              // this only occurs in buildingsync, where we are not actually merging properties
+              // thus we will always end up at step 10
+              $scope.step_10_style = 'danger';
+              $scope.step_10_file_message = 'Warning(s)/Error(s) occurred while processing the file(s):\n' + JSON.stringify(progress_data.file_info, null, 2);
+            }
+
+            // Toggle a meter import button if the imported file also has a meters tab
+            dataset_service.check_meters_tab_exists($scope.dataset.import_file_id).then(function(result) {
+              $scope.import_file_reusable_for_meters = result.data || false;
+            });
+
+            // If merges against existing exist, provide slightly different feedback
+            if ($scope.property_merges_against_existing + $scope.tax_lot_merges_against_existing > 0) {
+              $scope.step.number = 8;
+            } else {
+              $scope.step.number = 10;
+            }
+          });
+        }, function (response) {
+          handleSystemMatchingError(response.data);
+          if ($scope.step_10_error_message.includes('MapQuest')) {
+            $scope.step_10_mapquest_api_error = true;
+          }
+        }, $scope.uploader);
       };
 
       $scope.get_pm_report_template_names = function (pm_username, pm_password) {
