@@ -1,7 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author nicholas.long@nrel.gov
 """
 from collections import OrderedDict
@@ -34,6 +36,7 @@ class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
     implementation_status = ChoiceField(choices=PropertyMeasure.IMPLEMENTATION_TYPES)
     application_scale = ChoiceField(choices=PropertyMeasure.APPLICATION_SCALE_TYPES)
     category_affected = ChoiceField(choices=PropertyMeasure.CATEGORY_AFFECTED_TYPE)
+    scenario_id = serializers.SerializerMethodField('get_scenario_id')
 
     class Meta:
         model = PropertyMeasure

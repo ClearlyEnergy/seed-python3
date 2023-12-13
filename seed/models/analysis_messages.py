@@ -1,19 +1,15 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-import logging
 import json
+import logging
 
 from django.db import models
 
-from seed.models import (
-    Analysis,
-    AnalysisPropertyView
-)
-
+from seed.models import Analysis, AnalysisPropertyView
 
 logger = logging.getLogger(__name__)
 
@@ -39,16 +35,16 @@ class AnalysisMessage(models.Model):
     analysis = models.ForeignKey(Analysis, on_delete=models.CASCADE)
     # if the message is relevant to a specific property then it should be linked
     # to an AnalysisPropertyView in addition to being linked to the analysis.
-    # e.g. if the AnalysisPropertyView is missing some required data
+    # e.g., if the AnalysisPropertyView is missing some required data
     # if the message is generic and applies to the entire analysis, analysis_property_view
     # should be None/NULL
-    # e.g. the service request returned a non-200 response
+    # e.g., the service request returned a non-200 response
     analysis_property_view = models.ForeignKey(AnalysisPropertyView, on_delete=models.CASCADE, null=True, blank=True)
     type = models.IntegerField(choices=MESSAGE_TYPES)
     # human-readable message which is presented on the frontend
-    user_message = models.CharField(max_length=255, blank=False, default=None)
+    user_message = models.CharField(max_length=1024, blank=False, default=None)
     # message for debugging purposes, not intended to be displayed on frontend
-    debug_message = models.CharField(max_length=255, blank=True)
+    debug_message = models.CharField(max_length=1024, blank=True)
 
     @classmethod
     def log_and_create(cls, logger, type_, user_message, debug_message, analysis_id,
@@ -86,12 +82,12 @@ class AnalysisMessage(models.Model):
         logger.log(logger_level, json.dumps(log_message_dict))
 
         # truncate the messages to make sure they meet our db constraints
-        MAX_MESSAGE_LENGTH = 255
-        ELIPSIS = '...'
+        MAX_MESSAGE_LENGTH = 1024
+        ELLIPSIS = '...'
         if len(user_message) > MAX_MESSAGE_LENGTH:
-            user_message = user_message[:MAX_MESSAGE_LENGTH - len(ELIPSIS)] + ELIPSIS
+            user_message = user_message[:MAX_MESSAGE_LENGTH - len(ELLIPSIS)] + ELLIPSIS
         if len(debug_message) > MAX_MESSAGE_LENGTH:
-            debug_message = debug_message[:MAX_MESSAGE_LENGTH - len(ELIPSIS)] + ELIPSIS
+            debug_message = debug_message[:MAX_MESSAGE_LENGTH - len(ELLIPSIS)] + ELLIPSIS
 
         return AnalysisMessage.objects.create(
             type=type_,

@@ -1,6 +1,6 @@
-/*
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+/**
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.members', [])
   .controller('members_controller', [
@@ -53,7 +53,7 @@ angular.module('BE.seed.controller.members', [])
         }).catch(function (response) {
           $scope.$emit('app_error', response);
         });
-      }
+      };
 
       /**
        * saves the changed role for the user
@@ -96,7 +96,7 @@ angular.module('BE.seed.controller.members', [])
       /**
        * reset_all_passwords triggers a reset password email for all users
        */
-      $scope.reset_all_passwords = function (confirm_message = "Really reset all passwords?  This will sign you out of SEED.") {
+      $scope.reset_all_passwords = function (confirm_message = 'Really reset all passwords?  This will sign you out of SEED.') {
         if (confirm(confirm_message)) {
           organization_service.reset_all_passwords($scope.org.id);
           window.location.href = '/accounts/login/?next=' + window.location.pathname + window.location.hash;
@@ -117,9 +117,9 @@ angular.module('BE.seed.controller.members', [])
           return 'member';
         }
         return 'none';
-      }
+      };
 
-      function refreshRoleStatus(auth_refresh = true) {
+      function refreshRoleStatus (auth_refresh = true) {
         $scope.only_one_owner = (_.chain($scope.users)
           .filter(['role', 'owner'])
           .size()

@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.service.column_mappings', []).factory('column_mappings_service', [
   '$http',
@@ -68,6 +68,17 @@ angular.module('BE.seed.service.column_mappings', []).factory('column_mappings_s
           organization_id: org_id
         }
       }).then(function (response) {
+        return response.data;
+      });
+    };
+
+    /**
+     * return column mapping profile in CSV format.
+     * @param  {int} org_id the id of the organization, not needed, but useful to still pass around
+     * @param  {int} profile_id the profile id of the column mapping to be exported
+     */
+     column_mappings_factory.export_mapping_profile = function (org_id, profile_id) {
+      return $http.get('/api/v3/column_mapping_profiles/' + profile_id + '/csv/?organization_id=' + org_id).then(function (response) {
         return response.data;
       });
     };

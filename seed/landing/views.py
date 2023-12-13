@@ -1,32 +1,33 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-import urllib
 import json
 import logging
+import urllib
 
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.forms import SetPasswordForm
-from django.urls import reverse
+from django.contrib.auth.tokens import default_token_generator
 from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.utils import ErrorList
 from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils.encoding import force_text
 from django.utils.http import urlsafe_base64_decode
+
 from seed.landing.models import SEEDUser
 from seed.tasks import (
     invite_new_user_to_seed,
 )
 from tos.models import has_user_agreed_latest_tos, TermsOfService, NoActiveTermsOfService
 
-from .forms import LoginForm, CustomCreateUserForm
+from .forms import CustomCreateUserForm, LoginForm
 
 logger = logging.getLogger(__name__)
 
@@ -34,18 +35,8 @@ logger = logging.getLogger(__name__)
 def landing_page(request):
     if request.user.is_authenticated:
         return HttpResponseRedirect(reverse('seed:home'))
-    login_form = LoginForm()
-    context = {'self_registration': settings.INCLUDE_ACCT_REG}
-    return render(request, 'landing/oauth_home.html', locals())
 
-
-def login_view(request):
-    """
-    Standard Django login, with additions:
-        Lowercase the login email (username)
-        Check user has accepted ToS, if any.
-    """
-    if request.method == "POST":
+    if request.method == 'POST':
         redirect_to = request.POST.get('next', request.GET.get('next', False))
         if not redirect_to:
             redirect_to = reverse('seed:home')
@@ -81,6 +72,7 @@ def login_view(request):
                 errors = ErrorList()
                 errors = form._errors.setdefault(NON_FIELD_ERRORS, errors)
                 errors.append('Username and/or password were invalid.')
+                logger.error(f"User login failed: {form.cleaned_data['email']}")
     else:
         form = LoginForm()
     context = {'self_registration': settings.INCLUDE_ACCT_REG}
@@ -132,7 +124,7 @@ def password_reset_confirm(request, uidb64=None, token=None):
 
 
 def password_reset_complete(request):
-    return render(request, 'landing/password_reset_complete.html', {})
+    return render(request, 'landing/password_reset_complete.html', {'debug': settings.DEBUG})
 
 
 def signup(request, uidb64=None, token=None):
@@ -193,11 +185,12 @@ def create_account(request):
 
     else:
         form = CustomCreateUserForm()
+    debug = settings.DEBUG
     return render(request, 'landing/create_account.html', locals())
 
 
 def account_activation_sent(request):
-    return render(request, 'landing/account_activation_sent.html', {})
+    return render(request, 'landing/account_activation_sent.html', {'debug': settings.DEBUG})
 
 
 def activate(request, uidb64, token):
@@ -213,4 +206,4 @@ def activate(request, uidb64, token):
         login(request, user)
         return HttpResponseRedirect(reverse('seed:home'))
     else:
-        return render(request, 'account_activation_invalid.html')
+        return render(request, 'account_activation_invalid.html', {'debug': settings.DEBUG})

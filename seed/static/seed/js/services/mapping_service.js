@@ -1,8 +1,7 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
-// mapping services
 angular.module('BE.seed.service.mapping', []).factory('mapping_service', [
   '$http',
   'user_service',
@@ -90,7 +89,7 @@ angular.module('BE.seed.service.mapping', []).factory('mapping_service', [
 	*/
 	mapping_factory.add_certifications = function (import_file_id) {
       return user_service.get_user_id().then(function (this_user_id) {
-        return $http.post('/api/v2/import_files/'+ import_file_id + '/add_certifications/', {
+        return $http.post('/api/v3/import_files/'+ import_file_id + '/add_certifications/', {
           user_id: this_user_id
         }).then(function (response) {
           return response.data;

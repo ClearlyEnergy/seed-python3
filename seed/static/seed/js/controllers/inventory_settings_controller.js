@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.inventory_settings', [])
   .controller('inventory_settings_controller', [
@@ -81,7 +81,7 @@ angular.module('BE.seed.controller.inventory_settings', [])
           displayName: 'Column Name',
           headerCellFilter: 'translate',
           cellFilter: 'translate',
-          cellTemplate: '<div class="ui-grid-cell-contents inventory-settings-cell" title="TOOLTIP" data-after-content="{$ row.entity.column_name $}"> <i ng-if="row.entity.is_derived_column" class="fa fa-link" style="margin-right: 10px;"></i>{$ COL_FIELD CUSTOM_FILTERS $} <span ng-if="row.entity.related" class="badge" style="margin-left: 10px;">{$ grid.appScope.inventory_type === "properties" ? ("tax lot" | translate) : ("property" | translate) $}</span></div>',
+          cellTemplate: '<div class="ui-grid-cell-contents inventory-settings-cell" title="TOOLTIP" data-after-content="{$ row.entity.column_name $}"> <i ng-if="row.entity.derived_column" class="fa fa-link" style="margin-right: 10px;"></i>{$ COL_FIELD CUSTOM_FILTERS $} <span ng-if="row.entity.related" class="badge" style="margin-left: 10px;">{$ grid.appScope.inventory_type === "properties" ? ("tax lot" | translate) : ("property" | translate) $}</span></div>',
           enableHiding: false
         }],
         onRegisterApi: function (gridApi) {
@@ -112,13 +112,9 @@ angular.module('BE.seed.controller.inventory_settings', [])
 
       var setColumnsForCurrentProfile = function () {
         var deselected_columns = angular.copy(all_columns);
-        var deselected_derived_columns = angular.copy(derived_columns);
         if ($scope.currentProfile) {
           var profileColumns = _.filter($scope.currentProfile.columns, function (col) {
             return _.find(angular.copy(all_columns), {id: col.id});
-          });
-          var profileDerivedColumns = _.filter($scope.currentProfile.derived_columns, function (col) {
-            return _.find(angular.copy(derived_columns), {id: col.id});
           });
 
           $scope.gridOptions.data = _.map(profileColumns, function (col) {
@@ -129,19 +125,6 @@ angular.module('BE.seed.controller.inventory_settings', [])
           }).concat(_.map(deselected_columns, function (col) {
             col.pinnedLeft = false;
             col.visible = false;
-            return col;
-          })).concat(_.map(profileDerivedColumns, function (col) {
-            var c = _.remove(deselected_derived_columns, {id: col.id})[0];
-            c.pinnedLeft = false;
-            c.visible = true;
-            c.is_derived_column = true;
-            c.displayName = c.name;
-            return c;
-          })).concat(_.map(deselected_derived_columns, function (col) {
-            col.pinnedLeft = false;
-            col.visible = false;
-            col.is_derived_column = true;
-            col.displayName = col.name;
             return col;
           }));
 
@@ -230,33 +213,26 @@ angular.module('BE.seed.controller.inventory_settings', [])
 
       var currentColumns = function () {
         var columns = [];
-        var derived_columns = [];
         _.forEach($scope.gridApi.grid.rows, function (row) {
           if (row.isSelected) {
-            if (row.entity.is_derived_column) {
-              derived_columns.push({
-                id: row.entity.id
-              });
-            } else {
               columns.push({
                 column_name: row.entity.column_name,
                 id: row.entity.id,
                 order: columns.length + 1,
                 pinned: Boolean(row.entity.pinnedLeft),
-                table_name: row.entity.table_name
+                table_name: row.entity.table_name,
+                derived_column: row.entity.derived_column
               });
-            }
           }
         });
-        return { columns, derived_columns };
+        return columns;
       };
 
       $scope.saveProfile = function () {
         var id = $scope.currentProfile.id;
         var profile = _.omit($scope.currentProfile, 'id');
-        const { columns, derived_columns } = currentColumns();
+        const columns = currentColumns();
         profile.columns = columns;
-        profile.derived_columns = derived_columns;
         inventory_service.update_column_list_profile(id, profile).then(function (updatedProfile) {
           var index = _.findIndex($scope.profiles, {id: updatedProfile.id});
           $scope.profiles[index] = updatedProfile;
@@ -313,12 +289,24 @@ angular.module('BE.seed.controller.inventory_settings', [])
       };
 
       $scope.newProfile = function () {
+        let columns = [];
+        let derived_columns = [];
+        for (let column in currentColumns) {
+          if (column.derived_column){
+            derived_columns.push(column)
+          } else {
+            columns.push(column)
+          }
+        }
         var modalInstance = $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/settings_profile_modal.html',
           controller: 'settings_profile_modal_controller',
           resolve: {
             action: _.constant('new'),
-            data: currentColumns,
+            data: {
+              columns,
+              derived_columns
+            },
             profile_location: _.constant('List View Profile'),
             inventory_type: function () {
               return $scope.inventory_type === 'properties' ? 'Property' : 'Tax Lot';

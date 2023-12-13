@@ -1,15 +1,13 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 """
-
-from rest_framework.decorators import action
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from seed.filtersets import GAPropertyFilterSet, GreenAssessmentFilterSet
@@ -22,20 +20,18 @@ from helix.models import HELIXGreenAssessment as GreenAssessment
 from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
 
 from seed.serializers.certification import (
-    GreenAssessmentSerializer,
     GreenAssessmentPropertySerializer,
+    GreenAssessmentSerializer,
     GreenAssessmentURLSerializer
 )
-
 from seed.utils.viewsets import (
-    SEEDOrgModelViewSet,
-    SEEDOrgCreateUpdateModelViewSet
+    SEEDOrgCreateUpdateModelViewSet,
+    SEEDOrgModelViewSet
 )
 
 
 class GreenAssessmentViewSet(SEEDOrgCreateUpdateModelViewSet):
     """API endpoint for viewing and creating green assessment certifications.
-
         Returns::
             {
                 'status': 'success',
@@ -292,7 +288,7 @@ class GreenAssessmentPropertyViewSet(SEEDOrgModelViewSet):
                 'data': [
                     {
                         'id': Green Assessment primary key,
-                        'source': Source of this certification e.g. assessor,
+                        'source': Source of this certification e.g., assessor,
                         'status': Status for multi-step processes,
                         'status_date': date status first applied,
                         'metric': score if value is numeric,

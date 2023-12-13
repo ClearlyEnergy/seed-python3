@@ -1,8 +1,7 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
-// inventory services
 angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
   '$http',
   '$log',
@@ -20,7 +19,38 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
       total_taxlots_for_user: 0
     };
 
-    inventory_service.get_properties = function (page, per_page, cycle, profile_id, show_sub_org_data, inventory_ids, save_last_cycle = true, organization_id = null) {
+    const format_column_filters = function (column_filters) {
+      // turn column filter objects into usable query parameters
+      if (!column_filters) {
+        return {};
+      }
+
+      const filters = {};
+      for (const {name, operator, value} of column_filters) {
+        filters[`${name}__${operator}`] = value;
+      }
+
+      return filters;
+    };
+
+    inventory_service.get_format_column_filters = format_column_filters;
+
+    const format_column_sorts = function (column_sorts) {
+      // turn column sort objects into usable query parameter
+      if (!column_sorts) {
+        return [];
+      }
+
+      const sorts = [];
+      for (const {name, direction} of column_sorts) {
+        const direction_operator = direction == 'desc' ? '-' : '';
+        sorts.push(`${direction_operator}${name}`);
+      }
+
+      return {order_by: sorts};
+    };
+
+    inventory_service.get_properties = function (page, per_page, cycle, profile_id, include_view_ids, exclude_view_ids, save_last_cycle = true, organization_id = null, include_related = true, column_filters = null, column_sorts = null, ids_only = null, shown_column_ids = null) {
       organization_id = organization_id == undefined ? user_service.get_organization().id : organization_id;
       if (show_sub_org_data == undefined) show_sub_org_data = false;
 
@@ -28,8 +58,20 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         organization_id: organization_id,
         page: page,
         per_page: per_page || 999999999,
-        show_sub_org_data: show_sub_org_data
+        show_sub_org_data: show_sub_org_data,
+        include_related: include_related,
+        ids_only: ids_only,
+        shown_column_ids: shown_column_ids,
+        ...format_column_sorts(column_sorts),
+        ...format_column_filters(column_filters)
       };
+
+      if (ids_only) {
+        params.ids_only = true;
+      } else {
+        params.page = page;
+        params.per_page = per_page || 999999999;
+      }
 
       return cycle_service.get_cycles().then(function (cycles) {
         var validCycleIds = _.map(cycles.cycles, 'id');
@@ -46,6 +88,8 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         return $http.post('/api/v3/properties/filter/', {
           // Pass the specific ids if they exist
           property_view_ids: inventory_ids,
+          include_view_ids: include_view_ids,
+          exclude_view_ids: exclude_view_ids,
           // Pass the current profile (if one exists) to limit the column data that is returned
           profile_id: profile_id
         }, {
@@ -53,7 +97,12 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         }).then(function (response) {
           return response.data;
         });
-      }).catch(_.constant('Error fetching cycles'));
+      }).catch(function (response) {
+        if (response.data.message) {
+          return response.data;
+        }
+        throw response;
+      });
     };
 
     inventory_service.properties_cycle = function (profile_id, cycle_ids) {
@@ -143,6 +192,16 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
       });
     };
 
+    inventory_service.get_canonical_properties = function (view_ids) {
+      return $http.post('/api/v3/properties/get_canonical_properties/', { view_ids: view_ids }, {
+        params: { organization_id: user_service.get_organization().id }
+      }).then(function (response) {
+        return response.data;
+      }).catch(function (response) {
+        return response.data;
+      });
+    };
+
     inventory_service.get_property = function (view_id) {
       // Error checks
       if (_.isNil(view_id)) {
@@ -159,6 +218,42 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         return response.data;
       }).finally(function () {
         spinner_utility.hide();
+      });
+    };
+
+    inventory_service.get_property_views = function (organization_id, property_id) {
+      return $http.get('/api/v3/property_views/', {
+        params: {
+          organization_id: organization_id,
+          property: property_id,
+        }
+      }).then(function (response) {
+        return response.data;
+      })
+    };
+
+    inventory_service.get_taxlot_views = function (organization_id, taxlot_id) {
+      return $http.get('/api/v3/taxlot_views/', {
+        params: {
+          organization_id: organization_id,
+          taxlot: taxlot_id,
+        }
+      }).then(function (response) {
+        return response.data;
+      })
+    };
+
+    inventory_service.delete_inventory_document = function (view_id, file_id) {
+      return $http.delete('/api/v3/properties/' + view_id + '/delete_inventory_document/', {
+        headers: {
+          'Content-Type': 'application/json;charset=utf-8'
+        },
+        params: {
+          organization_id: user_service.get_organization().id,
+          file_id: file_id
+        }
+      }).then(function (response) {
+        return response.data;
       });
     };
 
@@ -230,6 +325,26 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
       });
     };
 
+    /** Update Salesforce for specified property views and organization
+     *
+     * @param property_view_ids        List of Property View IDs
+     *
+     * @returns {Promise}
+     */
+    inventory_service.update_salesforce = function (property_view_ids) {
+      spinner_utility.show();
+      return $http.post('/api/v3/properties/update_salesforce/', {
+        property_view_ids
+      }, {
+        params: {
+          organization_id: user_service.get_organization().id
+        }
+      }).then(function (response) {
+        return response.data;
+      }).finally(function () {
+        spinner_utility.hide();
+      });
+    };
 
     inventory_service.delete_property_states = function (property_view_ids) {
       return $http.delete('/api/v3/properties/batch_delete/', {
@@ -253,7 +368,7 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
     };
 
 
-    inventory_service.get_taxlots = function (page, per_page, cycle, profile_id, show_sub_org_data, inventory_ids, save_last_cycle = true, organization_id = null) {
+    inventory_service.get_taxlots = function (page, per_page, cycle, profile_id, include_view_ids, exclude_view_ids, save_last_cycle = true, organization_id = null, include_related = true, column_filters = null, column_sorts = null, ids_only = null, shown_column_ids = null) {
       organization_id = organization_id == undefined ? user_service.get_organization().id : organization_id;
       if (show_sub_org_data == undefined) show_sub_org_data = false;
 
@@ -261,8 +376,20 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         organization_id: organization_id,
         page: page,
         per_page: per_page || 999999999,
-        show_sub_org_data: show_sub_org_data
+        show_sub_org_data: show_sub_org_data,
+        include_related: include_related,
+        ids_only: ids_only,
+        shown_column_ids: shown_column_ids,
+        ...format_column_sorts(column_sorts),
+        ...format_column_filters(column_filters)
       };
+
+      if (ids_only) {
+        params.ids_only = true;
+      } else {
+        params.page = page;
+        params.per_page = per_page || 999999999;
+      }
 
       return cycle_service.get_cycles().then(function (cycles) {
         var validCycleIds = _.map(cycles.cycles, 'id');
@@ -279,7 +406,8 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
 
         return $http.post('/api/v3/taxlots/filter/', {
           // Pass the specific ids if they exist
-          inventory_ids: inventory_ids,
+          include_view_ids: include_view_ids,
+          exclude_view_ids: exclude_view_ids,
           // Pass the current profile (if one exists) to limit the column data that is returned
           profile_id: profile_id
         }, {
@@ -287,7 +415,12 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         }).then(function (response) {
           return response.data;
         });
-      }).catch(_.constant('Error fetching cycles'));
+      }).catch(function (response) {
+        if (response.data.message) {
+          return response.data;
+        }
+        throw response;
+      });
     };
 
     inventory_service.taxlots_cycle = function (profile_id, cycle_ids) {
@@ -520,6 +653,22 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
         let property_columns = response.data.columns.filter(column => column.table_name == 'PropertyState');
         return property_columns.map(a => {
           return { column_name: a.column_name, display_name: a.display_name };
+        });
+      });
+    };
+
+    inventory_service.get_property_column_names_and_ids_for_org = function (org_id) {
+      return $http.get('/api/v3/columns/', {
+        params: {
+          inventory_type: 'property',
+          organization_id: org_id,
+          only_used: false,
+          display_units: true
+        }
+      }).then(function (response) {
+        let property_columns = response.data.columns.filter(column => column.table_name == 'PropertyState');
+        return property_columns.map(a => {
+          return { column_name: a.column_name, display_name: a.display_name, id: a.id };
         });
       });
     };
@@ -1019,12 +1168,23 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
       });
     };
 
-    inventory_service.get_column_list_profiles = function (profile_location, inventory_type) {
+    inventory_service.get_column_list_profile = function (id) {
+      return $http.get('/api/v3/column_list_profiles/' + id + '/', {
+        params: {
+          organization_id: user_service.get_organization().id,
+        }
+      }).then(function (response) {
+        return response.data.data;
+      });
+    };
+
+    inventory_service.get_column_list_profiles = function (profile_location, inventory_type, brief=false) {
       return $http.get('/api/v3/column_list_profiles/', {
         params: {
           organization_id: user_service.get_organization().id,
           inventory_type: inventory_type,
-          profile_location: profile_location
+          profile_location: profile_location,
+          brief: brief,
         }
       }).then(function (response) {
         var profiles = response.data.data.sort(function (a, b) {

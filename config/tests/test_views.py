@@ -1,5 +1,9 @@
-from django.urls import reverse
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 from django.test import TestCase
+from django.urls import reverse
 
 
 class RobotsTests(TestCase):

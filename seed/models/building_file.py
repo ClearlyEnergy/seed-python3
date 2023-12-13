@@ -1,7 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author nicholas.long@nrel.gov
 """
 from __future__ import unicode_literals
@@ -15,18 +17,18 @@ from seed.data_importer.utils import kbtu_thermal_conversion_factors
 from seed.hpxml.hpxml import HPXML as HPXMLParser
 from seed.lib.merging.merging import merge_state
 from seed.models import (
-    PropertyState,
-    Column,
-    PropertyMeasure,
-    Measure,
-    PropertyAuditLog,
     AUDIT_IMPORT,
-    Scenario,
+    MERGE_STATE_MERGED,
+    ATEvent,
+    Column,
+    Measure,
     Meter,
     MeterReading,
-    MERGE_STATE_MERGED,
+    PropertyAuditLog,
+    PropertyMeasure,
+    PropertyState,
+    Scenario
 )
-
 
 _log = logging.getLogger(__name__)
 
@@ -135,13 +137,15 @@ class BuildingFile(models.Model):
 
         return self._cache_kbtu_thermal_conversion_factors
 
-    def process(self, organization_id, cycle, property_view=None):
+    def process(self, organization_id, cycle, property_view=None, promote_property_state=True):
         """
         Process the building file that was uploaded and create the correct models for the object
 
         :param organization_id: integer, ID of organization
         :param cycle: object, instance of cycle object
         :param property_view: Existing property view of the building file that will be updated from merging the property_view.state
+        :param promote_property_state: If no property_view is provided and this is True, it will promote the property state to a canonical property
+            WARNING: it is the caller's responsibility to link created Meters to canonical properties if they choose not to promote the property state!
         :return: list, [status, (PropertyState|None), (PropertyView|None), messages]
         """
 
@@ -159,6 +163,7 @@ class BuildingFile(models.Model):
             parser_kwargs = {}
             # TODO: use table_mappings for BuildingSync process method
             data, messages = parser.process(*parser_args, **parser_kwargs)
+
         except ParsingError as e:
             return False, None, None, [str(e)]
 
@@ -212,14 +217,14 @@ class BuildingFile(models.Model):
             join.useful_life = m.get('useful_life')
             join.save()
 
+        scenario_temporal_status_map = {
+            status_name: status_enum
+            for status_enum, status_name in Scenario.TEMPORAL_STATUS_TYPES
+        }
         # add in scenarios
         linked_meters = []
+        scenarios = []
         for s in data.get('scenarios', []):
-            # measures = models.ManyToManyField(PropertyMeasure)
-
-            # {'reference_case': 'Baseline', 'annual_savings_site_energy': None,
-            #  'measures': [], 'id': 'Baseline', 'name': 'Baseline'}
-
             # If the scenario does not have a name then log a warning and continue
             if not s.get('name'):
                 messages['warnings'].append('Skipping scenario because it does not have a name. ID = %s' % s.get('id'))
@@ -249,9 +254,10 @@ class BuildingFile(models.Model):
             scenario.annual_electricity_energy = s.get('annual_electricity_energy')
             scenario.annual_peak_demand = s.get('annual_peak_demand')
             scenario.annual_peak_electricity_reduction = s.get('annual_peak_electricity_reduction')
-
-            # temporal_status = models.IntegerField(choices=TEMPORAL_STATUS_TYPES,
-            #                                       default=TEMPORAL_STATUS_CURRENT)
+            scenario.temporal_status = scenario_temporal_status_map.get(
+                s.get('temporal_status'),
+                Scenario.TEMPORAL_STATUS_CURRENT
+            )
 
             if s.get('reference_case'):
                 ref_case = Scenario.objects.filter(
@@ -261,7 +267,7 @@ class BuildingFile(models.Model):
                 if len(ref_case) == 1:
                     scenario.reference_case = ref_case.first()
 
-            # set the list of measures. Note that this can be empty (e.g. baseline has no measures)
+            # set the list of measures. Note that this can be empty (e.g., baseline has no measures)
             for measure_name in s.get('measures', []):
                 # find the join measure in the database
                 measure = None
@@ -278,6 +284,7 @@ class BuildingFile(models.Model):
                 scenario.measures.add(measure)
 
             scenario.save()
+            scenarios.append(scenario)
 
             # meters
             energy_types = dict(Meter.ENERGY_TYPES)
@@ -378,11 +385,19 @@ class BuildingFile(models.Model):
 
             # set the property_state to the new one
             property_state = merged_state
-        elif not property_view:
+        elif not property_view and promote_property_state:
             property_view = property_state.promote(cycle)
         else:
-            # invalid arguments, must pass both or neither
-            return False, None, None, "Invalid arguments passed to BuildingFile.process()"
+            return True, property_state, None, messages
+
+        event = ATEvent.objects.create(
+            property=property_view.property,
+            cycle=property_view.cycle,
+            building_file=self,
+            audit_date=property_state.extra_data.get('audit_date', ''),
+        )
+        event.scenarios.set(scenarios)
+        event.save()
 
         for meter in linked_meters:
             meter.property = property_view.property

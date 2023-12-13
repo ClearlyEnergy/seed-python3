@@ -1,29 +1,23 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import logging
 import os.path as osp
+import pathlib
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from seed.data_importer import tasks, match
-from seed.data_importer.tests.util import (
-    FAKE_MAPPINGS,
-)
-from seed.models import (
-    ASSESSED_RAW,
-    Column,
-    PropertyState
-)
+from seed.data_importer import match, tasks
+from seed.data_importer.equivalence_partitioner import EquivalencePartitioner
+from seed.data_importer.tests.util import FAKE_MAPPINGS
+from seed.lib.progress_data.progress_data import ProgressData
+from seed.models import ASSESSED_RAW, Column, PropertyState
+from seed.tests.util import DataMappingBaseTestCase
 
 logger = logging.getLogger(__name__)
-
-from seed.data_importer.equivalence_partitioner import EquivalencePartitioner
-from seed.tests.util import DataMappingBaseTestCase
 
 
 class TestEquivalenceWithFile(DataMappingBaseTestCase):
@@ -38,7 +32,7 @@ class TestEquivalenceWithFile(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), '..', '..', '..', 'tests', 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 
@@ -48,8 +42,11 @@ class TestEquivalenceWithFile(DataMappingBaseTestCase):
 
     def test_equivalence(self):
         all_unmatched_properties = self.import_file.find_unmatched_property_states()
+        sub_progress_data = ProgressData(func_name='match_sub_progress', unique_id=123)
+        sub_progress_data.save()
         unmatched_property_ids, duplicate_property_count = match.filter_duplicate_states(
-            all_unmatched_properties
+            all_unmatched_properties,
+            sub_progress_data.key,
         )
         partitioner = EquivalencePartitioner.make_propertystate_equivalence()
 

@@ -1,43 +1,42 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
-import datetime
 import json
+from datetime import date
 
 from django.test import TestCase
-from django.utils import timezone
 
 from seed.data_importer.models import ImportFile, ImportRecord
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.models import Organization, OrganizationUser
 from seed.models import (
+    ASSESSED_RAW,
+    DATA_STATE_IMPORT,
+    SEED_DATA_SOURCES,
     Column,
     ColumnMapping,
     Cycle,
+    DataLogger,
     DerivedColumn,
-    Property,
-    PropertyState,
-    PropertyView,
-    PropertyAuditLog,
-    Note,
-    Scenario,
-    StatusLabel,
-    TaxLotAuditLog,
-    TaxLotState,
-    TaxLot,
-    TaxLotView,
-    TaxLotProperty,
     GreenAssessment,
     GreenAssessmentProperty,
     GreenAssessmentURL,
-)
-from seed.models import (
-    DATA_STATE_IMPORT,
-    ASSESSED_RAW,
+    Meter,
+    Note,
+    Property,
+    PropertyAuditLog,
+    PropertyState,
+    PropertyView,
+    Scenario,
+    StatusLabel,
+    TaxLot,
+    TaxLotAuditLog,
+    TaxLotProperty,
+    TaxLotState,
+    TaxLotView
 )
 from seed.models.data_quality import DataQualityCheck
 from seed.utils.organizations import create_organization
@@ -67,6 +66,10 @@ class DeleteModelsTestCase(TestCase):
         GreenAssessmentURL.objects.all().delete()
         GreenAssessmentProperty.objects.all().delete()
         GreenAssessment.objects.all().delete()
+
+        # Delete all the meters and sensors, but they should have already been removed
+        Meter.objects.all().delete()
+        DataLogger.objects.all().delete()
 
         # Now delete the cycle after all the states and views have been removed
         Cycle.objects.all().delete()
@@ -100,8 +103,8 @@ class DataMappingBaseTestCase(DeleteModelsTestCase):
         cycle, _ = Cycle.objects.get_or_create(
             name='Test Hack Cycle 2015',
             organization=org,
-            start=datetime.datetime(2015, 1, 1, tzinfo=timezone.get_current_timezone()),
-            end=datetime.datetime(2015, 12, 31, tzinfo=timezone.get_current_timezone()),
+            start=date(2015, 1, 1),
+            end=date(2015, 12, 31),
         )
 
         import_record, import_file = self.create_import_file(
@@ -116,7 +119,7 @@ class DataMappingBaseTestCase(DeleteModelsTestCase):
             owner=user, last_modified_by=user, super_organization=org
         )
         import_file = ImportFile.objects.create(import_record=import_record, cycle=cycle)
-        import_file.source_type = source_type
+        import_file.source_type = SEED_DATA_SOURCES[source_type][1]
         import_file.data_state = data_state
         import_file.save()
 
@@ -129,7 +132,7 @@ class FakeRequest(object):
     META = {'REMOTE_ADDR': '127.0.0.1'}
     path = 'fake_login_path'
     body = None
-    GET = POST = {}
+    GET = POST = {}  # type: ignore
 
     def __init__(self, data=None, headers=None, user=None, method='POST', **kwargs):
         if 'body' in kwargs:
@@ -173,4 +176,5 @@ class AssertDictSubsetMixin:
         and I believe it's much more readable compared to the implementation below
         """
         # source: https://stackoverflow.com/a/59777678
+        # Note that this only works in Python >= 3.9
         self.assertEqual(dictionary, dictionary | subset)

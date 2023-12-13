@@ -1,14 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
-# Imports from Standard Library
 import itertools
 import json
 
@@ -19,16 +14,17 @@ from rest_framework import status
 # Local Imports
 from seed.lib.superperms.orgs.models import Organization
 from seed.models import (
+    VIEW_LIST,
+    VIEW_LIST_PROPERTY,
     Column,
     ColumnListProfile,
     ColumnListProfileColumn,
     PropertyView,
     TaxLotProperty,
-    TaxLotView,
-    VIEW_LIST,
-    VIEW_LIST_PROPERTY,
+    TaxLotView
 )
 from seed.serializers.pint import apply_display_unit_preferences
+from seed.utils.search import build_view_filters_and_sorts
 
 
 def get_changed_fields(old, new):
@@ -184,7 +180,74 @@ def properties_across_cycles(org_id, profile_id, cycle_ids=[]):
             .filter(property__organization_id=org_id, cycle_id=cycle_id) \
             .order_by('id')
 
-        related_results = TaxLotProperty.get_related(property_views, show_columns, columns_from_database)
+        related_results = TaxLotProperty.serialize(property_views, show_columns, columns_from_database)
+
+        org = Organization.objects.get(pk=org_id)
+        unit_collapsed_results = [apply_display_unit_preferences(org, x) for x in related_results]
+
+        results[cycle_id] = unit_collapsed_results
+
+    return results
+
+
+def properties_across_cycles_with_filters(org_id, cycle_ids=[], query_dict={}, column_ids=[]):
+    # Identify column preferences to be used to scope fields/values
+    columns_from_database = Column.retrieve_all(org_id, 'property', False)
+    org = Organization.objects.get(pk=org_id)
+
+    results = {cycle_id: [] for cycle_id in cycle_ids}
+    property_views = _get_filter_group_views(org_id, cycle_ids, query_dict)
+    views_cycle_ids = [v.cycle_id for v in property_views]
+    related_results = TaxLotProperty.serialize(property_views, column_ids, columns_from_database, include_related=False)
+    unit_collapsed_results = [apply_display_unit_preferences(org, x) for x in related_results]
+
+    for cycle_id, unit_collapsed_result in zip(views_cycle_ids, unit_collapsed_results):
+        results[cycle_id].append(unit_collapsed_result)
+
+    return results
+
+
+# helper function for getting filtered properties
+def _get_filter_group_views(org_id, cycles, query_dict):
+
+    columns = Column.retrieve_all(
+        org_id=org_id,
+        inventory_type='property',
+        only_used=False,
+        include_related=False
+    )
+
+    annotations = {}
+    try:
+        filters, annotations, order_by = build_view_filters_and_sorts(query_dict, columns)
+    except Exception:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'error with filter group'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    views_list = (
+        PropertyView.objects.select_related('property', 'state', 'cycle')
+        .filter(property__organization_id=org_id, cycle__in=cycles)
+    )
+
+    views_list = views_list.annotate(**annotations).filter(filters).order_by('id')
+
+    return views_list
+
+
+def properties_across_cycles_with_columns(org_id, show_columns=[], cycle_ids=[]):
+    # Identify column preferences to be used to scope fields/values
+    columns_from_database = Column.retrieve_all(org_id, 'property', False)
+
+    results = {}
+    for cycle_id in cycle_ids:
+        # get -Views for this Cycle
+        property_views = PropertyView.objects.select_related('property', 'state', 'cycle') \
+            .filter(property__organization_id=org_id, cycle_id=cycle_id) \
+            .order_by('id')
+
+        related_results = TaxLotProperty.serialize(property_views, show_columns, columns_from_database)
 
         org = Organization.objects.get(pk=org_id)
         unit_collapsed_results = [apply_display_unit_preferences(org, x) for x in related_results]

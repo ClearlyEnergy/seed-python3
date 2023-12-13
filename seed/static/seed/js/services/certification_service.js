@@ -29,7 +29,7 @@ angular.module('BE.seed.service.certification', []).factory('certification_servi
     };
 
     certification_service.get_certifications_for_org = function (org_id) {
-      return $http.get('/api/v2/green_assessments/', {
+      return $http.get('/api/v3/green_assessments/', {
         params: {
           organization_id: org_id
         }
@@ -54,7 +54,7 @@ angular.module('BE.seed.service.certification', []).factory('certification_servi
     };
 
     certification_service.create_certification_for_org = function (certification, org_id) {
-      return $http.post('/api/v2/green_assessments/', certification, {
+      return $http.post('/api/v3/green_assessments/', certification, {
         params: {
           organization_id: org_id
         }
@@ -78,7 +78,7 @@ angular.module('BE.seed.service.certification', []).factory('certification_servi
     };
 
     certification_service.update_certification_for_org = function (certification, org_id) {
-      return $http.put('/api/v2/green_assessments/' + certification.id + '/', certification, {
+      return $http.put('/api/v3/green_assessments/' + certification.id + '/', certification, {
         params: {
           organization_id: org_id
         }
@@ -101,7 +101,7 @@ angular.module('BE.seed.service.certification', []).factory('certification_servi
     };
 
     certification_service.delete_certification_for_org = function (certification_id, org_id) {
-      return $http.delete('/api/v2/green_assessments/' + certification_id + '/', {
+      return $http.delete('/api/v3/green_assessments/' + certification_id + '/', {
 		params: {
           organization_id: org_id
         }
@@ -124,7 +124,7 @@ angular.module('BE.seed.service.certification', []).factory('certification_servi
     };
 
     certification_service.delete_assessment_for_org = function (assessment_id, org_id) {
-      return $http.delete('/api/v2/green_assessment_properties/' + assessment_id + '/', {
+      return $http.delete('/api/v3/green_assessment_properties/' + assessment_id + '/', {
 		params: {
           organization_id: org_id
         }
@@ -147,7 +147,7 @@ angular.module('BE.seed.service.certification', []).factory('certification_servi
     };
 
     certification_service.delete_assessment_url_for_org = function (assessment_url_id, org_id) {
-      return $http.delete('/api/v2/green_assessment_urls/' + assessment_url_id + '/', {
+      return $http.delete('/api/v3/green_assessment_urls/' + assessment_url_id + '/', {
 		params: {
           organization_id: org_id
         }
@@ -170,7 +170,7 @@ angular.module('BE.seed.service.certification', []).factory('certification_servi
     };
 
     certification_service.update_assessment_for_org = function (assessment, org_id) {
-      return $http.put('/api/v2/green_assessment_properties/' + assessment.id + '/', assessment, {
+      return $http.put('/api/v3/green_assessment_properties/' + assessment.id + '/', assessment, {
         params: {
           organization_id: org_id
         }

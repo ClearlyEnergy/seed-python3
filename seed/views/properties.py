@@ -1,11 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 
 import datetime
@@ -22,27 +19,28 @@ from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
 from rest_framework.viewsets import ViewSet
 
-from seed.utils.match import match_merge_link
 from seed.decorators import ajax_request_class
-from seed.filtersets import PropertyViewFilterSet, PropertyStateFilterSet
+from seed.filtersets import PropertyStateFilterSet, PropertyViewFilterSet
 from seed.lib.superperms.orgs.decorators import has_perm_class
-from seed.lib.superperms.orgs.models import (
-    Organization
-)
+from seed.lib.superperms.orgs.models import Organization
 from seed.models import (
     AUDIT_USER_EDIT,
-    Column,
-    ColumnListProfile,
-    ColumnListProfileColumn,
-    Cycle,
     DATA_STATE_MATCHING,
     MERGE_STATE_DELETE,
     MERGE_STATE_MERGED,
     MERGE_STATE_NEW,
-    Meter,
+    VIEW_LIST,
+    VIEW_LIST_PROPERTY,
+    Column,
+    ColumnListProfile,
+    ColumnListProfileColumn,
+    Cycle,
     Measure,
-    Note,
-    Property,
+    Meter,
+    Note
+)
+from seed.models import Property as PropertyModel
+from seed.models import (
     PropertyAuditLog,
     #    PropertyMeasure,
     PropertyState,
@@ -50,9 +48,7 @@ from seed.models import (
     Simulation,
     StatusLabel,
     TaxLotProperty,
-    TaxLotView,
-    VIEW_LIST,
-    VIEW_LIST_PROPERTY
+    TaxLotView
 )
 from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
 from helix.models import HELIXPropertyMeasure as PropertyMeasure
@@ -60,10 +56,10 @@ from helix.models import HelixMeasurement
 from helix.utils.address import normalize_address_str
 
 from seed.models import Property as PropertyModel
-from seed.serializers.pint import PintJSONEncoder
 from seed.serializers.pint import (
-    apply_display_unit_preferences,
-    add_pint_unit_suffix
+    PintJSONEncoder,
+    add_pint_unit_suffix,
+    apply_display_unit_preferences
 )
 from seed.serializers.properties import (
     PropertySerializer,
@@ -76,18 +72,17 @@ from seed.serializers.certification import (
     GreenAssessmentPropertyReadOnlySerializer
 )
 from seed.serializers.measures import PropertyMeasureReadOnlySerializer
-# HELIX end add
-from seed.serializers.taxlots import (
-    TaxLotViewSerializer,
-)
+
+from seed.serializers.taxlots import TaxLotViewSerializer
 from seed.utils.api import ProfileIdMixin, api_endpoint_class
+from seed.utils.match import match_merge_link
+from seed.utils.merge import merge_properties
 from seed.utils.properties import (
     get_changed_fields,
     pair_unpair_property_taxlot,
-    update_result_with_master,
     properties_across_cycles,
+    update_result_with_master
 )
-from seed.utils.merge import merge_properties
 from seed.utils.viewsets import (
     SEEDOrgCreateUpdateModelViewSet,
     SEEDOrgModelViewSet
@@ -109,7 +104,6 @@ class GBRPropertyViewSet(SEEDOrgCreateUpdateModelViewSet):
                 'properties': [
                     {
                         'id': Property primary key,
-                        'campus': property is a campus,
                         'parent_property': dict of associated parent property
                         'labels': list of associated label ids
                     }
@@ -317,8 +311,8 @@ class PropertyViewSet(ViewSet, ProfileIdMixin):
             except ColumnListProfile.DoesNotExist:
                 show_columns = None
 
-        related_results = TaxLotProperty.get_related(property_views, show_columns,
-                                                     columns_from_database)
+        related_results = TaxLotProperty.serialize(property_views, show_columns,
+                                                   columns_from_database)
 
         # collapse units here so we're only doing the last page; we're already a
         # realized list by now and not a lazy queryset
@@ -503,7 +497,7 @@ class PropertyViewSet(ViewSet, ProfileIdMixin):
     def merge(self, request):
         """
         Merge multiple property records into a single new record, and run this
-        new record through a match and merge round within it's current Cycle.
+        new record through a match and merge round within its current Cycle.
         ---
         parameters:
             - name: organization_id
@@ -606,16 +600,16 @@ class PropertyViewSet(ViewSet, ProfileIdMixin):
         new_property.id = None
         new_property.save()
 
-        new_property_2 = Property.objects.get(pk=new_property.id)
+        new_property_2 = PropertyModel.objects.get(pk=new_property.id)
         new_property_2.id = None
         new_property_2.save()
 
-        Property.objects.get(pk=new_property.id).copy_meters(old_view.property_id)
-        Property.objects.get(pk=new_property_2.id).copy_meters(old_view.property_id)
+        PropertyModel.objects.get(pk=new_property.id).copy_meters(old_view.property_id)
+        PropertyModel.objects.get(pk=new_property_2.id).copy_meters(old_view.property_id)
 
         # If canonical Property is NOT associated to a different -View, delete it
         if not PropertyView.objects.filter(property_id=old_view.property_id).exclude(id=old_view.id).exists():
-            Property.objects.get(pk=old_view.property_id).delete()
+            PropertyModel.objects.get(pk=old_view.property_id).delete()
 
         # Create the views
         new_view1 = PropertyView(
@@ -660,7 +654,7 @@ class PropertyViewSet(ViewSet, ProfileIdMixin):
         new_view1.save()
         new_view2.save()
 
-        # Asssociate labels
+        # Associate labels
         label_objs = StatusLabel.objects.filter(pk__in=label_ids)
         new_view1.labels.set(label_objs)
         new_view2.labels.set(label_objs)
@@ -1072,7 +1066,7 @@ class PropertyViewSet(ViewSet, ProfileIdMixin):
     def update(self, request, pk=None):
         """
         Update a property and run the updated record through a match and merge
-        round within it's current Cycle.
+        round within its current Cycle.
 
         - looks up the property view
         - casts it as a PropertyState
@@ -1080,7 +1074,7 @@ class PropertyViewSet(ViewSet, ProfileIdMixin):
         - checks if any fields have changed
         - if nothing has changed, return 422 - Really?  Not sure how I feel about that one, it *is* processable
         - get the property audit log for this property state
-        - if the new property state has extra_data, the original extra_data is update'd
+        - if the new property state has extra_data, the original extra_data is updated
         - and then whoa stuff about the audit log?
         - I'm going to assume 'Import Creation' is the key I'm looking for
         - create a serializer for the new property state
@@ -1161,9 +1155,6 @@ class PropertyViewSet(ViewSet, ProfileIdMixin):
                         result.update(
                             {'state': new_property_state_serializer.data}
                         )
-
-                        # save the property view so that the datetime gets updated on the property.
-                        property_view.save()
                     else:
                         result.update({
                             'status': 'error',

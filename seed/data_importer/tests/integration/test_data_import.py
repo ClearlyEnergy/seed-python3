@@ -1,49 +1,54 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import copy
 import csv
-import datetime
 import json
 import logging
 import os.path as osp
+import pathlib
 import zipfile
+from datetime import date
 
 from dateutil import parser
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils import timezone
 from mock import patch
 
 from config.settings.common import BASE_DIR
 from seed.data_importer import tasks
 from seed.data_importer.models import ImportFile, ImportRecord
-from seed.data_importer.tasks import save_raw_data, map_data
+from seed.data_importer.tasks import map_data, save_raw_data
 from seed.data_importer.tests.util import (
     FAKE_EXTRA_DATA,
     FAKE_MAPPINGS,
-    FAKE_ROW,
+    FAKE_ROW
 )
+from seed.lib.xml_mapping.mapper import default_buildingsync_profile_mappings
 from seed.models import (
-    ASSESSED_RAW,
     ASSESSED_BS,
+    ASSESSED_RAW,
     DATA_STATE_IMPORT,
     PORTFOLIO_RAW,
+    BuildingFile,
     Column,
-    PropertyState,
-    PropertyView,
-    TaxLotState,
     Cycle,
     Meter,
-    Scenario,
-    BuildingFile,
     PropertyMeasure,
+    PropertyState,
+    PropertyView,
+    Scenario,
+    TaxLotState
+)
+from seed.models.models import (
+    BUILDINGSYNC_RAW,
+    DATA_STATE_MAPPING,
+    SEED_DATA_SOURCES
 )
 from seed.tests.util import DataMappingBaseTestCase
-from seed.lib.xml_mapping.mapper import default_buildingsync_profile_mappings
 
 _log = logging.getLogger(__name__)
 
@@ -66,7 +71,7 @@ class TestDataImport(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), '..', '..', '..', 'tests', 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 
@@ -103,7 +108,7 @@ class TestDataImport(DataMappingBaseTestCase):
         )
         import_file = ImportFile.objects.create(
             import_record=import_record,
-            source_type=ASSESSED_RAW,
+            source_type=SEED_DATA_SOURCES[ASSESSED_RAW][1],
         )
         import_file.raw_save_done = True
         import_file.save()
@@ -169,7 +174,7 @@ class TestImportCSVMissingHeaders(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), '..', '..', '..', 'tests', 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 
@@ -206,13 +211,13 @@ class TestBuildingSyncImportZipBad(DataMappingBaseTestCase):
 
             self.assertEqual(xml_files_found, 2)
 
-        import_file_source_type = 'BuildingSync Raw'
+        import_file_source_type = BUILDINGSYNC_RAW
         selfvars = self.set_up(import_file_source_type)
         self.user, self.org, self.import_file, self.import_record, self.cycle = selfvars
 
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read(),
+            content=pathlib.Path(filepath).read_bytes(),
             content_type="application/zip"
         )
         self.import_file.save()
@@ -245,7 +250,7 @@ class TestBuildingSyncImportZip(DataMappingBaseTestCase):
 
             self.assertEqual(xml_files_found, 2)
 
-        import_file_source_type = 'BuildingSync Raw'
+        import_file_source_type = BUILDINGSYNC_RAW
         selfvars = self.set_up(import_file_source_type)
         self.user, self.org, self.import_file, self.import_record, self.cycle = selfvars
 
@@ -286,8 +291,7 @@ class TestBuildingSyncImportZip(DataMappingBaseTestCase):
 
         # -- Assert
         self.assertEqual('success', progress_info['status'])
-        ps = PropertyState.objects.filter(address_line_1='123 Main St',
-                                          import_file=self.import_file)
+        ps = PropertyState.objects.filter(import_file=self.import_file, data_state=DATA_STATE_MAPPING)
         self.assertEqual(len(ps), 2)
 
     def test_map_all_models_zip(self):
@@ -304,16 +308,13 @@ class TestBuildingSyncImportZip(DataMappingBaseTestCase):
         # map the data
         progress_info = tasks.map_data(self.import_file.pk)
         self.assertEqual('success', progress_info['status'])
-        ps = PropertyState.objects.filter(address_line_1='123 Main St',
-                                          import_file=self.import_file)
-        self.assertEqual(ps.count(), 2)
 
         # -- Act
         tasks.geocode_and_match_buildings_task(self.import_file.pk)
 
         # -- Assert
-        ps = PropertyState.objects.filter(address_line_1='123 Main St', import_file=self.import_file)
-        self.assertEqual(ps.count(), 2)
+        pvs = PropertyView.objects.all()
+        self.assertEqual(pvs.count(), 2)
 
         # verify there are 2 building files
         bfs = BuildingFile.objects.all()
@@ -331,17 +332,20 @@ class TestBuildingSyncImportXml(DataMappingBaseTestCase):
         filename = 'buildingsync_v2_0_bricr_workflow.xml'
         filepath = osp.join(BASE_DIR, 'seed', 'building_sync', 'tests', 'data', filename)
 
-        import_file_source_type = 'BuildingSync Raw'
+        import_file_source_type = BUILDINGSYNC_RAW
         selfvars = self.set_up(import_file_source_type)
         self.user, self.org, self.import_file, self.import_record, self.cycle = selfvars
 
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read(),
+            content=pathlib.Path(filepath).read_bytes(),
             content_type="application/xml"
         )
         self.import_file.uploaded_filename = filename
         self.import_file.save()
+
+    def tearDown(self) -> None:
+        self.import_file.file.close()
 
     def test_save_raw_data_xml(self):
         # -- Act
@@ -409,13 +413,13 @@ class TestBuildingSyncImportXmlBadMeasures(DataMappingBaseTestCase):
         filename = 'buildingsync_ex01_measures_bad_names.xml'
         filepath = osp.join(BASE_DIR, 'seed', 'building_sync', 'tests', 'data', filename)
 
-        import_file_source_type = 'BuildingSync Raw'
+        import_file_source_type = BUILDINGSYNC_RAW
         selfvars = self.set_up(import_file_source_type)
         self.user, self.org, self.import_file, self.import_record, self.cycle = selfvars
 
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read(),
+            content=pathlib.Path(filepath).read_bytes(),
             content_type="application/xml"
         )
         self.import_file.uploaded_filename = filename
@@ -449,9 +453,10 @@ class TestBuildingSyncImportXmlBadMeasures(DataMappingBaseTestCase):
         self.assertEqual(ps.count(), 1)
 
         # !! we should have warnings for our file because of the bad measure names !!
-        self.assertNotEqual({}, progress_info.get('file_info', {}))
-        self.assertIn(self.import_file.uploaded_filename, list(progress_info['file_info'].keys()))
-        self.assertNotEqual([], progress_info['file_info'][self.import_file.uploaded_filename].get('warnings', []))
+        self.assertNotEqual({}, progress_info.get('progress_data', {}))
+        self.assertNotEqual({}, progress_info['progress_data'].get('file_info', {}))
+        self.assertIn(self.import_file.uploaded_filename, list(progress_info['progress_data']['file_info'].keys()))
+        self.assertNotEqual([], progress_info['progress_data']['file_info'][self.import_file.uploaded_filename].get('warnings', []))
 
 
 class TestMappingExampleData(DataMappingBaseTestCase):
@@ -466,7 +471,7 @@ class TestMappingExampleData(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), '..', 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 
@@ -500,8 +505,8 @@ class TestMappingExampleData(DataMappingBaseTestCase):
         cycle2, _ = Cycle.objects.get_or_create(
             name='Hack Cycle 2016',
             organization=self.org,
-            start=datetime.datetime(2016, 1, 1, tzinfo=timezone.get_current_timezone()),
-            end=datetime.datetime(2016, 12, 31, tzinfo=timezone.get_current_timezone()),
+            start=date(2016, 1, 1),
+            end=date(2016, 12, 31),
         )
 
         # make sure that the new data was loaded correctly
@@ -539,7 +544,7 @@ class TestMappingPropertiesOnly(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), '..', 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 
@@ -578,7 +583,7 @@ class TestMappingTaxLotsOnly(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), '..', 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 
@@ -618,7 +623,7 @@ class TestPromotingProperties(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 
@@ -627,7 +632,7 @@ class TestPromotingProperties(DataMappingBaseTestCase):
         Import test files from Stephen for many-to-many testing. This imports
         and maps the data accordingly. Presently these files are missing a
         couple of attributes to make them valid:
-            1) the master campus record to define the pm_property_id
+            1) the campus record to define the pm_property_id
             2) the joins between propertystate and taxlotstate
         """
 
@@ -701,7 +706,7 @@ class TestPromotingProperties(DataMappingBaseTestCase):
         map_data(self.import_file.id)
 
 
-class TestPostalCode(DataMappingBaseTestCase):
+class TestPostalCodeAndExcelCellErrors(DataMappingBaseTestCase):
     def setUp(self):
         filename = getattr(self, 'filename', 'example-data-properties-postal.xlsx')
         import_file_source_type = ASSESSED_RAW
@@ -711,12 +716,12 @@ class TestPostalCode(DataMappingBaseTestCase):
         filepath = osp.join(osp.dirname(__file__), '..', 'data', filename)
         self.import_file.file = SimpleUploadedFile(
             name=filename,
-            content=open(filepath, 'rb').read()
+            content=pathlib.Path(filepath).read_bytes()
         )
         self.import_file.save()
 
     def test_postal_code_property(self):
-
+        """Test importing tax lots to properties correctly"""
         new_mappings = copy.deepcopy(self.fake_mappings['portfolio'])
 
         tasks.save_raw_data(self.import_file.pk)
@@ -734,7 +739,7 @@ class TestPostalCode(DataMappingBaseTestCase):
         self.assertEqual(ps.postal_code, '00001-0002')
 
     def test_postal_code_taxlot(self):
-
+        """Test importing tax lots to tax lots correctly"""
         new_mappings = copy.deepcopy(self.fake_mappings['taxlot'])
 
         tasks.save_raw_data(self.import_file.pk)
@@ -753,3 +758,27 @@ class TestPostalCode(DataMappingBaseTestCase):
         if ts is None:
             raise TypeError("Invalid Taxlot Address!")
         self.assertEqual(ts.postal_code, '00000-0000')
+
+    def test_postal_code_invalid_fields(self):
+        """Test the import of fields that have Excel cell errors (e.g., #VALUE!, etc.)"""
+        new_mappings = copy.deepcopy(self.fake_mappings['portfolio'])
+
+        tasks.save_raw_data(self.import_file.pk)
+        Column.create_mappings(new_mappings, self.org, self.user, self.import_file.pk)
+        tasks.map_data(self.import_file.pk)
+
+        # postal code is #NAME! in the excel file
+        ps = PropertyState.objects.filter(address_line_1='521 Elm Street')[0]
+        self.assertEqual(ps.postal_code, None)
+
+        # postal code is #div/0! in the excel file
+        # site EUI is #VALUE! in the excel file
+        ps = PropertyState.objects.filter(address_line_1='123 Mainstreet')[0]
+        self.assertEqual(ps.postal_code, None)
+        self.assertEqual(ps.site_eui, None)
+
+        # postal code is #VALUE! in the excel file
+        # site EUI is "Not Available" in the excel file
+        ps = PropertyState.objects.filter(address_line_1='124 Mainstreet')[0]
+        self.assertEqual(ps.postal_code, None)
+        self.assertEqual(ps.site_eui, None)

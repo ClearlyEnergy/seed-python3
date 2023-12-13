@@ -1,8 +1,21 @@
 Developer Resources
 ===================
 
+.. toctree::
+
+    migrations
+    translation
+
+
 General Notes
 -------------
+
+Pre-commit
+^^^^^^^^^^
+We use precommit commits for formatting. Set it up locally with
+```
+pre-commit install
+```
 
 Flake Settings
 ^^^^^^^^^^^^^^
@@ -27,9 +40,47 @@ to emulate the same checks as the CI machine.
 
 To run flake locally call:
 
-.. code-block:: console
+.. code-block:: bash
 
     tox -e flake8
+
+Python Type Hints
+^^^^^^^^^^^^^^^^^
+
+Python type hints are beginning to be added to the SEED codebase. The benefits are
+eliminating some accidental typing mistakes to prevent bugs as well as a better IDE
+experience.
+
+Usage
+*****
+
+SEED does not require exhaustive type annotations, but it is recommended you add them if you
+create any new functions or refactor any existing code where it might be beneficial
+and not require a ton of additional effort.
+
+When applicable, we recommend you use `built-in collection types <https://docs.python.org/3/whatsnew/3.9.html#type-hinting-generics-in-standard-collections>`_
+such as :code:`list`, :code:`dict` or :code:`tuple` instead of the capitalized types
+from the :code:`typing` module.
+
+Common gotchas:
+- If trying to annotate a class method with the class itself, import :code:`from __future__ import annotations`
+- If you're getting warnings about runtime errors due to a type name, make sure your IDE is set up to point to an environment with python 3.9
+- If you're wasting time trying to please the type checker, feel free to throw :code:`# type: ignore` on the problematic line (or at the top of the file to ignore all issues for that file)
+
+Type Checking
+*************
+
+CI currently runs static type checking on the codebase using `mypy <http://mypy-lang.org/>`_. For
+your own IDE, we recommend the following extensions:
+
+- VSCode: `Pylance <https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance>`_ (uses Microsoft's Pyright type checking)
+
+To run the same typechecking applied in CI (i.e., using mypy) you can run the following
+
+.. code-block:: bash
+
+    tox -e mypy
+
 
 Django Notes
 ------------
@@ -59,16 +110,18 @@ fields. Follow the steps below to add new fields to the SEED database:
                     'column_name': 'geocoding_confidence',
                     'table_name': 'PropertyState',
                     'display_name': 'Geocoding Confidence',
+                    'column_description': 'Geocoding Confidence',
                     'data_type': 'number',
                 }, {
                     'column_name': 'geocoding_confidence',
                     'table_name': 'TaxLotState',
                     'display_name': 'Geocoding Confidence',
+                    'column_description': 'Geocoding Confidence',
                     'data_type': 'number',
                 }
             ]
 
-            # Go through all the organizatoins
+            # Go through all the organizations
             for org in Organization.objects.all():
                 for new_db_field in new_db_fields:
                     columns = Column.objects.filter(
@@ -82,12 +135,16 @@ fields. Follow the steps below to add new fields to the SEED database:
                         new_db_field['organization_id'] = org.id
                         Column.objects.create(**new_db_field)
                     elif columns.count() == 1:
-                        # If the column exists, then just update the display_name and data_type if empty
+                        # If the column exists, then update the display_name and data_type if empty
                         c = columns.first()
                         if c.display_name is None or c.display_name == '':
                             c.display_name = new_db_field['display_name']
                         if c.data_type is None or c.data_type == '' or c.data_type == 'None':
                             c.data_type = new_db_field['data_type']
+                                for col in columns:
+                        # If the column exists, then update the column_description if empty
+                        if c.column_description is None or c.column_description == '':
+                            c.column_description = new_db_field['column_description']
                         c.save()
                     else:
                         print("  More than one column returned")
@@ -115,12 +172,12 @@ fields. Follow the steps below to add new fields to the SEED database:
 #. Test import workflow with mapping to new fields
 
 
-NginX Notes
+NGINX Notes
 -----------
 
 Toggle *maintenance mode* to display a maintenance page and prevent access to all site resources including API endpoints:
 
-.. code-block:: Bash
+.. code-block:: bash
 
     docker exec seed_web ./docker/maintenance.sh on
     docker exec seed_web ./docker/maintenance.sh off
@@ -200,7 +257,7 @@ Below is a standard set of error messages from Django.
 A logger is configured to have a log level. This log level describes the severity of
 the messages that the logger will handle. Python defines the following log levels:
 
-.. code-block:: console
+.. code-block:: bash
 
     DEBUG: Low level system information for debugging purposes
     INFO: General system information
@@ -243,7 +300,7 @@ that you require.
 Below are the commands for resetting the database and creating a new
 user:
 
-.. code-block:: console
+.. code-block:: bash
 
     createuser -U seed seeduser
 
@@ -265,7 +322,7 @@ user:
 Restoring a Database Dump
 -------------------------
 
-.. code-block:: console
+.. code-block:: bash
 
     psql -c 'DROP DATABASE "seed";'
     psql -c 'CREATE DATABASE "seed" WITH OWNER = "seeduser";'
@@ -276,7 +333,7 @@ Restoring a Database Dump
     psql -d seed -c 'SELECT timescaledb_pre_restore();'
 
     # restore a previous database dump (must be pg_restore 12+)
-    /usr/lib/postgresql/12/bin/pg_restore -U seeduser -d seed /backups/prod-backups/seedv2_20191203_000002.dump
+    /usr/lib/postgresql/12/bin/pg_restore -U seeduser -d seed /backups/prod-backups/prod_20191203_000002.dump
     # if any errors appear during the pg_restore process check that the `installed_version` of the timescaledb extension where the database was dumped matches the extension version where it's being restored
     # `SELECT default_version, installed_version FROM pg_available_extensions WHERE name = 'timescaledb';`
 
@@ -291,7 +348,7 @@ Restoring a Database Dump
         --organization=testorg
 
 
-    # if restoring a seedv2 backup to a different deployment update the site settings for password reset emails
+    # if restoring a production backup to a different deployment update the site settings for password reset emails
     ./manage.py shell
 
     from django.contrib.sites.models import Site
@@ -314,7 +371,7 @@ JS tests can be run with Jasmine at the url `/angular_js_tests/`.
 
 Python unit tests are run with
 
-.. code-block:: console
+.. code-block:: bash
 
     python manage.py test --settings=config.settings.test
 
@@ -327,14 +384,14 @@ Note on geocode-related testing:
 
 Run coverage using
 
-.. code-block:: console
+.. code-block:: bash
 
     coverage run manage.py test --settings=config.settings.test
     coverage report --fail-under=83
 
 Python compliance uses PEP8 with flake8
 
-.. code-block:: console
+.. code-block:: bash
 
     flake8
     # or
@@ -342,88 +399,67 @@ Python compliance uses PEP8 with flake8
 
 JS Compliance uses jshint
 
-.. code-block:: console
+.. code-block:: bash
 
     jshint seed/static/seed/js
 
-Best Practices
---------------
-
-1. Make sure there is an issue created for items you are working on (for tracking purposes and so that the item appears in the changelog for the release)
-2. Use the following labels on the GitHub issue:
-    **Feature** (features will appear as “New” item in the changelog)
-    **Enhancement** (these will appear as “Improved" in the changelog)
-    **Bug** (these will appear as “Fixed” in the changelog)
-3. Move the ticket/issue to ‘In Progress’ in the GitHub project tracker when you begin work
-4. Branch off of the ‘develop’ branch (unless it’s a hotfix for production)
-5. Write a test for the code added.
-6. Make sure to test locally.  note that all branches created and pushed to GitHub will also be tested automatically.
-7. When done, create a pull request (you can group related issues together in the same PR).  Assign a reviewer to look over the code
-8. Use the “DO NOT MERGE” label for Pull Requests that should not be merged
-9. When PR has been reviewed and approved, move the ticket/issue to the 'Ready to Deploy to Dev' box in the GitHub project tracker.
-
-Git Naming Conventions
+Building Documentation
 ----------------------
 
-Commit messages should follow the format of
+Older versions of the source code documentation are (still) on readthedocs; however, newer versions are built and pushed to the seed-website repository manually. To build the documentation follow the script below:
 
-.. code-block:: console
+.. code-block:: bash
 
-    <type>[( optional scope )]: <subject>
+        cd docs
+        rm -rf htmlout
+        sphinx-build -b html source htmlout
 
-    [optional body]
+For releasing, copy the ``htmlout`` directory into the seed-platform's website repository under ``docs/code_documentation/<new_version>``. Make sure to add the new documentation to the table in the ``docs/developer_resources.md``.
 
-:code:`type` must be one of the following:
+Contribution Instructions / Best Practices
+------------------------------------------
 
-- **docs**: Changes to the documentation (e.g. improving docstring, updating this file, etc)
-- **feat**: Adds a new feature
-- **fix**: A bug fix
-- **refactor**: Changes that don't fix a bug or add a new feature
-- **style**: Changes that don't affect the meaning of code (e.g. whitespace)
-- **test**: Adding or correcting tests
+If this is the first time contributing and you are outside of the DOE National Lab system, then you will need to review and fill out the contribution agreement which is found in `SEED's Contribution Agreement in the GitHub repository`_
 
-:code:`scope` is optional for commit messages, and should indicate the general area of the application affected.
+The desired workflow for development and submitting changes is the following:
 
-:code:`subject` is a short description of the changes in imperative present tense (such as “add function to _”, not “added function”)
-
-Branches should be named as :code:`[<optional issue number> -]<type>/<scope>`, where :code:`scope` is the general scope affected, or if creating a feature branch, a shortened name of the feature being added. If :code:`scope` is more than one word, it should be separated by dashes.
-
-Pull Request titles should follow the format :code:`[# optional issue number] <type>[(optional scope)]: <subject>`, following the same conventions as commit messages.
-
-Commit examples:
-
-- :code:`feat(models): add date_modified field to MyModel`
-- :code:`refactor: change var to let/const in frontend`
-- :code:`docs: update release instructions`
-
-Branch examples:
-
-- :code:`1234-feat/buildingsync-v2.3-import`
-- :code:`5678-refactor/org-views-auth`
-- :code:`fix/error-mapping-pm-taxlots`
-
-Pull request examples:
-
-- :code:`#1234 feat(models): add date_modified to MyModel`
-- :code:`#4567 refactor: change var to let/const in frontend`
+#. Fork the repository on GitHub if you do not have access to the repository, otherwise, work within the https://github.com/seed-platform/seed repository.
+#. Ensure there is a ticket/issue created for the work you are doing. Verify that the ticket is assigned to you and that it is part of the latest project board on the GitHub site (https://github.com/orgs/SEED-platform/projects).
+#. Move the ticket/issue to 'In Progress' in the GitHub project tracker when you begin work
+#. Create a branch off of develop (unless it is a hotfix, then branch of the appropriate tag). The recommended naming convention is <issue_id>-short-descriptive-name.
+#. Make changes and write a test for the code added.
+#. Make sure tests pass locally. Most branches created and pushed to GitHub will be tested automatically.
+#. Upon completion of the work, create a pull request (PR) against the develop branch (or hotfix branch if applicable). In the PR description fill out the requested information and include the issue number (e.g., #1234).
+#. Assign one label to the PR (not the ticket/issue) in order to auto-populate change logs (e.g., Bug, Feature, Maintenance, Performance, DoNotPublish) This is required and CI will fail if not present.
+    * **Bug** (these will appear as "Bug Fixes" in the change log)
+    * **Feature** (features will appear as “New Features” item in the change log)
+    * **Enhancement** (these will appear as “Improvements" in the change log)
+    * **Maintenance** (these will appear under “Maintenance" in the change log)
+    * **Performance** (these will appear under “Maintenance" in the change log)
+    * **Documentation** (these will appear under “Maintenance" in the change log)
+    * **Do not publish** (these will no appear in the change log)
+#. Ensure all tests pass.
+#. Assign a reviewer to the PR.
+#. If the reviewer requests changes, then addresses changes and re-assign the reviewer as needed.
+#. Once approved, merge the PR!
+#. Move the related ticket(s)/issue(s) to the 'Ready to Deploy' column in the GitHub project tracker.
 
 Release Instructions
 --------------------
 
 To make a release do the following:
 
-1. Github admin user, on develop branch: update the ``package.json`` file with the most recent version number. Always use MAJOR.MINOR.RELEASE.
-2. Update the ``docs/sources/migrations.rst`` file with any required actions.
-3. Run the ``docs/scripts/change_log.py`` script and add the changes to the CHANGELOG.md file for the range of time between last release and this release. Only add the *Closed Issues*. Also make sure that all the pull requests have a related Issue in order to be included in the change log.
+#. Create a branch to prepare the updates (e.g., 2.16.0-release-prep).
+#. Github admin user, on develop branch: update the ``package.json`` and ``npm-shrinkwrap.json`` files with the most recent version number. Always use MAJOR.MINOR.RELEASE.
+#. Update the ``docs/sources/migrations.rst`` file with any required actions.
+#. Push updates to new branch on GitHub, then go to the releases page to draft a new release which will generate the changelog.
+#. Copy the GitHub change log results into the CHANGELOG.md. Cleanup the formatting and items as needed (make sure the spelling is correct, starts with a capital letter, etc.)
+#. Make sure that any new UI needing localization has been tagged for translation, and that any new translation keys exist in the lokalise.com project. (see :doc:`translation documentation <translation>`).
+#. Create PR for release preparation and merge after tests/reviews pass.
+#. Once develop tests pass, then create a new PR from develop to main.
+#. Draft new Release from Github (https://github.com/SEED-platform/seed/releases).
+#. Include list of changes since previous release (i.e., the content in the CHANGELOG.md)
+#. Verify that the Docker versions are built and pushed to Docker hub (https://hub.docker.com/r/seedplatform/seed/tags/).
+#. Publish the new documentation in the seed-platform website repository (see instructions above under Building Documentation).
 
-.. code-block:: console
-
-    python docs/scripts/change_log.py –k GITHUB_API_TOKEN –s 2020-09-25 –e 2020-12-28
-
-4. Paste the results (remove unneeded Accepted Pull Requests and the new issues) into the CHANGELOG.md. Cleanup the formatting (if needed).
-5. Make sure that any new UI needing localization has been tagged for translation, and that any new translation keys exist in the lokalise.com project. (see :doc:`translation documentation <translation>`).
-6. Once develop passes, then create a new PR from develop to main.
-7. Draft new Release from Github (https://github.com/SEED-platform/seed/releases).
-8. Include list of changes since previous release (i.e. the content in the CHANGELOG.md)
-9. Verify that the Docker versions are built and pushed to Docker hub (https://hub.docker.com/r/seedplatform/seed/tags/).
-10. Go to Read the Docs and enable the latest version to be active (https://readthedocs.org/dashboard/seed-platform/versions/)
+.. _`SEED's Contribution Agreement in the GitHub repository`: https://github.com/SEED-platform/seed/blob/develop/.github/CONTRIBUTING.md

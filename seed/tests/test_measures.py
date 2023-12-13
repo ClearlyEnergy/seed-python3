@@ -1,16 +1,15 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 from django.test import TestCase
 
+from seed.landing.models import SEEDUser as User
 from seed.models.measures import Measure, _snake_case
 from seed.models.property_measures import PropertyMeasure
 from seed.utils.organizations import create_organization
-from seed.landing.models import SEEDUser as User
 
 
 class TestMeasures(TestCase):

@@ -1,18 +1,23 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 
 from django.http import HttpResponse
-from django.test import TestCase, RequestFactory
+from django.test import RequestFactory, TestCase
 from rest_framework.test import APIRequestFactory
 
 from seed import decorators
-from seed.utils.cache import make_key, get_cache, get_lock, increment_cache, \
-    clear_cache
+from seed.utils.cache import (
+    clear_cache,
+    get_cache,
+    get_lock,
+    increment_cache,
+    make_key
+)
 
 
 class TestException(Exception):

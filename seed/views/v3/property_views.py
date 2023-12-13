@@ -1,15 +1,12 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 from seed.filtersets import PropertyViewFilterSet
 from seed.models import PropertyView
-from seed.serializers.properties import PropertyViewAsStateSerializer
+from seed.serializers.properties import BriefPropertyViewSerializer
 from seed.utils.viewsets import SEEDOrgModelViewSet
 
 
@@ -49,7 +46,8 @@ class PropertyViewViewSet(SEEDOrgModelViewSet):
     partial_update:
         WARNING: using this endpoint is not recommended as it can cause unexpected results; please use the `properties/` endpoints instead. Update one or more fields on an existing PropertyView.
     """
-    serializer_class = PropertyViewAsStateSerializer
+    serializer_class = BriefPropertyViewSerializer
+    pagination_class = None
     model = PropertyView
     filter_class = PropertyViewFilterSet
     orgfilter = 'property__organization_id'

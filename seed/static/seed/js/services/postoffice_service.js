@@ -1,14 +1,15 @@
 /**
- * :copyright (c) 2014 - 2020, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
+ *
+ * Provides methods to access email templates and to send emails on the server
  */
-
-/* Provides methods to access email templates and to send emails on the server */
 angular.module('BE.seed.service.postoffice', []).factory('postoffice_service', [
   '$http',
+  '$q',
   'user_service',
   'naturalSort',
-  function ($http, user_service, naturalSort) {
+  function ($http, $q, user_service, naturalSort) {
     var template_factory = {};
 
     template_factory.sort_templates = function (response) {
@@ -38,14 +39,14 @@ angular.module('BE.seed.service.postoffice', []).factory('postoffice_service', [
     template_factory.get_templates_for_org = function (organization_id) {
       return $http.get('/api/v3/postoffice/', {
         params: {
-          organization_id: organization_id,
+          organization_id: organization_id
         }
       }).then(function (response) {
         return template_factory.sort_templates(response);
       });
     };
 
-	// Create new template
+    // Create new template
     template_factory.new_template = function (data, organization_id) {
       return $http.post('/api/v3/postoffice/', data, {
         params: {
@@ -91,14 +92,14 @@ angular.module('BE.seed.service.postoffice', []).factory('postoffice_service', [
     // Passing data from the Front End to the View
     template_factory.send_templated_email_for_org = function (template_id, inventory_id, inventory_type, organization_id) {
       var data = {
-        from_email: "dummy_email@example.com", // The from_email field has to be passed to the view, can put a dummy email in place.
+        from_email: 'dummy_email@example.com', // The from_email field has to be passed to the view, can put a dummy email in place.
         template_id: template_id,
         inventory_id: inventory_id,
         inventory_type: inventory_type
       };
       return $http.post('/api/v3/postoffice_email/', data, {
         params: {
-          organization_id: organization_id,
+          organization_id: organization_id
         }
       }).then(function (response) {
         return response.data;
@@ -117,5 +118,3 @@ angular.module('BE.seed.service.postoffice', []).factory('postoffice_service', [
 
     return template_factory;
   }]);
-
-

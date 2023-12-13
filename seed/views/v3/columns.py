@@ -1,31 +1,36 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.parsers import JSONParser, FormParser
+from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser
 from rest_framework.renderers import JSONRenderer
 
 from seed import tasks
 from seed.decorators import ajax_request_class
 from seed.lib.superperms.orgs.decorators import has_perm_class
-from rest_framework.decorators import action
-from seed.models import (
-    Column,
-    Organization,
-)
+from seed.models import Column, Organization
 from seed.serializers.columns import ColumnSerializer
 from seed.serializers.pint import add_pint_unit_suffix
-from seed.utils.api import OrgValidateMixin, OrgCreateUpdateMixin, api_endpoint_class
+from seed.utils.api import (
+    OrgCreateUpdateMixin,
+    OrgValidateMixin,
+    api_endpoint_class
+)
+from seed.utils.api_schema import (
+    AutoSchemaHelper,
+    swagger_auto_schema_org_query_param
+)
 from seed.utils.viewsets import SEEDOrgNoPatchOrOrgCreateModelViewSet
-from seed.utils.api_schema import AutoSchemaHelper, swagger_auto_schema_org_query_param
 
 
 @method_decorator(
@@ -74,7 +79,7 @@ class ColumnViewSet(OrgValidateMixin, SEEDOrgNoPatchOrOrgCreateModelViewSet, Org
                 name='only_used',
                 required=False,
                 description='Determine whether or not to show only the used fields '
-                            '(i.e. only columns that have been mapped)'
+                            '(i.e., only columns that have been mapped)'
                             '\nDefault: "false"'
             ),
             AutoSchemaHelper.query_boolean_field(
@@ -107,6 +112,35 @@ class ColumnViewSet(OrgValidateMixin, SEEDOrgNoPatchOrOrgCreateModelViewSet, Org
             'columns': columns,
         })
 
+    @api_endpoint_class
+    @ajax_request_class
+    def create(self, request):
+        self.get_organization(self.request)
+
+        table_name = self.request.data.get("table_name")
+        if table_name != "PropertyState" and table_name != "TaxLotState":
+            return JsonResponse({
+                'status': 'error',
+                'message': 'table_name must be "PropertyState" or "TaxLotState"'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            new_column = Column.objects.create(
+                is_extra_data=True,
+                **self.request.data
+            )
+            new_column.save()
+        except ValidationError as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse({
+            'status': 'success',
+            'column': ColumnSerializer(new_column).data,
+        }, status=status.HTTP_201_CREATED)
+
     @swagger_auto_schema_org_query_param
     @ajax_request_class
     def retrieve(self, request, pk=None):
@@ -133,6 +167,21 @@ class ColumnViewSet(OrgValidateMixin, SEEDOrgNoPatchOrOrgCreateModelViewSet, Org
             'status': 'success',
             'column': ColumnSerializer(c).data
         })
+
+
+    @ajax_request_class
+    @has_perm_class('requires_parent_org_owner')
+    def create(self, request):
+        mappings = request.data
+        organization_id = request.query_params.get('organization_id', None)
+        organization = Organization.objects.get(pk=organization_id)
+        result = Column.create_mappings(mappings, organization, request.user)
+        
+        if result:
+            return JsonResponse({'status': 'success'})
+        else:
+            return JsonResponse({'status': 'error'})
+
 
     @ajax_request_class
     @has_perm_class('can_modify_data')

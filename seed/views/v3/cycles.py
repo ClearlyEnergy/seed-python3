@@ -1,23 +1,22 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:authors Paul Munday<paul@paulmunday.net> Fable Turas <fable@raintechpdx.com>
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
+:author Paul Munday<paul@paulmunday.net>
+:author Fable Turas <fable@raintechpdx.com>
 """
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
-
 from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 
+from seed import tasks
 from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.models import Cycle, PropertyView, TaxLotView
 from seed.serializers.cycles import CycleSerializer
-from seed import tasks
-from seed.utils.viewsets import SEEDOrgNoPatchOrOrgCreateModelViewSet
 from seed.utils.api_schema import swagger_auto_schema_org_query_param
+from seed.utils.viewsets import SEEDOrgNoPatchOrOrgCreateModelViewSet
 
 
 @method_decorator(
@@ -107,3 +106,19 @@ class CycleViewSet(SEEDOrgNoPatchOrOrgCreateModelViewSet):
 
         result = tasks.delete_organization_cycle(pk, organization_id)
         return JsonResponse(result)
+
+
+def find_org_cycle(cycle, organization):
+    """
+    Matches the first cycle of a organization that starts and ends
+    within the range of the cycle provided
+
+    :param cycle: Cycle
+    :param organization: Organization
+    :return: Cycle, or None if there is no cycle that matches
+    """
+    range_start = cycle.start
+    range_end = cycle.end
+    cycles = organization.cycles.filter(start__gte=range_start,
+                                        end__gte=range_end)
+    return cycles.first()

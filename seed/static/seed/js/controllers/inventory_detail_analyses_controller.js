@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.inventory_detail_analyses', [])
   .controller('inventory_detail_analyses_controller', [
@@ -19,6 +19,7 @@ angular.module('BE.seed.controller.inventory_detail_analyses', [])
     'analyses_service',
     'Notification',
     'uploader_service',
+    'cycle_service',
     function (
       $state,
       $scope,
@@ -34,7 +35,8 @@ angular.module('BE.seed.controller.inventory_detail_analyses', [])
       $log,
       analyses_service,
       Notification,
-      uploader_service
+      uploader_service,
+      cycle_service,
     ) {
       $scope.item_state = inventory_payload.state;
       $scope.inventory_type = $stateParams.inventory_type;
@@ -139,11 +141,13 @@ angular.module('BE.seed.controller.inventory_detail_analyses', [])
           resolve: {
             inventory_ids: function () {
               return [$scope.inventory.view_id];
-            }
-            //   meters: ['$stateParams', 'user_service', 'meter_service', function ($stateParams, user_service, meter_service) {
-            //   var organization_id = user_service.get_organization().id;
-            //   return meter_service.get_meters($stateParams.view_id, organization_id);
-            // }],
+            },
+            cycles: function () {
+              return cycle_service.get_cycles().then(function (result) {
+                return result.cycles;
+              });
+            },
+            current_cycle: {},
           }
         }).result.then(function (data) {
           if (data) {

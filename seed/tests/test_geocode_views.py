@@ -1,24 +1,23 @@
 # !/usr/bin/env python
 # encoding: utf-8
-
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 import ast
 
+from django.test import TestCase
 from django.urls import reverse
 
-from django.test import TestCase
-
 from seed.landing.models import SEEDUser as User
-
 from seed.models.properties import PropertyState
 from seed.models.tax_lots import TaxLotState
-
 from seed.test_helpers.fake import (
     FakePropertyStateFactory,
-    FakeTaxLotStateFactory,
     FakePropertyViewFactory,
+    FakeTaxLotStateFactory,
     FakeTaxLotViewFactory
 )
-
 from seed.utils.geocode import long_lat_wkt
 from seed.utils.organizations import create_organization
 

@@ -1,42 +1,45 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-from django.conf.urls import url, include
+from django.conf.urls import include, re_path
 from rest_framework import routers
 
-from seed.api.base.views import test_view_with_arg, TestReverseViewSet
+from seed.api.base.views import TestReverseViewSet, test_view_with_arg
 from seed.api.v2.views import ProgressViewSetV2
-from seed.data_importer.views import ImportFileViewSet
 from seed.data_importer.views import (
-    get_upload_details,
-    LocalUploaderViewSet
+    ImportFileViewSet,
+    LocalUploaderViewSet,
+    get_upload_details
 )
 from seed.views.api import get_api_schema
 from seed.views.building_file import BuildingFileViewSet
 from seed.views.certification import (
-    GreenAssessmentViewSet,
     GreenAssessmentPropertyViewSet,
-    GreenAssessmentURLViewSet
+    GreenAssessmentURLViewSet,
+    GreenAssessmentViewSet
 )
-from seed.views.columns import ColumnViewSet
-from seed.views.column_mappings import ColumnMappingViewSet
 from seed.views.column_list_settings import ColumnListingViewSet
 from seed.views.column_mapping_presets import ColumnMappingPresetViewSet
+from seed.views.column_mappings import ColumnMappingViewSet
+from seed.views.columns import ColumnViewSet
 from seed.views.cycles import CycleViewSet
-from seed.views.data_quality import DataQualityViews, DataQualityCheckViewSet
+from seed.views.data_quality import DataQualityViews
 from seed.views.datasets import DatasetViewSet
 from seed.views.geocode import GeocodeViews
 from seed.views.labels import LabelViewSet, UpdateInventoryLabelsAPIView
 from seed.views.main import version
-from seed.views.measures import MeasureViewSet, PropertyMeasureViewSet
-from seed.views.meters import MeterViewSet
+from seed.views.measures import MeasureViewSet
+from seed.views.meters import MeterViewSetV2
 from seed.views.organizations import OrganizationViewSet
-from seed.views.projects import ProjectViewSet
-from seed.views.properties import (PropertyViewSet, PropertyStateViewSet,
-                                   PropertyViewViewSet, GBRPropertyViewSet)
+from seed.views.properties import (
+    GBRPropertyViewSet,
+    PropertyStateViewSet,
+    PropertyViewSet,
+    PropertyViewViewSet
+)
 from seed.views.reports import Report
 from seed.views.taxlots import TaxLotViewSet
 from seed.views.ubid import UbidViews
@@ -60,10 +63,9 @@ api_v2_router.register(r'green_assessment_properties', GreenAssessmentPropertyVi
 api_v2_router.register(r'green_assessments', GreenAssessmentViewSet, basename="green_assessments")
 api_v2_router.register(r'labels', LabelViewSet, basename="labels")
 api_v2_router.register(r'measures', MeasureViewSet, basename='measures')
-api_v2_router.register(r'meters', MeterViewSet, basename='meters')
+api_v2_router.register(r'meters', MeterViewSetV2, basename='meters')
 api_v2_router.register(r'organizations', OrganizationViewSet, basename="organizations")
 api_v2_router.register(r'progress', ProgressViewSetV2, basename="progress")
-api_v2_router.register(r'projects', ProjectViewSet, basename="projects")
 api_v2_router.register(r'properties', PropertyViewSet, basename="properties")
 api_v2_router.register(r'property_states', PropertyStateViewSet, basename="property_states")
 api_v2_router.register(r'property_views', PropertyViewViewSet, basename="property_views")
@@ -75,76 +77,51 @@ api_v2_router.register(r'users', UserViewSet, basename="users")
 
 urlpatterns = [
     # v2 api
-    url(r'^', include(api_v2_router.urls)),
+    re_path(r'^', include(api_v2_router.urls)),
     # ajax routes
-    url(r'^version/$', version, name='version'),
+    re_path(r'^version/$', version, name='version'),
     # data uploader related things
-    url(r'get_upload_details/$', get_upload_details, name='get_upload_details'),
-    url(r'^schema/$', get_api_schema, name='schema'),
-    url(
-        r'projects/(?P<pk>\w+)/add/$',
-        ProjectViewSet.as_view({'put': 'add'}),
-        name='projects-add-inventory'
-    ),
-    url(
-        r'projects/(?P<pk>\w+)/remove/$',
-        ProjectViewSet.as_view({'put': 'remove'}),
-        name='projects-remove-inventory'
-    ),
-    url(
-        r'projects/(?P<pk>\w+)/update/$',
-        ProjectViewSet.as_view({'put': 'update_details'}),
-        name='projects-update'
-    ),
-    url(
-        r'projects/(?P<pk>\w+)/move/$',
-        ProjectViewSet.as_view({'put': 'move'}),
-        name='projects-move'
-    ),
-    url(
-        r'projects/(?P<pk>\w+)/copy/$',
-        ProjectViewSet.as_view({'put': 'copy'}),
-        name='projects-copy'
-    ),
-    url(
+    re_path(r'get_upload_details/$', get_upload_details, name='get_upload_details'),
+    re_path(r'^schema/$', get_api_schema, name='schema'),
+    re_path(
         r'labels-property/$',
         UpdateInventoryLabelsAPIView.as_view(),
         {'inventory_type': 'property'},
         name="property-labels",
     ),
-    url(
+    re_path(
         r'labels-taxlot/$',
         UpdateInventoryLabelsAPIView.as_view(),
         {'inventory_type': 'taxlot'},
         name="taxlot-labels",
     ),
-    url(
+    re_path(
         r'^test_view_with_arg/([0-9]{1})/$',
         test_view_with_arg,
         name='testviewarg'
     ),
-    url(
+    re_path(
         r'^export_reports_data/$',
         Report.as_view({'get': 'export_reports_data'}),
         name='export_reports_data'
     ),
-    url(
+    re_path(
         r'^get_property_report_data/$',
         Report.as_view({'get': 'get_property_report_data'}),
         name='property_report_data'
     ),
-    url(
+    re_path(
         r'^get_aggregated_property_report_data/$',
         Report.as_view({'get': 'get_aggregated_property_report_data'}),
         name='aggregated_property_report_data'
     ),
-    # url(
+    # re_path(
     #     r'^property/',
     #     UpdateInventoryLabelsAPIView.as_view(),
     #     {'inventory_type': 'property'},
     #     name="property_labels",
     # ),
-    # url(
+    # re_path(
     #     r'^taxlot/$',
     #     UpdateInventoryLabelsAPIView.as_view(),
     #     {'inventory_type': 'taxlot'},

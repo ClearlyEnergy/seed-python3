@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 
 Delete all organizations that are not part of the main 12.
 See code for organization list and source documentation.
@@ -10,11 +10,11 @@ from __future__ import unicode_literals
 
 import logging
 
+from _localtools import get_core_organizations
 from django.core.management.base import BaseCommand
 
 import seed.models
 import seed.tasks
-from _localtools import get_core_organizations
 
 logging.basicConfig(level=logging.DEBUG)
 

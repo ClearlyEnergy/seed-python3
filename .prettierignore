@@ -1,0 +1,4 @@
+CHANGELOG.md
+charts/persistentvolumes/templates/
+charts/seed/templates/
+seed/tests/data/vcr_cassettes/

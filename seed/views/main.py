@@ -1,10 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import json
 import logging
 import os
@@ -14,16 +13,17 @@ from django.contrib.auth import authenticate, login
 from django.conf import settings
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import JsonResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse
 from past.builtins import basestring
 from rest_framework import status
 from rest_framework.decorators import api_view
 
 from seed import tasks
+from seed.celery import app
 from seed.data_importer.models import ImportFile, ImportRecord
 from seed.decorators import ajax_request
-from seed.lib.superperms.orgs.decorators import has_perm
+from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.utils.api import api_endpoint
 from seed.views.users import _get_js_role
 
@@ -32,6 +32,7 @@ _log = logging.getLogger(__name__)
 
 def angular_js_tests(request):
     """Jasmine JS unit test code covering AngularJS unit tests"""
+    debug = settings.DEBUG
     return render(request, 'seed/jasmine_tests/AngularJSTests.html', locals())
 
 
@@ -44,7 +45,7 @@ def _get_default_org(user):
     :returns: tuple (Organization id, Organization name, OrganizationUser role)
     """
     org = user.default_organization
-    # check if user is still in the org, i.e. s/he wasn't removed from his/her
+    # check if user is still in the org, i.e., they weren't removed from their
     # default org or did not have a set org and try to set the first one
     if not org or not user.orgs.exists():
         org = user.orgs.first()
@@ -80,8 +81,48 @@ def home(request):
         request.user
     )
     debug = settings.DEBUG
-
     return render(request, 'seed/index.html', locals())
+
+
+@api_endpoint
+@ajax_request
+@api_view(['GET'])
+@has_perm_class('requires_superuser', False)
+def celery_queue(request):
+    """
+    Returns the number of running and queued celery tasks. This action can only be performed by superusers
+
+    Returns::
+
+        {
+            'active': {'total': n, 'tasks': []}, // Tasks that are currently being executed
+            'reserved': {'total': n, 'tasks': []}, // Tasks waiting to be executed
+            'scheduled': {'total': n, 'tasks': []}, // Tasks reserved by the worker when they have an eta or countdown
+            'maxConcurrency': The maximum number of active tasks
+        }
+    """
+    celery_tasks = app.control.inspect()
+    results = {}
+
+    methods = ('active', 'reserved', 'scheduled', 'stats')
+    for method in methods:
+        result = getattr(celery_tasks, method)()
+        if result is None or 'error' in result:
+            results[method] = 'Error'
+            continue
+        for worker, response in result.items():
+            if method == 'stats':
+                results['maxConcurrency'] = response['pool']['max-concurrency']
+            else:
+                if response is not None:
+                    total = len(response)
+                    results[method] = {'total': total}
+                    if total > 0:
+                        results[method]['tasks'] = list(set([t['name'] for t in response]))
+                else:
+                    results[method] = {'total': 0}
+
+    return JsonResponse(results)
 
 
 @api_endpoint
@@ -106,29 +147,23 @@ def version(request):
 
 
 def error404(request, exception):
-    # Okay, this is a bit of a hack. Needed to move on.
     if '/api/' in request.path:
         return JsonResponse({
             "status": "error",
             "message": "Endpoint could not be found",
         }, status=status.HTTP_404_NOT_FOUND)
     else:
-        response = render(request, 'seed/404.html', {})
-        response.status_code = 404
-        return response
+        return redirect('/app/#?http_error=404')
 
 
 def error500(request):
-    # Okay, this is a bit of a hack. Needed to move on.
     if '/api/' in request.path:
         return JsonResponse({
             "status": "error",
             "message": "Internal server error",
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
-        response = render(request, 'seed/500.html', {})
-        response.status_code = 500
-        return response
+        return redirect('/app/#?http_error=500')
 
 
 # @api_view(['POST'])  # do not add api_view on this because this is public and adding it will
@@ -208,7 +243,7 @@ def set_default_building_detail_columns(request):
 @api_endpoint
 @ajax_request
 @login_required
-@has_perm('requires_member')
+@has_perm_class('requires_member')
 @api_view(['DELETE'])
 def delete_file(request):
     """

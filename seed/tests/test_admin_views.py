@@ -1,20 +1,24 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
-from django.urls import reverse_lazy, reverse
 from django.test import TestCase
+from django.urls import reverse, reverse_lazy
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
-from seed.lib.superperms.orgs.models import ROLE_OWNER, Organization, OrganizationUser
+from seed.lib.superperms.orgs.models import (
+    ROLE_OWNER,
+    Organization,
+    OrganizationUser
+)
 from seed.utils.organizations import create_organization
 
 # Custom user model compatibility
@@ -125,9 +129,11 @@ class AdminViewsTest(TestCase):
         """
         Create a new user and a new org at the same time.
         """
+        org, _, _ = create_organization(self.user, "test-organization-a")
         data = {'org_name': 'New Org',
                 'first_name': 'New',
                 'last_name': 'Owner',
+                'organization_id': org.id,
                 'email': 'new_owner@testserver'}
         res = self._post_json(self.add_user_url, data)
 
@@ -160,9 +166,11 @@ class AdminViewsTest(TestCase):
         account creation by an admin to receiving the signup email
         to confirming the account and setting a password.
         """
+        org, _, _ = create_organization(self.user, "test-organization-a")
         data = {'first_name': 'New',
                 'last_name': 'User',
                 'email': 'new_user@testserver',
+                'organization_id': org.id,
                 'org_name': 'New Org'}
         res = self._post_json(self.add_user_url, data)
         self.client.logout()  # stop being the admin user
@@ -210,9 +218,11 @@ class AdminViewsTest(TestCase):
         """
         Simulates the signup and login forcing login username to lowercase
         """
+        org, _, _ = create_organization(self.user, "test-organization-a")
         data = {'first_name': 'New',
                 'last_name': 'User',
                 'email': 'New_Lower_User@testserver.com',
+                'organization_id': org.id,
                 'org_name': 'New Org'}
         res = self._post_json(self.add_user_url, data)
         self.client.logout()  # stop being the admin user

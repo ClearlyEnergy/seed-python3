@@ -1,22 +1,19 @@
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from __future__ import absolute_import
 
 import os
 
-from kombu import Exchange, Queue
+from django.utils.translation import gettext_lazy as _
 from kombu.serialization import register
 
 from seed.serializers.celery import CeleryDatetimeSerializer
 
-from django.utils.translation import gettext_lazy as _
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+PROTOCOL = os.environ.get('PROTOCOL', 'https')
 
 SESSION_COOKIE_DOMAIN = None
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -87,7 +84,7 @@ MIDDLEWARE = (
 
 ROOT_URLCONF = 'config.urls'
 
-INSTALLED_APPS = (
+DJANGO_CORE_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.flatpages',
@@ -98,10 +95,8 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.staticfiles',
     'django.contrib.gis',
-
     'compressor',
     'django_extensions',
-    'raven.contrib.django.raven_compat',
     'django_filters',
     'oauth2_provider',
     'rest_framework',
@@ -112,8 +107,10 @@ INSTALLED_APPS = (
     'tos',
     'mozilla_django_oidc',
     'corsheaders',
-    'storages'
+    'storages',
+    'django_celery_beat',
 )
+
 
 SEED_CORE_APPS = (
     'config',
@@ -121,7 +118,7 @@ SEED_CORE_APPS = (
     'seed.data_importer',
     'seed',
     'seed.lib.superperms.orgs',
-    'seed.docs'
+    'seed.docs',
 )
 
 HELIX_APPS = (
@@ -136,21 +133,22 @@ POST_OFFICE = {
     'BACKENDS': {
         'default': 'smtp.EmailBackend',
         'post_office_backend': 'django.core.mail.backends.console.EmailBackend',
-    }
+    },
+    'CELERY_ENABLED': True,
 }
+
 
 # Apps with tables created by migrations, but which 3rd-party apps depend on.
 # Internal apps can resolve this via South's depends_on.
 HIGH_DEPENDENCY_APPS = ('seed.landing',)  # 'landing' contains SEEDUser
 
-INSTALLED_APPS = HELIX_APPS + HIGH_DEPENDENCY_APPS + INSTALLED_APPS + SEED_CORE_APPS
+INSTALLED_APPS = HIGH_DEPENDENCY_APPS + DJANGO_CORE_APPS + SEED_CORE_APPS + HELIX_APPS
 
 # apps to auto load name spaced URLs for JS use (see seed.urls)
 SEED_URL_APPS = (
     'seed',
 )
 
-MEDIA_URL = '/api/v3/media/'
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'collected_static')
@@ -175,13 +173,13 @@ COMPRESS_PRECOMPILERS = (
 )
 AWS_QUERYSTRING_AUTH = False
 
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
 
 USE_S3 = os.getenv('USE_S3') == 'TRUE'
 if USE_S3:
     # aws settings
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
     AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
@@ -191,6 +189,7 @@ if USE_S3:
 
 else:
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    MEDIA_URL = '/api/v3/media/'
 
 # django-longer-username-and-email
 REQUIRE_UNIQUE_EMAIL = False
@@ -254,6 +253,7 @@ CELERY_TASK_SERIALIZER = 'seed_json'
 CELERY_RESULT_SERIALIZER = 'seed_json'
 CELERY_RESULT_EXPIRES = 86400  # 24 hours
 CELERY_TASK_COMPRESSION = 'gzip'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # hmm, we are logging outside the context of the app?
 LOG_FILE = os.path.join(BASE_DIR, '../logs/py.log/')
@@ -262,12 +262,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SERVER_EMAIL = 'info@seed-platform.org'
 PASSWORD_RESET_EMAIL = SERVER_EMAIL
 DEFAULT_FROM_EMAIL = SERVER_EMAIL
-
-# Added By Gavin on 1/27/2014
-TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
-NOSE_PLUGINS = [
-    'nose_exclude.NoseExclude',
-]
 
 AUTH_USER_MODEL = 'landing.SEEDUser'
 AUTH_PASSWORD_VALIDATORS = [
@@ -373,6 +367,9 @@ BSYNCR_SERVER_PORT = os.environ.get('BSYNCR_SERVER_PORT', '80')
 
 # LBNL's BETTER tool host location
 BETTER_HOST = os.environ.get('BETTER_HOST', 'https://better.lbl.gov')
+
+# Audit Template Production Host
+AUDIT_TEMPLATE_HOST = os.environ.get('AUDIT_TEMPLATE_HOST', 'https://buildingenergyscore.energy.gov')
 
 # Google reCAPTCHA env variable for self-registration. SITE_KEY defaults
 # to the key registered for SEED. Override it needing to test.

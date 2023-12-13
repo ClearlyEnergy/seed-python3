@@ -1,8 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 
@@ -11,14 +11,11 @@ from django.urls import reverse
 from seed.data_importer.tasks import geocode_and_match_buildings_task
 from seed.landing.models import SEEDUser as User
 from seed.lib.progress_data.progress_data import ProgressData
-from seed.models import (
-    ASSESSED_RAW,
-    DATA_STATE_MAPPING,
-)
+from seed.models import ASSESSED_RAW, DATA_STATE_MAPPING
 from seed.test_helpers.fake import (
     FakeCycleFactory,
     FakePropertyStateFactory,
-    FakeTaxLotStateFactory,
+    FakeTaxLotStateFactory
 )
 from seed.tests.util import DataMappingBaseTestCase
 from seed.utils.cache import get_cache_raw
@@ -54,7 +51,7 @@ class TestOrganizationViews(DataMappingBaseTestCase):
                 'address_line_1',
                 'custom_id_1',
                 'jurisdiction_tax_lot_id',
-                'ulid',
+                'ubid',
             ],
         }
 

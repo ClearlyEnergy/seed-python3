@@ -1,24 +1,24 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 """
 import json
 import os
-import requests
+from pathlib import Path
 from unittest import skip, skipIf
 
-from django.urls import reverse_lazy
+import requests
+import xmltodict
 from django.test import TestCase
+from django.urls import reverse_lazy
 
 from seed.landing.models import SEEDUser as User
 from seed.utils.organizations import create_organization
-from seed.views.portfoliomanager import PortfolioManagerImport
-
+from seed.views.v3.portfolio_manager import PortfolioManagerImport
 
 PM_UN = 'SEED_PM_UN'
 PM_PW = 'SEED_PM_PW'
@@ -329,7 +329,7 @@ class PortfolioManagerReportGenerationViewTestsSuccess(TestCase):
 
         # then for each property, we expect some keys to come back, but if it has the property id, that should suffice
         for prop in body['properties']:
-            self.assertIn('property_id', prop)
+            self.assertIn('portfolioManagerPropertyId', prop)
 
     @pm_skip_test_check
     def test_report_generation_empty_child_template(self):
@@ -429,3 +429,21 @@ class PortfolioManagerReportSinglePropertyUploadTest(TestCase):
             content_type='application/json',
         )
         self.assertEqual(200, response.status_code)
+
+
+class PortfolioManagerReportParsingTest(TestCase):
+    """Test the parsing of the resulting PM XML file. This is only for the
+    version 2 parsing"""
+    def test_parse_pm_report(self):
+        pm = PortfolioManagerImport('not_a_real_password', 'not_a_real_password')
+        xml_path = Path(__file__).parent.absolute() / 'data' / 'portfolio-manager-report.xml'
+        with open(xml_path, 'r') as file:
+            content_object = xmltodict.parse(file.read(), dict_constructor=dict)
+
+            success, properties = pm._parse_properties_v2(content_object)
+
+            self.assertTrue(success)
+            self.assertEqual(len(properties), 9)
+            self.assertEqual(properties[0]['portfolioManagerPropertyId'], '22178843')
+            self.assertIsNone(properties[0]['parentPropertyId'])
+            self.assertEqual(properties[0]['propertyFloorAreaBuildingsAndParking'], '89250.0')

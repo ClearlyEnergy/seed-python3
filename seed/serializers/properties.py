@@ -1,10 +1,9 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author Paul Munday <paul@paulmunday.net>
 :author Nicholas Long  <nicholas.long@nrel.gov>
 """
@@ -25,14 +24,14 @@ from seed.models import (
     PropertyState,
     PropertyView,
     TaxLotProperty,
-    TaxLotView,
+    TaxLotView
 )
 from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
-from seed.serializers.base import ChoiceField
 from seed.serializers.building_file import BuildingFileSerializer
 from seed.serializers.certification import (
     GreenAssessmentPropertyReadOnlySerializer
 )
+from seed.serializers.inventory_document import InventoryDocumentSerializer
 from seed.serializers.measures import PropertyMeasureSerializer
 from seed.serializers.pint import PintQuantitySerializerField
 from seed.serializers.scenarios import ScenarioSerializer
@@ -109,6 +108,8 @@ class PropertySerializer(serializers.ModelSerializer):
     created = serializers.DateTimeField("%Y-%m-%dT%H:%M:%S.%fZ", default_timezone=pytz.utc, read_only=True)
     updated = serializers.DateTimeField("%Y-%m-%dT%H:%M:%S.%fZ", default_timezone=pytz.utc, read_only=True)
 
+    inventory_documents = InventoryDocumentSerializer(many=True, read_only=True)
+
     class Meta:
         model = Property
         fields = '__all__'
@@ -127,7 +128,7 @@ class PropertyMinimalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Property
-        fields = ['id', 'campus', 'parent_property']
+        fields = ['id', 'parent_property']
         extra_kwargs = {
             'organization': {'read_only': True}
         }
@@ -138,7 +139,6 @@ class PropertyStateSerializer(serializers.ModelSerializer):
     measures = PropertyMeasureSerializer(source='propertymeasure_set', many=True, read_only=True)
     scenarios = ScenarioSerializer(many=True, read_only=True)
     files = BuildingFileSerializer(source='building_files', many=True, read_only=True)
-    analysis_state = ChoiceField(choices=PropertyState.ANALYSIS_STATE_TYPES)
 
     # support the pint objects
     conditioned_floor_area = PintQuantitySerializerField(allow_null=True)
@@ -150,13 +150,15 @@ class PropertyStateSerializer(serializers.ModelSerializer):
     source_eui = PintQuantitySerializerField(allow_null=True)
     source_eui_modeled = PintQuantitySerializerField(allow_null=True)
     site_eui_weather_normalized = PintQuantitySerializerField(allow_null=True)
+    total_ghg_emissions = PintQuantitySerializerField(allow_null=True)
+    total_marginal_ghg_emissions = PintQuantitySerializerField(allow_null=True)
+    total_ghg_emissions_intensity = PintQuantitySerializerField(allow_null=True)
+    total_marginal_ghg_emissions_intensity = PintQuantitySerializerField(allow_null=True)
 
     # support naive datetime objects
     generation_date = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True)
     recent_sale_date = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True)
     release_date = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True)
-    analysis_start_time = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True)
-    analysis_end_time = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True)
 
     # to support the old state serializer method with the PROPERTY_STATE_FIELDS variables
     import_file_id = serializers.IntegerField(allow_null=True, read_only=True)
@@ -222,7 +224,6 @@ class PropertyStateWritableSerializer(serializers.ModelSerializer):
     measures = PropertyMeasureSerializer(source='propertymeasure_set', many=True, read_only=True)
     scenarios = ScenarioSerializer(many=True, read_only=True)
     files = BuildingFileSerializer(source='building_files', many=True, read_only=True)
-    analysis_state = ChoiceField(choices=PropertyState.ANALYSIS_STATE_TYPES, required=False)
 
     # to support the old state serializer method with the PROPERTY_STATE_FIELDS variables
     import_file_id = serializers.IntegerField(allow_null=True, read_only=True)
@@ -233,8 +234,6 @@ class PropertyStateWritableSerializer(serializers.ModelSerializer):
     generation_date = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True, required=False)
     recent_sale_date = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True, required=False)
     release_date = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True, required=False)
-    analysis_start_time = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True, required=False)
-    analysis_end_time = serializers.DateTimeField('%Y-%m-%dT%H:%M:%S', allow_null=True, required=False)
 
     # support the pint objects
     conditioned_floor_area = PintQuantitySerializerField(allow_null=True, required=False)
@@ -246,10 +245,21 @@ class PropertyStateWritableSerializer(serializers.ModelSerializer):
     source_eui = PintQuantitySerializerField(allow_null=True, required=False)
     source_eui_modeled = PintQuantitySerializerField(allow_null=True, required=False)
     site_eui_weather_normalized = PintQuantitySerializerField(allow_null=True, required=False)
+    total_ghg_emissions = PintQuantitySerializerField(allow_null=True, required=False)
+    total_marginal_ghg_emissions = PintQuantitySerializerField(allow_null=True, required=False)
+    total_ghg_emissions_intensity = PintQuantitySerializerField(allow_null=True, required=False)
+    total_marginal_ghg_emissions_intensity = PintQuantitySerializerField(allow_null=True, required=False)
 
     class Meta:
         fields = '__all__'
         model = PropertyState
+
+
+class BriefPropertyViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyView
+        depth = 1
+        fields = ('id', 'cycle', 'property_id')
 
 
 class PropertyViewSerializer(serializers.ModelSerializer):
@@ -346,7 +356,7 @@ class PropertyViewAsStateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PropertyView
-        validators = []
+        validators = []  # type: ignore[var-annotated]
         fields = ('id', 'state', 'property', 'cycle',
                   'changed_fields', 'date_edited',
                   'certifications', 'filename', 'history',
@@ -448,7 +458,7 @@ class PropertyViewAsStateSerializer(serializers.ModelSerializer):
             )
             errors['wrong_type'] = msg
         if unique:
-            msg = "Unique together contraint violated for: {}".format(unique)
+            msg = "Unique together constraint violated for: {}".format(unique)
             errors['unique'] = msg
         if errors:
             raise serializers.ValidationError(detail=errors)
@@ -609,16 +619,16 @@ def conv_value(val):
 def unflatten_values(vdict, fkeys):
     """
     Takes a dicts produced by values() that traverses foreign relationships
-    (e.g. contains foreign_key__field) and converts them into a nested dict.
+    (e.g., contains foreign_key__field) and converts them into a nested dict.
     so vdict[foreign_key__field] becomes vdict[foreign_key][field]
 
-    It assumes values has been provided with foreignkey__field  e.g. state__city
+    It assumes values has been provided with foreignkey__field  e.g., state__city
 
     {'id':1,  'state__city': 'London'} -> {'id': 1, 'state':{'city': 'London'}}
 
-    :param vdict: dict from list returned by e.g. Model.objects.all().values()
+    :param vdict: dict from list returned by e.g., Model.objects.all().values()
     :type vdict: dict
-    :param fkeys: field names for foreign key (e.g. state for state__city)
+    :param fkeys: field names for foreign key (e.g., state for state__city)
     :type fkeys: list
     """
     assert set(list(vdict.keys())).isdisjoint(set(fkeys)), "unflatten_values: {} has fields named in {}".format(vdict,

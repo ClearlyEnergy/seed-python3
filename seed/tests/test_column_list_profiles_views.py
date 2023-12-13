@@ -1,8 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import json
 
@@ -10,9 +10,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from seed.landing.models import SEEDUser as User
-from seed.models import (
-    Column,
-)
+from seed.models import Column
 from seed.tests.util import DeleteModelsTestCase
 from seed.utils.organizations import create_organization
 
@@ -141,7 +139,7 @@ class ColumnListProfilesView(DeleteModelsTestCase):
         response = self.client.put(url, data=json.dumps(payload), content_type='application/json')
         result = json.loads(response.content)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # The columns will be removed if you don't specity them again in an update method
+        # The columns will be removed if you don't specify them again in an update method
         self.assertEqual(result['data']['inventory_type'], 'Tax Lot')
         self.assertEqual(len(result['data']['columns']), 0)
 

@@ -1,13 +1,15 @@
 # !/usr/bin/env python
 # encoding: utf-8
-from drf_yasg.inspectors import SwaggerAutoSchema
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 from drf_yasg import openapi
+from drf_yasg.inspectors import SwaggerAutoSchema
 from drf_yasg.utils import swagger_auto_schema
 
 
 class AutoSchemaHelper(SwaggerAutoSchema):
-    # overrides the serialization of existing endpoints
-    overwrite_params = []
 
     # Used to easily build out example values displayed on Swagger page.
     openapi_types = {
@@ -20,7 +22,7 @@ class AutoSchemaHelper(SwaggerAutoSchema):
     def _openapi_type(cls, type_name):
         """returns an openapi type
 
-        :param type_name: str (e.g. 'string', 'boolean', 'integer')
+        :param type_name: str (e.g., 'string', 'boolean', 'integer')
         :return: openapi.TYPE_*
         """
         if type_name not in cls.openapi_types:
@@ -149,14 +151,14 @@ class AutoSchemaHelper(SwaggerAutoSchema):
         :param obj: str, list, dict[str, obj]
         :return: drf_yasg.openapi.Schema
         """
-        if type(obj) is str:
+        if isinstance(obj, str):
             openapi_type = cls._openapi_type(obj)
             return openapi.Schema(
                 type=openapi_type,
                 **kwargs
             )
 
-        if type(obj) is list:
+        if isinstance(obj, list):
             if len(obj) != 1:
                 raise Exception('List types must have exactly one element to specify the schema of `items`')
             return openapi.Schema(
@@ -165,7 +167,7 @@ class AutoSchemaHelper(SwaggerAutoSchema):
                 **kwargs
             )
 
-        if type(obj) is dict:
+        if isinstance(obj, dict):
             return openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
@@ -177,14 +179,6 @@ class AutoSchemaHelper(SwaggerAutoSchema):
             )
 
         raise Exception(f'Unhandled type "{type(obj)}" for {obj}')
-
-    def add_manual_parameters(self, parameters):
-        manual_params = self.manual_fields.get((self.method, self.view.action), [])
-
-        if (self.method, self.view.action) in self.overwrite_params:
-            return manual_params
-        # I think this should add to existing parameters, but haven't been able to confirm.
-        return parameters + manual_params
 
 
 # this is a commonly used swagger decorator so moved here for DRYness

@@ -1,36 +1,59 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-from datetime import datetime
-from io import BytesIO
 import json
 import logging
+from datetime import datetime
+from io import BytesIO
 from os import path
-from unittest.case import skip
 from unittest.mock import patch
 from zipfile import ZipFile
-from lxml import etree
-from pytz import timezone as pytztimezone
-from requests import Response
-from quantityfield.units import ureg
 
 from django.db.models import Q
 from django.test import TestCase, override_settings
 from django.utils.timezone import make_aware
-from config.settings.common import TIME_ZONE, BASE_DIR
+from lxml import etree
+from pytz import timezone as pytztimezone
+from quantityfield.units import ureg
+from requests import Response
 
+from config.settings.common import BASE_DIR, TIME_ZONE
+from seed.analysis_pipelines.better.buildingsync import _build_better_input
+from seed.analysis_pipelines.bsyncr import (
+    PREMISES_ID_NAME,
+    BsyncrPipeline,
+    _build_bsyncr_input,
+    _parse_analysis_property_view_id
+)
+from seed.analysis_pipelines.eui import (
+    ERROR_INVALID_GROSS_FLOOR_AREA,
+    ERROR_INVALID_METER_READINGS,
+    EUI_ANALYSIS_MESSAGES,
+    TIME_PERIOD,
+    _calculate_eui,
+    _get_valid_meters
+)
+from seed.analysis_pipelines.pipeline import (
+    AnalysisPipeline,
+    AnalysisPipelineException,
+    analysis_pipeline_task,
+    task_create_analysis_property_views
+)
+from seed.analysis_pipelines.utils import SimpleMeterReading
+from seed.building_sync.building_sync import BuildingSync
+from seed.building_sync.mappings import NAMESPACES
 from seed.landing.models import SEEDUser as User
 from seed.models import (
-    Meter,
-    MeterReading,
     Analysis,
     AnalysisInputFile,
     AnalysisMessage,
     AnalysisOutputFile,
-    AnalysisPropertyView
+    AnalysisPropertyView,
+    Meter,
+    MeterReading
 )
 from seed.test_helpers.fake import (
     FakeAnalysisFactory,
@@ -38,32 +61,9 @@ from seed.test_helpers.fake import (
     FakeCycleFactory,
     FakePropertyFactory,
     FakePropertyStateFactory,
-    FakePropertyViewFactory,
+    FakePropertyViewFactory
 )
 from seed.utils.organizations import create_organization
-from seed.analysis_pipelines.pipeline import (
-    AnalysisPipelineException,
-    AnalysisPipeline,
-    task_create_analysis_property_views,
-    analysis_pipeline_task
-)
-from seed.analysis_pipelines.better.buildingsync import _build_better_input
-from seed.analysis_pipelines.bsyncr import (
-    _build_bsyncr_input,
-    BsyncrPipeline,
-    _parse_analysis_property_view_id,
-    PREMISES_ID_NAME
-)
-from seed.analysis_pipelines.eui import (
-    _calculate_eui,
-    _get_valid_meters,
-    EUI_ANALYSIS_MESSAGES,
-    ERROR_INVALID_GROSS_FLOOR_AREA,
-    ERROR_INSUFFICIENT_METER_READINGS,
-    ERROR_INVALID_METER_READINGS
-)
-from seed.building_sync.building_sync import BuildingSync
-from seed.building_sync.mappings import NAMESPACES
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,9 @@ class TestAnalysisPipeline(TestCase):
 
     def test_all_analysis_pipeline_tasks_are_wrapped_with_analysis_pipeline_task_decorator(self):
         from inspect import getmembers
+
         from celery import Task
+
         from seed.analysis_pipelines import tasks
 
         def is_celery_task(v):
@@ -510,7 +512,7 @@ class TestBsyncrPipeline(TestCase):
 
         #
         # Setup more properties with linked meters with 12 valid meter readings.
-        # These properties, unmodified, should successfully run thorugh the bsyncr pipeline
+        # These properties, unmodified, should successfully run through the bsyncr pipeline
         #
         property_view_factory = FakePropertyViewFactory(organization=self.org)
         self.good_property_views = []
@@ -614,9 +616,6 @@ class TestBsyncrPipeline(TestCase):
 
         return _mock_request
 
-    # Skipping this test b/c of an unexpected error validating BuildingSync files
-    # See here for more info: https://github.com/SEED-platform/seed/pull/2901
-    @skip
     def test_build_bsyncr_input_returns_valid_bsync_document(self):
         # Act
         doc, errors = _build_bsyncr_input(self.analysis_property_view, self.meter)
@@ -629,7 +628,7 @@ class TestBsyncrPipeline(TestCase):
         self.assertEqual(self.meter.meter_readings.count(), len(ts_elems))
 
         # throws exception if document is not valid
-        schema = BuildingSync.get_schema(BuildingSync.BUILDINGSYNC_V2_3_0)
+        schema = BuildingSync.get_schema(BuildingSync.BUILDINGSYNC_V2_4_0)
         schema.validate(tree)
 
     def test_build_bsyncr_input_returns_errors_if_state_missing_info(self):
@@ -918,8 +917,20 @@ class TestBETTERPipeline(TestCase):
             )
 
     def test_build_better_input_returns_valid_bsync_document(self):
+        # Setup
+        meters = [
+            {
+                'meter_type': self.meter_nat.type,
+                'readings': self.meter_nat.meter_readings.all()
+            },
+            {
+                'meter_type': self.meter_elec.type,
+                'readings': self.meter_elec.meter_readings.all()
+            },
+        ]
+
         # Act
-        doc, errors = _build_better_input(self.analysis_property_view, [self.meter_nat, self.meter_elec])
+        doc, errors = _build_better_input(self.analysis_property_view, meters)
         tree = etree.parse(BytesIO(doc))
 
         # Assert
@@ -948,6 +959,7 @@ class TestBETTERPipeline(TestCase):
 
 class TestEuiPipeline(TestCase):
     def setUp(self):
+        self.timezone_object = pytztimezone(TIME_ZONE)
         user_details = {
             'username': 'test_user@demo.com',
             'password': 'test_pass',
@@ -957,7 +969,7 @@ class TestEuiPipeline(TestCase):
         }
         self.user = User.objects.create_user(**user_details)
         self.org, _, _ = create_organization(self.user)
-        self.cycle = FakeCycleFactory(organization=self.org, user=self.user).get_cycle()
+        self.cycle = FakeCycleFactory(organization=self.org, user=self.user).get_cycle(start=datetime(2020, 1, 1, tzinfo=self.timezone_object))
         self.test_property = FakePropertyFactory(organization=self.org).get_property()
         self.property_state = FakePropertyStateFactory(organization=self.org).get_property_state(gross_floor_area=ureg.Quantity(float(10000), "foot ** 2"))
         self.property_view = FakePropertyViewFactory(organization=self.org, user=self.user).get_property_view(prprty=self.test_property, cycle=self.cycle, state=self.property_state)
@@ -967,12 +979,17 @@ class TestEuiPipeline(TestCase):
             source_id="Source ID",
             type=Meter.ELECTRICITY_GRID
         )
-        self.timezone_object = pytztimezone(TIME_ZONE)
+        self.invalid_meter = Meter.objects.create(
+            property=self.test_property,
+            source=Meter.PORTFOLIO_MANAGER,
+            source_id="Source ID",
+            type=Meter.NATURAL_GAS
+        )
 
     def test_invalid_property_state(self):
         self.property_state.gross_floor_area = None
         self.property_state.save()
-        meter_readings_by_property_view, errors_by_property_view_id = _get_valid_meters([self.property_view.id])
+        meter_readings_by_property_view, errors_by_property_view_id = _get_valid_meters([self.property_view.id], {"select_meters": "all"})
         self.assertDictEqual(meter_readings_by_property_view, {})
         self.assertDictEqual(errors_by_property_view_id, {
             self.property_view.id: [EUI_ANALYSIS_MESSAGES[ERROR_INVALID_GROSS_FLOOR_AREA]]
@@ -980,52 +997,27 @@ class TestEuiPipeline(TestCase):
         self.property_state.gross_floor_area = ureg.Quantity(float(10000), "foot ** 2")
         self.property_state.save()
 
-    def test_insufficient_meters(self):
-        MeterReading.objects.filter(meter=self.meter).delete()
-        for j in range(1, 12):
-            MeterReading.objects.create(
-                meter=self.meter,
-                start_time=make_aware(datetime(2020, j, 1, 0, 0, 0), timezone=self.timezone_object),
-                end_time=make_aware(datetime(2020, j, 28, 0, 0, 0), timezone=self.timezone_object),
-                reading=12345,
-                source_unit='kWh',
-                conversion_factor=1.00
-            )
-        meter_readings_by_property_view, errors_by_property_view_id = _get_valid_meters([self.property_view.id])
-        self.assertDictEqual(meter_readings_by_property_view, {})
-        self.assertDictEqual(errors_by_property_view_id, {
-            self.property_view.id: [EUI_ANALYSIS_MESSAGES[ERROR_INSUFFICIENT_METER_READINGS]]
-        })
-
     def test_invalid_meters(self):
-        MeterReading.objects.filter(meter=self.meter).delete()
-        for j in range(1, 12):
-            MeterReading.objects.create(
-                meter=self.meter,
-                start_time=make_aware(datetime(2020, j, 1, 0, 0, 0), timezone=self.timezone_object),
-                end_time=make_aware(datetime(2020, j, 28, 0, 0, 0), timezone=self.timezone_object),
-                reading=12345,
-                source_unit='kWh',
-                conversion_factor=1.00
-            )
+        MeterReading.objects.filter(meter=self.invalid_meter).delete()
         MeterReading.objects.create(
-            meter=self.meter,
-            start_time=make_aware(datetime(2021, 1, 1, 0, 0, 0), timezone=self.timezone_object),
-            end_time=make_aware(datetime(2021, 1, 28, 0, 0, 0), timezone=self.timezone_object),
+            meter=self.invalid_meter,
+            start_time=make_aware(datetime(2020, 1, 1, 0, 0, 0), timezone=self.timezone_object),
+            end_time=make_aware(datetime(2020, 1, 28, 0, 0, 0), timezone=self.timezone_object),
             reading=12345,
             source_unit='kWh',
             conversion_factor=1.00
         )
-        meter_readings_by_property_view, errors_by_property_view_id = _get_valid_meters([self.property_view.id])
+        meter_readings_by_property_view, errors_by_property_view_id = _get_valid_meters([self.property_view.id], {"select_meters": "all"})
         self.assertDictEqual(meter_readings_by_property_view, {})
         self.assertDictEqual(errors_by_property_view_id, {
             self.property_view.id: [EUI_ANALYSIS_MESSAGES[ERROR_INVALID_METER_READINGS]]
         })
 
-    def test_valid_meters(self):
+    def test_valid_meters_use_most_recent_year(self):
         MeterReading.objects.filter(meter=self.meter).delete()
+        meter_readings = []
         for j in range(1, 13):
-            MeterReading.objects.create(
+            meter_reading = MeterReading.objects.create(
                 meter=self.meter,
                 start_time=make_aware(datetime(2020, j, 1, 0, 0, 0), timezone=self.timezone_object),
                 end_time=make_aware(datetime(2020, j, 28, 0, 0, 0), timezone=self.timezone_object),
@@ -1033,12 +1025,98 @@ class TestEuiPipeline(TestCase):
                 source_unit='kWh',
                 conversion_factor=1.00
             )
-        meter_readings_by_property_view, errors_by_property_view_id = _get_valid_meters([self.property_view.id])
+            meter_readings.append(SimpleMeterReading(meter_reading.start_time, meter_reading.end_time, meter_reading.reading))
+
+        # this meter should not be included in the results as its not in the year
+        MeterReading.objects.create(
+            meter=self.meter,
+            start_time=make_aware(datetime(2019, 1, 1, 0, 0, 0), timezone=self.timezone_object),
+            end_time=make_aware(datetime(2019, 1, 28, 0, 0, 0), timezone=self.timezone_object),
+            reading=12345,
+            source_unit='kWh',
+            conversion_factor=1.00
+        )
+
+        self.maxDiff = None
+        meter_readings_by_property_view, errors_by_property_view_id = _get_valid_meters([self.property_view.id], {"select_meters": "all"})
         self.assertDictEqual(errors_by_property_view_id, {})
-        self.assertNotEqual(meter_readings_by_property_view, {})
+        self.assertDictEqual(meter_readings_by_property_view, {self.property_view.id: meter_readings})
+
+    def test_valid_meters_use_custom_range(self):
+        MeterReading.objects.filter(meter=self.meter).delete()
+        meter_readings = []
+        for j in range(1, 12):
+            meter_reading = MeterReading.objects.create(
+                meter=self.meter,
+                start_time=make_aware(datetime(2020, j, 1, 0, 0, 0), timezone=self.timezone_object),
+                end_time=make_aware(datetime(2020, j, 28, 0, 0, 0), timezone=self.timezone_object),
+                reading=12345,
+                source_unit='kWh',
+                conversion_factor=1.00
+            )
+            meter_readings.append(SimpleMeterReading(meter_reading.start_time, meter_reading.end_time, meter_reading.reading))
+
+        # this meter should not be included in the results as its not in the range
+        MeterReading.objects.create(
+            meter=self.meter,
+            start_time=make_aware(datetime(2020, 12, 1, 0, 0, 0), timezone=self.timezone_object),
+            end_time=make_aware(datetime(2020, 12, 28, 0, 0, 0), timezone=self.timezone_object),
+            reading=12345,
+            source_unit='kWh',
+            conversion_factor=1.00
+        )
+
+        self.maxDiff = None
+        config = {
+            "select_meters": "date_range",
+            "meter": {
+                "start_date": datetime(2020, 1, 1, 0, 0, 0),
+                "end_date": datetime(2020, 11, 30, 0, 0, 0)
+            }
+        }
+        meter_readings_by_property_view, errors_by_property_view_id = _get_valid_meters([self.property_view.id], config)
+        self.assertDictEqual(errors_by_property_view_id, {})
+        self.assertDictEqual(meter_readings_by_property_view, {self.property_view.id: meter_readings})
+
+    def test_valid_meters_use_cycle(self):
+        MeterReading.objects.filter(meter=self.meter).delete()
+        meter_readings = []
+        for j in range(1, 13):
+            meter_reading = MeterReading.objects.create(
+                meter=self.meter,
+                start_time=make_aware(datetime(2020, j, 1, 0, 0, 0), timezone=self.timezone_object),
+                end_time=make_aware(datetime(2020, j, 28, 0, 0, 0), timezone=self.timezone_object),
+                reading=12345,
+                source_unit='kWh',
+                conversion_factor=1.00
+            )
+            meter_readings.append(SimpleMeterReading(meter_reading.start_time, meter_reading.end_time, meter_reading.reading))
+
+        # this meter should not be included in the results as its not in the cycle
+        MeterReading.objects.create(
+            meter=self.meter,
+            start_time=make_aware(datetime(2022, 1, 1, 0, 0, 0), timezone=self.timezone_object),
+            end_time=make_aware(datetime(2022, 1, 28, 0, 0, 0), timezone=self.timezone_object),
+            reading=12345,
+            source_unit='kWh',
+            conversion_factor=1.00
+        )
+
+        self.maxDiff = None
+        config = {
+            "select_meters": "select_cycle",
+            "cycle_id": self.cycle.id,
+        }
+        meter_readings_by_property_view, errors_by_property_view_id = _get_valid_meters([self.property_view.id], config)
+        self.assertDictEqual(errors_by_property_view_id, {})
+        self.assertDictEqual(meter_readings_by_property_view, {self.property_view.id: meter_readings})
 
     def test_calculate_eui(self):
-        meter_readings = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-        gross_floor_area = 123
-        expected_eui = 0.6341
-        self.assertEqual(_calculate_eui(meter_readings, gross_floor_area), expected_eui)
+        reading_start_time = datetime(2020, 1, 1)
+        reading_end_time = reading_start_time + TIME_PERIOD
+        reading_amount = 78
+        reading = SimpleMeterReading(reading_start_time, reading_end_time, reading_amount)
+        results = _calculate_eui([reading], 123)
+        self.assertEqual(results['eui'], 0.63)
+        self.assertEqual(results['reading'], reading_amount)
+        self.assertEqual(results['coverage'], 100)

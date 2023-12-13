@@ -1,10 +1,13 @@
 # !/usr/bin/env python
 # encoding: utf-8
-
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 from rest_framework import serializers
 
-from seed.serializers.base import ChoiceField
 from seed.models import ColumnMappingProfile
+from seed.serializers.base import ChoiceField
 
 
 class ColumnMappingProfileSerializer(serializers.ModelSerializer):

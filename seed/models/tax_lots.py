@@ -1,43 +1,43 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import logging
 import re
 from os import path
 
 from django.contrib.gis.db import models as geomodels
-from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models.signals import post_save, pre_save, m2m_changed
+from django.db.models import Case, Value, When
+from django.db.models.signals import m2m_changed, post_save, pre_save
 from django.dispatch import receiver
 
 from seed.data_importer.models import ImportFile
 from seed.lib.superperms.orgs.models import Organization
 from seed.models.cycles import Cycle
 from seed.models.models import (
-    StatusLabel,
     DATA_STATE,
-    DATA_STATE_UNKNOWN,
     DATA_STATE_MATCHING,
+    DATA_STATE_UNKNOWN,
     MERGE_STATE,
     MERGE_STATE_UNKNOWN,
+    StatusLabel
 )
 from seed.models.tax_lot_properties import TaxLotProperty
 from seed.utils.address import normalize_address_str
 from seed.utils.generic import (
     compare_orgs_between_label_and_target,
-    split_model_fields,
     obj_to_dict,
+    split_model_fields
 )
 from seed.utils.time import convert_to_js_timestamp
-from .auditlog import AUDIT_IMPORT
-from .auditlog import DATA_UPDATE_TYPE
+
+from ..utils.ubid import decode_unique_ids
+from .auditlog import AUDIT_IMPORT, DATA_UPDATE_TYPE
 
 _log = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class TaxLotState(models.Model):
     postal_code = models.CharField(max_length=255, null=True, blank=True)
     number_properties = models.IntegerField(null=True, blank=True)
 
-    extra_data = JSONField(default=dict, blank=True)
+    extra_data = models.JSONField(default=dict, blank=True)
     hash_object = models.CharField(max_length=32, null=True, blank=True, default=None)
 
     # taxlots can now have lat/long and polygons, points.
@@ -93,9 +93,7 @@ class TaxLotState(models.Model):
     bounding_box = geomodels.PolygonField(geography=True, null=True, blank=True)
     taxlot_footprint = geomodels.PolygonField(geography=True, null=True, blank=True)
     # A unique building identifier as defined by DOE's UBID project (https://buildingid.pnnl.gov/)
-    # Note that ulid is not an actual project at the moment, but it is similar to UBID in that it
-    # is a unique string that represents the bounding box of the Land (or Lot)
-    ulid = models.CharField(max_length=255, null=True, blank=True)
+    ubid = models.CharField(max_length=255, null=True, blank=True)
 
     geocoding_confidence = models.CharField(max_length=32, null=True, blank=True)
 
@@ -203,7 +201,7 @@ class TaxLotState(models.Model):
         Return the history of the taxlot state by parsing through the auditlog. Returns only the ids
         of the parent states and some descriptions.
 
-              master
+               main
               /    \
              /      \
           parent1  parent2
@@ -211,12 +209,12 @@ class TaxLotState(models.Model):
         In the records, parent2 is most recent, so make sure to navigate parent two first since we
         are returning the data in reverse over (that is most recent changes first)
 
-        :return: list, history as a list, and the master record
+        :return: list, history as a list, and the main record
         """
 
         """Return history in reverse order."""
         history = []
-        master = {
+        main = {
             'state_id': self.id,
             'state_data': self,
             'date_edited': None,
@@ -245,7 +243,7 @@ class TaxLotState(models.Model):
         ).order_by('-id').first()
 
         if log:
-            master = {
+            main = {
                 'state_id': log.state.id,
                 'state_data': log.state,
                 'date_edited': convert_to_js_timestamp(log.created),
@@ -261,7 +259,7 @@ class TaxLotState(models.Model):
                             log.parent1_id is None and log.parent2_id is None) or log.name == 'Manual Edit':
                         break
 
-                    # initalize the tree to None everytime. If not new tree is found, then we will not iterate
+                    # initialize the tree to None everytime. If not new tree is found, then we will not iterate
                     tree = None
 
                     # Check if parent2 has any other parents or is the original import creation. Start with parent2
@@ -305,7 +303,7 @@ class TaxLotState(models.Model):
                 record = record_dict(log)
                 history.append(record)
 
-        return history, master
+        return history, main
 
     @classmethod
     def coparent(cls, state_id):
@@ -378,8 +376,41 @@ class TaxLotState(models.Model):
         return None
 
 
+@receiver(post_save, sender=TaxLotState)
+def post_save_taxlot_state(sender, **kwargs):
+    """
+    Generate UbidModels for a TaxLotState if the ubid field is present
+    """
+    state: TaxLotState = kwargs.get('instance')
+
+    ubid = getattr(state, 'ubid')
+    if not ubid:
+        state.ubidmodel_set.filter(preferred=True).update(preferred=False)
+        return
+
+    ubid_model = state.ubidmodel_set.filter(ubid=ubid)
+    if not ubid_model.exists():
+        # First set all others to non-preferred without calling save
+        state.ubidmodel_set.filter(preferred=True).update(preferred=False)
+        # Add UBID and set as preferred
+        ubid_model = state.ubidmodel_set.create(
+            preferred=True,
+            ubid=ubid,
+        )
+        # Update lat/long/centroid
+        decode_unique_ids(state)
+        logging.info(f"Created ubid_model id: {ubid_model.id}, ubid: {ubid_model.ubid}")
+    elif ubid_model.filter(preferred=False).exists():
+        state.ubidmodel_set.update(
+            preferred=Case(
+                When(ubid=ubid, then=Value(True)),
+                default=Value(False),
+            )
+        )
+
+
 class TaxLotView(models.Model):
-    taxlot = models.ForeignKey(TaxLot, on_delete=models.CASCADE, related_name='views', null=True)
+    taxlot = models.ForeignKey(TaxLot, on_delete=models.CASCADE, related_name='views')
     state = models.ForeignKey(TaxLotState, on_delete=models.CASCADE)
     cycle = models.ForeignKey(Cycle, on_delete=models.PROTECT)
 

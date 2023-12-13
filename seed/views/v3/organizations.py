@@ -1,18 +1,25 @@
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-
 import json
 import logging
 from collections import defaultdict
 from io import BytesIO
-from random import randint
 from pathlib import Path
+from random import randint
+from seed.models import Measure, PropertyMeasure
+from seed.models.certification import GreenAssessment, GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
+from rest_framework import serializers
+from seed.models.auditlog import (
+    AUDIT_USER_CREATE,
+    AUDIT_USER_EXPORT,
+)
+from seed.tasks import invite_to_organization
+
 
 import dateutil
-
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth.decorators import permission_required
@@ -22,13 +29,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse, JsonResponse
 from django.utils.decorators import method_decorator
-
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from past.builtins import basestring
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from xlsxwriter import Workbook
 
 from seed import tasks
 from seed.data_importer.models import ImportFile, ImportRecord
@@ -37,29 +44,52 @@ from seed.decorators import ajax_request_class
 from seed.landing.models import SEEDUser as User
 from seed.lib.progress_data.progress_data import ProgressData
 from seed.lib.superperms.orgs.decorators import has_perm_class
-from seed.lib.superperms.orgs.models import (ROLE_MEMBER, ROLE_OWNER,
-                                             ROLE_VIEWER, Organization,
-                                             OrganizationUser)
-from seed.models import Column, Cycle, PropertyView, TaxLot, TaxLotView, TaxLotState, StatusLabel as Label, \
-    PropertyState, Property, AUDIT_IMPORT, PropertyAuditLog, TaxLotAuditLog
-from seed.serializers.column_mappings import \
+from seed.lib.superperms.orgs.models import (
+    ROLE_MEMBER,
+    ROLE_OWNER,
+    ROLE_VIEWER,
+    Organization,
+    OrganizationUser
+)
+from seed.models import (
+    AUDIT_IMPORT,
+    GREEN_BUTTON,
+    PORTFOLIO_METER_USAGE,
+    SEED_DATA_SOURCES,
+    Column,
+    Cycle,
+    Property,
+    PropertyAuditLog,
+    PropertyState,
+    PropertyView
+)
+from seed.models import StatusLabel as Label
+from seed.models import TaxLot, TaxLotAuditLog, TaxLotState, TaxLotView
+from seed.serializers.column_mappings import (
     SaveColumnMappingsRequestPayloadSerializer
-from seed.serializers.organizations import (SaveSettingsSerializer,
-                                            SharedFieldsReturnSerializer)
+)
+from seed.serializers.organizations import (
+    SaveSettingsSerializer,
+    SharedFieldsReturnSerializer
+)
 from seed.serializers.pint import apply_display_unit_preferences
 from seed.utils.api import api_endpoint_class
 from seed.utils.api_schema import AutoSchemaHelper
 from seed.utils.cache import get_cache_raw, set_cache_raw
 from seed.utils.generic import median, round_down_hundred_thousand
 from seed.utils.geocode import geocode_buildings
-from seed.utils.match import (matching_criteria_column_names,
-                              whole_org_match_merge_link)
-from seed.utils.organizations import (create_organization,
-                                      create_suborganization)
-from xlsxwriter import Workbook
+from seed.utils.match import (
+    match_merge_link,
+    matching_criteria_column_names,
+    whole_org_match_merge_link
+)
 from seed.utils.merge import merge_properties
-from seed.utils.match import match_merge_link
+from seed.utils.organizations import (
+    create_organization,
+    create_suborganization
+)
 from seed.utils.properties import pair_unpair_property_taxlot
+from seed.utils.salesforce import toggle_salesforce_sync
 
 _log = logging.getLogger(__name__)
 
@@ -70,13 +100,17 @@ def _dict_org(request, organizations):
     orgs = []
     for o in organizations:
         org_cycles = Cycle.objects.filter(organization=o).only('id', 'name').order_by('name')
+        org_measures = Measure.objects.filter(organization=o).only('id')
+        org_assessments = GreenAssessment.objects.filter(organization=o).only('id')
         cycles = []
         for c in org_cycles:
             cycles.append({
                 'name': c.name,
                 'cycle_id': c.pk,
                 'num_properties': PropertyView.objects.filter(cycle=c).count(),
-                'num_taxlots': TaxLotView.objects.filter(cycle=c).count()
+                'num_taxlots': TaxLotView.objects.filter(cycle=c).count(),
+                'num_certifications': GreenAssessmentProperty.objects.filter(assessment_id__in=org_assessments).count(),
+                'num_measures': PropertyMeasure.objects.filter(measure_id__in=org_measures).count()
             })
 
         # We don't wish to double count sub organization memberships.
@@ -115,21 +149,28 @@ def _dict_org(request, organizations):
             'parent_id': o.parent_id,
             'display_units_eui': o.display_units_eui,
             'display_units_area': o.display_units_area,
-            'display_significant_figures': o.display_significant_figures,
+            'display_decimal_places': o.display_decimal_places,
             'cycles': cycles,
             'created': o.created.strftime('%Y-%m-%d') if o.created else '',
             'mapquest_api_key': o.mapquest_api_key or '',
             'geocoding_enabled': o.geocoding_enabled,
             'better_analysis_api_key': o.better_analysis_api_key or '',
+            'better_host_url': settings.BETTER_HOST,
             'property_display_field': o.property_display_field,
             'taxlot_display_field': o.taxlot_display_field,
-            'display_meter_units': o.display_meter_units,
+            'display_meter_units': dict(sorted(o.display_meter_units.items(), key=lambda item: (item[0], item[1]))),
             'thermal_conversion_assumption': o.thermal_conversion_assumption,
             'comstock_enabled': o.comstock_enabled,
             'new_user_email_from': o.new_user_email_from,
             'new_user_email_subject': o.new_user_email_subject,
             'new_user_email_content': o.new_user_email_content,
-            'new_user_email_signature': o.new_user_email_signature
+            'new_user_email_signature': o.new_user_email_signature,
+            'at_organization_token': o.at_organization_token,
+            'audit_template_user': o.audit_template_user,
+            'audit_template_password': o.audit_template_password,
+            'at_host_url': settings.AUDIT_TEMPLATE_HOST,
+            'salesforce_enabled': o.salesforce_enabled,
+            'ubid_threshold': o.ubid_threshold,
         }
         orgs.append(org)
 
@@ -159,8 +200,11 @@ def _dict_org_brief(request, organizations):
             'name': o.name,
             'org_id': o.id,
             'parent_id': o.parent_org_id,
+            'is_parent': o.is_parent,
             'id': o.id,
-            'user_role': user_role
+            'user_role': user_role,
+            'display_decimal_places': o.display_decimal_places,
+            'salesforce_enabled': o.salesforce_enabled,
         }
         orgs.append(org)
 
@@ -194,8 +238,17 @@ def cache_match_merge_link_result(summary, identifier, progress_key):
     progress_data.finish_with_success()
 
 
+class OrganizationUserSerializer(serializers.Serializer):
+    email = serializers.CharField(max_length=100)
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    user_id = serializers.IntegerField()
+    role = serializers.CharField(max_length=100)
+    last_login = serializers.DateTimeField()
+
+
 class OrganizationViewSet(viewsets.ViewSet):
-    # allow using `pk` in url path for authorization (ie for has_perm_class)
+    # allow using `pk` in url path for authorization (i.e., for has_perm_class)
     authz_org_id_kwarg = 'pk'
 
     @ajax_request_class
@@ -333,9 +386,9 @@ class OrganizationViewSet(viewsets.ViewSet):
 
         if brief:
             if request.user.is_superuser:
-                qs = Organization.objects.only('id', 'name', 'parent_org_id')
+                qs = Organization.objects.only('id', 'name', 'parent_org_id', 'display_decimal_places')
             else:
-                qs = request.user.orgs.only('id', 'name', 'parent_org_id')
+                qs = request.user.orgs.only('id', 'name', 'parent_org_id', 'display_decimal_places')
 
             orgs = _dict_org_brief(request, qs)
             if len(orgs) == 0:
@@ -380,6 +433,7 @@ class OrganizationViewSet(viewsets.ViewSet):
         Retrieves a single organization by id.
         """
         org_id = pk
+        brief = json.loads(request.query_params.get('brief', 'false'))
 
         if org_id is None:
             return JsonResponse({
@@ -408,9 +462,14 @@ class OrganizationViewSet(viewsets.ViewSet):
                 'message': 'user is not the owner of the org'
             }, status=status.HTTP_403_FORBIDDEN)
 
+        if brief:
+            org = _dict_org_brief(request, [org])[0]
+        else:
+            org = _dict_org(request, [org])[0]
+
         return JsonResponse({
             'status': 'success',
-            'organization': _dict_org(request, [org])[0],
+            'organization': org,
         })
 
     @swagger_auto_schema(
@@ -425,6 +484,54 @@ class OrganizationViewSet(viewsets.ViewSet):
                         '- user_id: The user ID (primary key) to be used as the owner of the new organization'
         )
     )
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_member')
+    @action(detail=True, methods=['GET'])
+    def users(self, request, pk=None):
+        """
+        Retrieve all users belonging to an org.
+        ---
+        response_serializer: OrganizationUsersSerializer
+        parameter_strategy: replace
+        parameters:
+            - name: pk
+              type: integer
+              description: Organization ID (primary key)
+              required: true
+              paramType: path
+        """
+        try:
+            org = Organization.objects.get(pk=pk)
+        except ObjectDoesNotExist:
+            return JsonResponse({'status': 'error',
+                                 'message': 'Could not retrieve organization at pk = ' + str(pk)},
+                                status=status.HTTP_404_NOT_FOUND)
+        users = []
+        for u in org.organizationuser_set.all():
+            user = u.user
+
+            user_orgs = OrganizationUser.objects.filter(user=user).count()
+
+            users.append({
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'number_of_orgs': user_orgs,
+                'user_id': user.pk,
+                'role': _get_js_role(u.role_level),
+                'last_login': user.last_login.strftime("%Y-%m-%d %I:%M %p") if user.last_login is not None else '',
+                'certifications': GreenAssessmentPropertyAuditLog.objects.filter(
+                    user=user, record_type=AUDIT_USER_CREATE
+                ).count(),
+                'certifications_exported': GreenAssessmentPropertyAuditLog.objects.filter(
+                    user=user, record_type=AUDIT_USER_EXPORT
+                ).count()
+            })
+
+        return JsonResponse({'status': 'success', 'users': users})
+
+
     @api_endpoint_class
     @ajax_request_class
     def create(self, request):
@@ -455,6 +562,56 @@ class OrganizationViewSet(viewsets.ViewSet):
                 'organization': _dict_org(request, [org])[0]
             }
         )
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_owner')
+    @action(detail=True, methods=['PUT'])
+    def add_user(self, request, pk=None):
+        """
+        Adds an existing user to an organization.
+        ---
+        parameter_strategy: replace
+        parameters:
+            - name: pk
+              description: Organization ID (Primary key)
+              type: integer
+              required: true
+              paramType: path
+            - name: user_id
+              description: User ID (Primary key) of the user to add to the organization
+        type:
+            status:
+                type: string
+                description: success or error
+                required: true
+            message:
+                type: string
+                description: info/error message, if any
+                required: false
+        """
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        user = User.objects.get(pk=body['user_id'])
+
+        created = org.add_member(user)
+
+        if settings.FORCE_SSL_PROTOCOL:
+            protocol = 'https'
+        else:
+            protocol = request.scheme
+
+        # Send an email if a new user has been added to the organization
+        if created:
+            try:
+                domain = request.get_host()
+            except Exception:
+                domain = 'seed-platform.org'
+            invite_to_organization(
+                protocol, domain, user, request.user.username, org
+            )
+
+        return JsonResponse({'status': 'success'})
+
 
     @api_endpoint_class
     @ajax_request_class
@@ -466,6 +623,78 @@ class OrganizationViewSet(viewsets.ViewSet):
         in an org.
         """
         return JsonResponse(tasks.delete_organization_inventory(pk))
+
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_owner')
+    @action(detail=True, methods=['PUT'])
+    def add_hes(self, request, pk=None):
+        """
+        Adds Home Energy Score ID to an organization.
+        ---
+        parameters:
+            - name: pk
+              description: Organization ID (Primary key)
+              type: integer
+              required: true
+              paramType: path
+            - name: hes
+              description: Home Energy Score ID to add to the organization
+            - name: hes_partner_name
+              description: name of partner account
+            - name: hes_partner_password
+              description: password for partner account. Note: in clear text because it's passed to the API that way
+            - name: hes_start_date
+              description: date to start data retrieval
+            - name: hes_end_date
+              description: date to end data retrieval
+        type:
+            status:
+                type: string
+                description: success or error
+                required: true
+            message:
+                type: string
+                description: info/error message, if any
+                required: false
+        """
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        org.add_hes(body)
+        return JsonResponse({'status': 'success'})
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_owner')
+    @action(detail=True, methods=['PUT'])
+    def add_leed(self, request, pk=None):
+        """
+        Adds LEED Information to an organization.
+        ---
+        parameters:
+            - name: pk
+              description: Organization ID (Primary key)
+              type: integer
+              required: true
+              paramType: path
+            - name: leed_geo_id
+              description: LEED Geographic ID to add to the organization
+        type:
+            status:
+                type: string
+                description: success or error
+                required: true
+            message:
+                type: string
+                description: info/error message, if any
+                required: false
+        """
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        org.add_leed(body)
+        return JsonResponse({'status': 'success'})
+
 
     @swagger_auto_schema(
         request_body=SaveSettingsSerializer,
@@ -518,12 +747,12 @@ class OrganizationViewSet(viewsets.ViewSet):
         else:
             warn_bad_pint_spec('area', desired_display_units_area)
 
-        desired_display_significant_figures = posted_org.get('display_significant_figures')
-        if isinstance(desired_display_significant_figures, int) and desired_display_significant_figures >= 0:  # noqa
-            org.display_significant_figures = desired_display_significant_figures
-        elif desired_display_significant_figures is not None:
+        desired_display_decimal_places = posted_org.get('display_decimal_places')
+        if isinstance(desired_display_decimal_places, int) and desired_display_decimal_places >= 0:
+            org.display_decimal_places = desired_display_decimal_places
+        elif desired_display_decimal_places is not None:
             _log.warn("got bad sig figs {0} for org {1}".format(
-                desired_display_significant_figures, org.name))
+                desired_display_decimal_places, org.name))
 
         desired_display_meter_units = posted_org.get('display_meter_units')
         if desired_display_meter_units:
@@ -591,6 +820,35 @@ class OrganizationViewSet(viewsets.ViewSet):
         comstock_enabled = posted_org.get('comstock_enabled', False)
         if comstock_enabled != org.comstock_enabled:
             org.comstock_enabled = comstock_enabled
+
+        at_organization_token = posted_org.get('at_organization_token', False)
+        if at_organization_token != org.at_organization_token:
+            org.at_organization_token = at_organization_token
+
+        audit_template_user = posted_org.get('audit_template_user', False)
+        if audit_template_user != org.audit_template_user:
+            org.audit_template_user = audit_template_user
+
+        audit_template_password = posted_org.get('audit_template_password', False)
+        if audit_template_password != org.audit_template_password:
+            org.audit_template_password = audit_template_password
+
+        salesforce_enabled = posted_org.get('salesforce_enabled', False)
+        if salesforce_enabled != org.salesforce_enabled:
+            org.salesforce_enabled = salesforce_enabled
+            # if salesforce_enabled was toggled, must start/stop auto sync functionality
+            toggle_salesforce_sync(salesforce_enabled, org.id)
+
+        # update the ubid threshold option
+        ubid_threshold = posted_org.get('ubid_threshold')
+        if ubid_threshold is not None and ubid_threshold != org.ubid_threshold:
+            if not type(ubid_threshold) in (float, int) or ubid_threshold < 0 or ubid_threshold > 1:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'ubid_threshold must be a float between 0 and 1'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            org.ubid_threshold = ubid_threshold
 
         org.save()
 
@@ -889,7 +1147,7 @@ class OrganizationViewSet(viewsets.ViewSet):
         try:
             start = int(start)
             end = int(end)
-        except ValueError as error:  # noqa
+        except ValueError:
             # assume string is JS date
             if isinstance(start, basestring):
                 start_datetime = dateutil.parser.parse(start)
@@ -911,19 +1169,23 @@ class OrganizationViewSet(viewsets.ViewSet):
             organization_id=organization_id
         ).order_by('start')
 
-    def get_data(self, property_view, x_var, y_var):
-        result = None
+    def get_data(self, property_view, x_var, y_var, matching_columns):
+        result = {}
         state = property_view.state
         if getattr(state, x_var, None) and getattr(state, y_var, None):
-            result = {
-                "id": property_view.property_id,
-                "x": getattr(state, x_var),
-                "y": getattr(state, y_var),
-            }
+            for matching_column in matching_columns:
+                name = matching_column.column_name
+                if matching_column.is_extra_data:
+                    result[name] = state.extra_data.get(name)
+                else:
+                    result[name] = getattr(state, name)
+
+            result["x"] = getattr(state, x_var)
+            result["y"] = getattr(state, y_var)
+
         return result
 
-    def get_raw_report_data(self, organization_id, cycles, x_var, y_var,
-                            campus_only):
+    def get_raw_report_data(self, organization_id, cycles, x_var, y_var, addtional_columns=[]):
         all_property_views = PropertyView.objects.select_related(
             'property', 'state'
         ).filter(
@@ -939,21 +1201,13 @@ class OrganizationViewSet(viewsets.ViewSet):
             data = []
             for property_view in property_views:
                 property_pk = property_view.property_id
-                if property_view.property.campus and campus_only:
-                    count_total.append(property_pk)
-                    result = self.get_data(property_view, x_var, y_var)
-                    if result:
-                        result['yr_e'] = cycle.end.strftime('%Y')
-                        data.append(result)
-                        count_with_data.append(property_pk)
-                elif not property_view.property.campus:
-                    count_total.append(property_pk)
-                    result = self.get_data(property_view, x_var, y_var)
-                    if result:
-                        result['yr_e'] = cycle.end.strftime('%Y')
-                        de_unitted_result = apply_display_unit_preferences(organization, result)
-                        data.append(de_unitted_result)
-                        count_with_data.append(property_pk)
+                count_total.append(property_pk)
+                result = self.get_data(property_view, x_var, y_var, addtional_columns)
+                if result:
+                    result['yr_e'] = cycle.end.strftime('%Y')
+                    de_unitted_result = apply_display_unit_preferences(organization, result)
+                    data.append(de_unitted_result)
+                    count_with_data.append(property_pk)
             result = {
                 "cycle_id": cycle.pk,
                 "chart_data": data,
@@ -988,11 +1242,6 @@ class OrganizationViewSet(viewsets.ViewSet):
                 required=True,
                 description='End time, in the format "2018-12-31T23:53:00-08:00"'
             ),
-            AutoSchemaHelper.query_string_field(
-                'campus_only',
-                required=False,
-                description='If true, includes campuses'
-            ),
         ]
     )
     @api_endpoint_class
@@ -1000,10 +1249,8 @@ class OrganizationViewSet(viewsets.ViewSet):
     @has_perm_class('requires_member')
     @action(detail=True, methods=['GET'])
     def report(self, request, pk=None):
+        """Retrieve a summary report for charting x vs y
         """
-        Retrieve a summary report for charting x vs y
-        """
-        campus_only = json.loads(request.query_params.get('campus_only', 'false'))
         params = {}
         missing_params = []
         error = ''
@@ -1023,8 +1270,7 @@ class OrganizationViewSet(viewsets.ViewSet):
         else:
             cycles = self.get_cycles(params['start'], params['end'], pk)
             data = self.get_raw_report_data(
-                pk, cycles,
-                params['x_var'], params['y_var'], campus_only
+                pk, cycles, params['x_var'], params['y_var']
             )
             for datum in data:
                 if datum['property_counts']['num_properties_w-data'] != 0:
@@ -1052,7 +1298,7 @@ class OrganizationViewSet(viewsets.ViewSet):
             AutoSchemaHelper.query_string_field(
                 'y_var',
                 required=True,
-                description='Raw column name for y axis, must be one of: "gross_floor_area", "use_description", "year_built"'
+                description='Raw column name for y axis, must be one of: "gross_floor_area", "property_type", "year_built"'
             ),
             AutoSchemaHelper.query_string_field(
                 'start',
@@ -1064,11 +1310,6 @@ class OrganizationViewSet(viewsets.ViewSet):
                 required=True,
                 description='End time, in the format "2018-12-31T23:53:00-08:00"'
             ),
-            AutoSchemaHelper.query_string_field(
-                'campus_only',
-                required=False,
-                description='If true, includes campuses'
-            ),
         ]
     )
     @api_endpoint_class
@@ -1076,11 +1317,9 @@ class OrganizationViewSet(viewsets.ViewSet):
     @has_perm_class('requires_member')
     @action(detail=True, methods=['GET'])
     def report_aggregated(self, request, pk=None):
+        """Retrieve a summary report for charting x vs y aggregated by y_var
         """
-        Retrieve a summary report for charting x vs y aggregated by y_var
-        """
-        campus_only = json.loads(request.query_params.get('campus_only', 'false'))
-        valid_y_values = ['gross_floor_area', 'use_description', 'year_built']
+        valid_y_values = ['gross_floor_area', 'property_type', 'year_built']
         params = {}
         missing_params = []
         empty = True
@@ -1106,10 +1345,7 @@ class OrganizationViewSet(viewsets.ViewSet):
             cycles = self.get_cycles(params['start'], params['end'], pk)
             x_var = params['x_var']
             y_var = params['y_var']
-            data = self.get_raw_report_data(
-                pk, cycles, x_var, y_var,
-                campus_only
-            )
+            data = self.get_raw_report_data(pk, cycles, x_var, y_var)
             for datum in data:
                 if datum['property_counts']['num_properties_w-data'] != 0:
                     empty = False
@@ -1139,7 +1375,7 @@ class OrganizationViewSet(viewsets.ViewSet):
 
     def aggregate_data(self, yr_e, y_var, buildings):
         aggregation_method = {
-            'use_description': self.aggregate_use_description,
+            'property_type': self.aggregate_property_type,
             'year_built': self.aggregate_year_built,
             'gross_floor_area': self.aggregate_gross_floor_area,
 
@@ -1147,7 +1383,7 @@ class OrganizationViewSet(viewsets.ViewSet):
         }
         return aggregation_method[y_var](yr_e, buildings)
 
-    def aggregate_use_description(self, yr_e, buildings):
+    def aggregate_property_type(self, yr_e, buildings):
         # Group buildings in this year_ending group into uses
         chart_data = []
         grouped_uses = defaultdict(list)
@@ -1300,21 +1536,24 @@ class OrganizationViewSet(viewsets.ViewSet):
         count_sheet.write(data_row_start, data_col_start + 1, 'Properties with Data', bold)
         count_sheet.write(data_row_start, data_col_start + 2, 'Total Properties', bold)
 
-        base_sheet.write(data_row_start, data_col_start, 'ID', bold)
-        base_sheet.write(data_row_start, data_col_start + 1, request.query_params.get('x_label'), bold)
-        base_sheet.write(data_row_start, data_col_start + 2, request.query_params.get('y_label'), bold)
-        base_sheet.write(data_row_start, data_col_start + 3, 'Year Ending', bold)
-
         agg_sheet.write(data_row_start, data_col_start, request.query_params.get('x_label'), bold)
         agg_sheet.write(data_row_start, data_col_start + 1, request.query_params.get('y_label'), bold)
         agg_sheet.write(data_row_start, data_col_start + 2, 'Year Ending', bold)
 
         # Gather base data
         cycles = self.get_cycles(params['start'], params['end'], pk)
+        matching_columns = Column.objects.filter(organization_id=pk, is_matching_criteria=True, table_name="PropertyState")
         data = self.get_raw_report_data(
-            pk, cycles,
-            params['x_var'], params['y_var'], False
+            pk, cycles, params['x_var'], params['y_var'], matching_columns
         )
+
+        base_sheet.write(data_row_start, data_col_start, 'ID', bold)
+
+        for i, matching_column in enumerate(matching_columns):
+            base_sheet.write(data_row_start, data_col_start + i, matching_column.display_name, bold)
+        base_sheet.write(data_row_start, data_col_start + len(matching_columns) + 0, request.query_params.get('x_label'), bold)
+        base_sheet.write(data_row_start, data_col_start + len(matching_columns) + 1, request.query_params.get('y_label'), bold)
+        base_sheet.write(data_row_start, data_col_start + len(matching_columns) + 2, 'Year Ending', bold)
 
         base_row = data_row_start + 1
         agg_row = data_row_start + 1
@@ -1335,10 +1574,8 @@ class OrganizationViewSet(viewsets.ViewSet):
             # Write Base/Raw Data
             data_rows = cycle_results['chart_data']
             for datum in data_rows:
-                base_sheet.write(base_row, data_col_start, datum.get('id'))
-                base_sheet.write(base_row, data_col_start + 1, datum.get('x'))
-                base_sheet.write(base_row, data_col_start + 2, datum.get('y'))
-                base_sheet.write(base_row, data_col_start + 3, datum.get('yr_e'))
+                for i, k in enumerate(datum.keys()):
+                    base_sheet.write(base_row, data_col_start + i, datum.get(k))
 
                 base_row += 1
 
@@ -1510,12 +1747,12 @@ class OrganizationViewSet(viewsets.ViewSet):
         import_record = ImportRecord.objects.create(name='Auto-Populate', super_organization=org)
 
         # Interval Data
-        filename = 'PM Meter Data 12.xlsx'
+        filename = 'PM Meter Data.xlsx'  # contains meter data for bsyncr and BETTER
         filepath = f"{Path(__file__).parent.absolute()}/data/{filename}"
 
         import_meterdata = ImportFile.objects.create(
             import_record=import_record,
-            source_type='PM Meter Usage',
+            source_type=SEED_DATA_SOURCES[PORTFOLIO_METER_USAGE][1],
             uploaded_filename=filename,
             file=SimpleUploadedFile(name=filename, content=open(filepath, 'rb').read()),
             cycle=cycle
@@ -1529,7 +1766,7 @@ class OrganizationViewSet(viewsets.ViewSet):
 
         import_greenbutton = ImportFile.objects.create(
             import_record=import_record,
-            source_type='GreenButton',
+            source_type=SEED_DATA_SOURCES[GREEN_BUTTON][1],
             uploaded_filename=filename,
             file=SimpleUploadedFile(name=filename, content=open(filepath, 'rb').read()),
             cycle=cycle,

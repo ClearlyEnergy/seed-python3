@@ -1,23 +1,25 @@
 # !/usr/bin/env python
 # encoding: utf-8
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
+import csv
 
-from django.http import JsonResponse
-
+from django.http import HttpResponse, JsonResponse
 from drf_yasg.utils import swagger_auto_schema
-
 from rest_framework.decorators import action
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
+from rest_framework.viewsets import ViewSet
+
 from seed.lib.mcm import mapper
 from seed.lib.superperms.orgs.permissions import SEEDOrgPermissions
-from seed.models import (
-    Column,
-    ColumnMappingProfile,
+from seed.models import Column, ColumnMappingProfile
+from seed.serializers.column_mapping_profiles import (
+    ColumnMappingProfileSerializer
 )
-from seed.serializers.column_mapping_profiles import ColumnMappingProfileSerializer
-from seed.utils.api import api_endpoint_class, OrgMixin
+from seed.utils.api import OrgMixin, api_endpoint_class
 from seed.utils.api_schema import AutoSchemaHelper
-
-from rest_framework.viewsets import ViewSet
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_200_OK
 
 mappings_description = (
     "Each object in mappings must be in particular format:\n"
@@ -135,7 +137,7 @@ class ColumnMappingProfileViewSet(OrgMixin, ViewSet):
 
                 profile.mappings = final_mappings
             elif updated_mappings:
-                # indiscriminantly update the mappings
+                # indiscriminately update the mappings
                 profile.mappings = updated_mappings
 
         profile.save()
@@ -143,6 +145,41 @@ class ColumnMappingProfileViewSet(OrgMixin, ViewSet):
             'status': 'success',
             'data': ColumnMappingProfileSerializer(profile).data,
         })
+
+    @swagger_auto_schema(
+        manual_parameters=[AutoSchemaHelper.query_org_id_field(
+            required=False,
+            description="Optional org id which overrides the users (default) current org id"
+        )]
+    )
+    @api_endpoint_class
+    @action(detail=True, methods=['GET'])
+    def csv(self, request, pk=None):
+        """Export a column list profile in a CSV format. This format is supported in the py-seed library when setting up
+        new mappings programatically."""
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="column_mapping_profile_{pk}.csv"'
+
+        org_id = self.get_organization(request, True).id
+        try:
+            profile = ColumnMappingProfile.objects.get(organizations__pk=org_id, pk=pk)
+        except ColumnMappingProfile.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'data': 'No profile with given id'
+            }, status=HTTP_400_BAD_REQUEST)
+
+        writer = csv.writer(response)
+        writer.writerow(['Raw Columns', 'units', 'SEED Table', 'SEED Columns'])
+
+        # sort the mappings by the to_field
+        sorted_mappings = sorted(profile.mappings, key=lambda m: m['to_field'].casefold())
+        for map in sorted_mappings:
+            writer.writerow([
+                map['from_field'], map['from_units'], map['to_table_name'], map['to_field']
+            ])
+
+        return response
 
     @swagger_auto_schema(
         manual_parameters=[AutoSchemaHelper.query_org_id_field(
@@ -264,7 +301,8 @@ class ColumnMappingProfileViewSet(OrgMixin, ViewSet):
             # Fix the table name, eventually move this to the build_column_mapping
             for m in suggested_mappings:
                 table, _destination_field, _confidence = suggested_mappings[m]
-                # Do not return the campus, created, updated fields... that is force them to be in the property state
+                # Do not return the created or updated fields... that is force them to be
+                # in the property state. Not sure how this code makes this happen though.
                 if not table or table == 'Property':
                     suggested_mappings[m][0] = 'PropertyState'
                 elif table == 'TaxLot':

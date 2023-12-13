@@ -1,9 +1,12 @@
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 import copy
 from datetime import datetime
 
 import pytz
 from lxml import etree
-
 
 BUILDINGSYNC_URI = 'http://buildingsync.net/schemas/bedes-auc/2019'
 NAMESPACES = {
@@ -24,7 +27,7 @@ A BuildingSync mapping is expected to be structured like this
 xpath: the xpath to the target element (relative to the parent mapping if there is one)
 type: determines what's returned from the mapping.
   - 'value' returns a simple value (string, int)
-  - 'list' indicates this is an element with multiple instances (e.g. auc:Scenario), and will return a mapping for each one. these list 'items' are indicated by the 'items' array
+  - 'list' indicates this is an element with multiple instances (e.g., auc:Scenario), and will return a mapping for each one. these list 'items' are indicated by the 'items' array
   - 'object' returns a dict. the dict properties come from the 'properties' field
 properties: a dict of mapping objects used for the 'object' type. If the type is 'object', this field must be defined.
   - the key will be used in the resulting dict to point to the mapped value
@@ -34,10 +37,10 @@ items: a dict of mapping objects used for the 'list' type. If the type is 'list'
   - the value is the mapped result for a single element
 value: a string indicating what value to grab from the element
   - 'text' returns the text content
-  - '@<attribute>' returns the value of an attribute. e.g. if we wanted IDref, we'd use '@IDref'
+  - '@<attribute>' returns the value of an attribute. e.g., if we wanted IDref, we'd use '@IDref'
   - 'exist' returns a boolean as to whether or not the targeted element exists
   - 'tag' returns the tag of the element
-formatter: a function which takes a string and returns another value. e.g. parsing a datetime string
+formatter: a function which takes a string and returns another value. e.g., parsing a datetime string
 """
 
 
@@ -365,7 +368,7 @@ def find_last_in_xpath(tree, xpath, namespaces):
     '/Foo1/Bar1/Foo2/Bar2', it'd return Bar1 as well as 'Foo2/Bar2'
 
     :param tree: lxml.ElementTree, tree to search
-    :param xpath: string, an absolute xpath (ie should start with /auc:BuildingSync/...)
+    :param xpath: string, an absolute xpath (i.e., should start with /auc:BuildingSync/...)
     """
     remainder = []
     xpath_list = xpath.split('/')
@@ -384,8 +387,8 @@ def parse_xpath_part(xpath_part):
     """parses a single part of an xpath into its parts: primary tag, conditional
     child tag name, and conditional child value. Namespaces are stripped from the tags
 
-    e.g. 'auc:FloorArea[auc:FloorAreaType="Net"]' returns "FloorArea", "FloorAreaType", "Net"
-    e.g. 'auc:FloorArea' returns "FloorArea", None, None
+    e.g., 'auc:FloorArea[auc:FloorAreaType="Net"]' returns "FloorArea", "FloorAreaType", "Net"
+    e.g., 'auc:FloorArea' returns "FloorArea", None, None
 
     :param xpath_part: string, a single part of an xpath
     :returns: tuple, [string, string | None, string | None]
@@ -406,7 +409,7 @@ def _build_path(element, xpath_list):
     """Internal implementation of build_path. Refer to its docs
 
     :param element: lxml.Element, element to build off of
-    :param xpath_list: list, a list of strings which represent parts of the xpath (ie xpath split on "/")
+    :param xpath_list: list, a list of strings which represent parts of the xpath (i.e., xpath split on "/")
     """
     if not xpath_list:
         # terminal case, everything has been built
@@ -426,7 +429,7 @@ def _build_path(element, xpath_list):
 def build_path(element, xpath):
     """creates all elements in the xpath, starting from the given element.
     NOTE: it does not check if any elements in the xpath already exist, it creates
-    them indiscriminantly.
+    them indiscriminately.
 
     It is able to handle xpaths with simple conditionals. E.g. if the xpath was
     Foo[BarColor="Yellow"]/BarFont, it would create the elements that'd look
@@ -501,7 +504,7 @@ def update_tree(schema, tree, xpath, target, value, namespaces):
 
     :param schema: xmlschema.XmlSchema, schema for determining sequence ordering
     :param tree: lxml.ElementTree, tree to update
-    :param xpath: string, absolute xpath to the element to update (i.e. starts with /auc:BuildingSync/...)
+    :param xpath: string, absolute xpath to the element to update (i.e., starts with /auc:BuildingSync/...)
     :param target: string, an attribute, "@<attribute>", or "text" to indicate what to update on the element
     :param value: string, the value to set for that node
     """
@@ -614,6 +617,16 @@ BASE_MAPPING_V2 = {
                 'type': 'value',
                 'value': 'text',
                 'formatter': to_float,
+            },
+            'audit_template_building_id': {
+                'xpath': './auc:Buildings/auc:Building/auc:PremisesIdentifiers/auc:PremisesIdentifier[auc:IdentifierCustomName="Audit Template Building ID"]/auc:IdentifierValue',
+                'type': 'value',
+                'value': 'text',
+            },
+            'pm_property_id': {
+                'xpath': './auc:Buildings/auc:Building/auc:PremisesIdentifiers/auc:PremisesIdentifier[auc:IdentifierCustomName="Portfolio Manager Building ID"]/auc:IdentifierValue',
+                'type': 'value',
+                'value': 'text',
             }
         }
     },
@@ -693,6 +706,27 @@ BASE_MAPPING_V2 = {
             }
         }
     },
+    'audit_dates': {
+        'xpath': '/auc:BuildingSync/auc:Facilities/auc:Facility/auc:Reports/auc:Report/auc:AuditDates/auc:AuditDate',
+        'type': 'list',
+        'items': {
+            "date": {
+                'xpath': './auc:Date',
+                'type': 'value',
+                'value': 'text',
+            },
+            "date_type": {
+                'xpath': './auc:DateType',
+                'type': 'value',
+                'value': 'text',
+            },
+            "custom_date_type": {
+                'xpath': './auc:CustomDateType',
+                'type': 'value',
+                'value': 'text',
+            },
+        }
+    },
     'scenarios': {
         'xpath': '/auc:BuildingSync/auc:Facilities/auc:Facility/auc:Reports/auc:Report/auc:Scenarios/auc:Scenario',
         'type': 'list',
@@ -704,6 +738,11 @@ BASE_MAPPING_V2 = {
             },
             'name': {
                 'xpath': './auc:ScenarioName',
+                'type': 'value',
+                'value': 'text'
+            },
+            'temporal_status': {
+                'xpath': './auc:TemporalStatus',
                 'type': 'value',
                 'value': 'text'
             },

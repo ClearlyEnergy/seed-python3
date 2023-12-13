@@ -1,20 +1,19 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+
 :author 'Piper Merriam <pmerriam@quickleft.com>'
 """
 import logging
 
-from rest_framework.parsers import JSONParser, FormParser
+from rest_framework.parsers import FormParser, JSONParser
 from rest_framework.renderers import JSONRenderer
 
-from seed.models import (
-    Note,
-)
-from seed.serializers.notes import (
-    NoteSerializer,
-)
+from seed.models import Note, PropertyView
+from seed.models.events import NoteEvent
+from seed.serializers.notes import NoteSerializer
 from seed.utils.viewsets import SEEDOrgNoPatchOrOrgCreateModelViewSet
 
 _log = logging.getLogger(__name__)
@@ -54,9 +53,16 @@ class NoteViewSet(SEEDOrgNoPatchOrOrgCreateModelViewSet):
     def perform_create(self, serializer):
         org_id = self.get_organization(self.request)
         if self.kwargs.get('property_pk', None):
-            serializer.save(
-                organization_id=org_id, user=self.request.user, property_view_id=self.kwargs.get('property_pk', None)
+            property_view = PropertyView.objects.get(pk=self.kwargs.get('property_pk', None))
+            note = serializer.save(
+                organization_id=org_id, user=self.request.user, property_view=property_view
             )
+            NoteEvent.objects.create(
+                property=property_view.property,
+                cycle=property_view.cycle,
+                note=note
+            )
+
         elif self.kwargs.get('taxlot_pk', None):
             serializer.save(
                 organization_id=org_id, user=self.request.user, taxlot_view_id=self.kwargs.get('taxlot_pk', None)

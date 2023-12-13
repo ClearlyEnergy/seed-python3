@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.delete_cycle_modal', [])
   .controller('delete_cycle_modal_controller', [
@@ -31,7 +31,7 @@ angular.module('BE.seed.controller.delete_cycle_modal', [])
        * in_progress: bool - when true: shows the progress bar and hides the
        *  upload button. when false: hides the progress bar and shows the upload
        *  button.
-       * progress: int or float - the progress bar value, i.e. percentage complete
+       * progress: int or float - the progress bar value, i.e., percentage complete
        * complete: bool - true when the upload has finished
        * status_message: str - status of the task
        * progress_last_updated: null | int - when not null it indicates the last time the progress bar changed (UNIX Epoch in ms)
@@ -57,10 +57,10 @@ angular.module('BE.seed.controller.delete_cycle_modal', [])
           // refresh the current page b/c we have modified the default organization
           location.reload();
         }).catch(function (response) {
-          console.error('Failed to set default org: ');
-          console.error(response);
+          // console.error('Failed to set default org: ');
+          // console.error(response);
           $scope.error_occurred = true;
-        })
+        });
       };
 
       $scope.cancel = function () {
@@ -73,13 +73,13 @@ angular.module('BE.seed.controller.delete_cycle_modal', [])
         $scope.uploader.in_progress = true;
         cycle_service.delete_cycle($scope.cycle_id, $scope.organization_id)
           .then(function (data) {
-            function successHandler() {
+            function successHandler () {
               $scope.delete_cycle_status = 'success';
               $scope.uploader.in_progress = false;
             }
-            function errorHandler(err) {
-              console.error('Failed to delete cycle: ');
-              console.error(err);
+            function errorHandler (err) {
+              // console.error('Failed to delete cycle: ');
+              // console.error(err);
               $scope.delete_cycle_status = 'failed';
               $scope.error_occurred = true;
               $scope.uploader.in_progress = false;
@@ -90,12 +90,12 @@ angular.module('BE.seed.controller.delete_cycle_modal', [])
               1,
               successHandler,
               errorHandler,
-              $scope.uploader,
+              $scope.uploader
             );
           })
           .catch(function (res) {
-            console.error('Failed to delete cycle: ');
-            console.error(res);
+            // console.error('Failed to delete cycle: ');
+            // console.error(res);
             $scope.delete_cycle_status = 'failed';
             $scope.error_occurred = true;
             $scope.uploader.in_progress = false;

@@ -1,50 +1,50 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import csv
 import datetime
 import io
+import logging
+import math
 from collections import OrderedDict
+from random import randint
 
 import xlsxwriter
-from django.http import JsonResponse, HttpResponse
-
+from django.http import HttpResponse, JsonResponse
 from drf_yasg.utils import swagger_auto_schema
-
 from quantityfield.units import ureg
 from rest_framework.decorators import action
 from rest_framework.renderers import JSONRenderer
 from rest_framework.viewsets import GenericViewSet
 
 from seed.decorators import ajax_request_class
+from seed.lib.progress_data.progress_data import ProgressData
 from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.models import (
+    ColumnListProfile,
     PropertyView,
     TaxLotProperty,
     TaxLotView,
-    ColumnListProfile,
+    Cycle
 )
-from seed.models.meters import (
-    Meter,
-    MeterReading
-)
-from seed.models.property_measures import (
-    PropertyMeasure
-)
-from seed.models.scenarios import (
-    Scenario
-)
-from seed.serializers.tax_lot_properties import (
-    TaxLotPropertySerializer
-)
-from seed.utils.api import api_endpoint_class, OrgMixin
+from seed.lib.superperms.orgs.models import Organization
+from seed.models.meters import Meter, MeterReading
+from seed.models.property_measures import PropertyMeasure
+from seed.models.scenarios import Scenario
+from seed.serializers.meters import MeterSerializer
+from seed.serializers.tax_lot_properties import TaxLotPropertySerializer
+from seed.tasks import update_inventory_metadata
+from seed.utils.api import OrgMixin, api_endpoint_class
 from seed.utils.api_schema import AutoSchemaHelper
+from seed.utils.match import update_sub_progress_total
+from django.db.models import Q
+from seed.views.cycles import find_org_cycle
+
+
+_log = logging.getLogger(__name__)
 
 INVENTORY_MODELS = {'properties': PropertyView, 'taxlots': TaxLotView}
 
@@ -71,12 +71,18 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
                 'ids': ['integer'],
                 'filename': 'string',
                 'export_type': 'string',
-                'profile_id': 'integer'
+                'profile_id': 'integer',
+                'proress_key': 'string',
+                'include_notes': 'boolean',
+                'include_meter_readings': 'boolean',
             },
             description='- ids: (View) IDs for records to be exported\n'
                         '- filename: desired filename including extension (defaulting to \'ExportedData.{export_type}\')\n'
                         '- export_types: \'csv\', \'geojson\', \'xlsx\' (defaulting to \'csv\')\n'
                         '- profile_id: Column List Profile ID to use for customizing fields included in export'
+                        '- progress_key: (Optional) Used to find and update the ProgressData object. If none is provided, a ProgressData object will be created.'
+                        '- include_notes: (Optional) Include notes in the export. Defaults to False.'
+                        '- include_meter_readings: (Optional) Include notes in the export. Defaults to False.'
         ),
     )
     @api_endpoint_class
@@ -87,7 +93,21 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
         """
         Download a collection of the TaxLot and Properties in multiple formats.
         """
+        cycle_pk = request.query_params.get('cycle_id', None)
+        if not cycle_pk:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Must pass in cycle_id as query parameter'})
+
         org_id = self.get_organization(request)
+
+        if request.data.get('progress_key'):
+            progress_key = request.data['progress_key']
+            progress_data = ProgressData.from_key(progress_key)
+        else:
+            progress_data = ProgressData(func_name='export_inventory', unique_id=org_id)
+            progress_key = progress_data.key
+        progress_data = update_sub_progress_total(100, progress_key)
+
         profile_id = None
         column_profile = None
         if 'profile_id' in request.data and str(request.data['profile_id']) not in ['None', '']:
@@ -107,11 +127,25 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
         column_name_mappings.update(add_column_name_mappings)
 
         select_related = ['state', 'cycle']
+        cycle_filter = Q(cycle=cycle_pk)
+        org_filter = Q(property__organization_id=org_id)
+        id_filter = Q()
+
+        cycle = Cycle.objects.get(organization_id=org_id, pk=cycle_pk)
+        organization = Organization.objects.get(id=org_id)
+        if hasattr(view_klass, 'property') or hasattr(view_klass, 'taxlot'):
+            for sub_org in organization.child_orgs.all():
+                org_filter = org_filter | Q(property__organization_id=sub_org.id)
+                sub_cycle = find_org_cycle(cycle, sub_org)
+                if sub_cycle:
+                    cycle_filter = cycle_filter | Q(cycle=sub_cycle)
+
         prefetch_related = ['labels']
         ids = request.data.get('ids', [])
         filter_str = {}
         if ids:
             filter_str['id__in'] = ids
+            id_filter = Q(property__id__in=ids)
         if hasattr(view_klass, 'property'):
             select_related.append('property')
             filter_str['property__organization_id'] = org_id
@@ -121,22 +155,29 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
 
         elif hasattr(view_klass, 'taxlot'):
             select_related.append('taxlot')
+            if ids:
+                id_filter = Q(taxlot__id__in=ids)
             filter_str['taxlot__organization_id'] = org_id
             # always export the labels and notes
             column_name_mappings['taxlot_notes'] = 'Tax Lot Notes'
             column_name_mappings['taxlot_labels'] = 'Tax Lot Labels'
 
         model_views = view_klass.objects.select_related(*select_related).prefetch_related(
-            *prefetch_related).filter(**filter_str).order_by('id')
+            *prefetch_related).filter(org_filter & id_filter & cycle_filter).order_by('id')
 
         # get the data in a dict which includes the related data
-        data = TaxLotProperty.get_related(model_views, column_ids, columns_from_database)
+        progress_data.step('Exporting Inventory...')
+        data = TaxLotProperty.serialize(model_views, column_ids, columns_from_database)
 
         derived_columns = column_profile.derived_columns.all() if column_profile is not None else []
         column_name_mappings.update({dc.name: dc.name for dc in derived_columns})
+        progress_data.step('Exporting Inventory...')
+
+        export_type = request.data.get('export_type', 'csv')
 
         # add labels, notes, and derived columns
         include_notes = request.data.get('include_notes', True)
+        batch_size = math.ceil(len(model_views) / 98)
         for i, record in enumerate(model_views):
             label_string = []
             note_string = []
@@ -152,6 +193,17 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
             if hasattr(record, 'property'):
                 data[i]['property_labels'] = ','.join(label_string)
                 data[i]['property_notes'] = '\n----------\n'.join(note_string) if include_notes else '(excluded during export)'
+
+                include_meter_data = request.data.get('include_meter_readings', False)
+                if include_meter_data and export_type == 'geojson':
+                    meters = []
+                    for meter in record.property.meters.all():
+                        meters.append(MeterSerializer(meter).data)
+                        meters[-1]['readings'] = []
+                        for meter_reading in meter.meter_readings.all().order_by('start_time'):
+                            meters[-1]['readings'].append(MeterReadingSerializer(meter_reading).data)
+
+                    data[i]['_meters'] = meters
             elif hasattr(record, 'taxlot'):
                 data[i]['taxlot_labels'] = ','.join(label_string)
                 data[i]['taxlot_notes'] = '\n----------\n'.join(note_string) if include_notes else '(excluded during export)'
@@ -159,6 +211,9 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
             # add derived columns
             for derived_column in derived_columns:
                 data[i][derived_column.name] = derived_column.evaluate(inventory_state=record.state)
+
+            if batch_size > 0 and i % batch_size == 0:
+                progress_data.step('Exporting Inventory...')
 
         # force the data into the same order as the IDs
         if ids:
@@ -169,16 +224,29 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
                 view_id_str = 'taxlot_view_id'
             data.sort(key=lambda inventory_obj: order_dict[inventory_obj[view_id_str]])
 
-        export_type = request.data.get('export_type', 'csv')
-
         filename = request.data.get('filename', f"ExportedData.{export_type}")
-
+        progress_data.finish_with_success()
         if export_type == "csv":
             return self._csv_response(filename, data, column_name_mappings)
         elif export_type == "geojson":
             return self._json_response(filename, data, column_name_mappings)
         elif export_type == "xlsx":
             return self._spreadsheet_response(filename, data, column_name_mappings)
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('requires_member')
+    @action(detail=False, methods=['GET'])
+    def start_export(self, request):
+        """
+        Generate a ProgressData object that will be used to monitor property and tax lot exports
+        """
+        org_id = self.get_organization(request)
+
+        progress_data = ProgressData(func_name='export_inventory', unique_id=f'{org_id}{randint(10000, 99999)}')
+        progress_key = progress_data.key
+        progress_data = update_sub_progress_total(100, progress_key)
+        return progress_data.result()
 
     def _csv_response(self, filename, data, column_name_mappings):
         response = HttpResponse(content_type='text/csv')
@@ -223,7 +291,7 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
 
         scenario_keys = (
             'id', 'name', 'description', 'annual_site_energy_savings', 'annual_source_energy_savings',
-            'annual_cost_savings', 'analysis_state', 'analysis_state_message', 'annual_electricity_savings',
+            'annual_cost_savings', 'annual_electricity_savings',
             'annual_natural_gas_savings', 'annual_site_energy', 'annual_source_energy', 'annual_natural_gas_energy',
             'annual_electricity_energy', 'annual_peak_demand', 'annual_site_energy_use_intensity',
             'annual_source_energy_use_intensity'
@@ -412,6 +480,7 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
                 "properties": {}
             }
 
+            feature_geometries = []
             for key, value in datum.items():
                 if value is None:
                     continue
@@ -431,43 +500,49 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
                     established. When/If a second geometry is added, this is
                     appended alongside the previous geometry.
                     """
-                    individual_geometry = {}
 
                     # long_lat
                     if key == 'long_lat':
                         coordinates = self._serialized_point(value)
                         # point
-                        individual_geometry = {
+                        feature_geometries.append({
+                            "type": "Point",
                             "coordinates": coordinates,
-                            "type": "Point"
-                        }
+                        })
                     else:
                         # polygons
                         coordinates = self._serialized_coordinates(value)
-                        individual_geometry = {
+                        feature_geometries.append({
+                            "type": "Polygon",
                             "coordinates": [coordinates],
-                            "type": "Polygon"
-                        }
-
-                    if feature.get("geometry", None) is None:
-                        feature["geometry"] = {
-                            "type": "GeometryCollection",
-                            "geometries": [individual_geometry]
-                        }
-                    else:
-                        feature["geometry"]["geometries"].append(individual_geometry)
+                        })
                 else:
                     """
                     Non-polygon data
                     """
-                    display_key = column_name_mappings.get(key, key)
-                    feature["properties"][display_key] = value
+                    if key == "_meters":
+                        if feature["properties"].get("meters") is None:
+                            feature["properties"]["meters"] = value
+                        else:
+                            logging.warning("meters already exists in properties, not adding")
+                    else:
+                        display_key = column_name_mappings.get(key, key)
+                        feature["properties"][display_key] = value
 
-                    # # store point geometry in case you need it
-                    # if display_key == "Longitude":
-                    #     point_geometry[0] = value
-                    # if display_key == "Latitude":
-                    #     point_geometry[1] = value
+            # now add in the geometry data depending on how many geometries were found
+            if len(feature_geometries) == 0:
+                # no geometry found -- save an empty polygon geometry
+                feature["geometry"] = {
+                    "type": "Polygon",
+                    "coordinates": []
+                }
+            elif len(feature_geometries) == 1:
+                feature["geometry"] = feature_geometries[0]
+            else:
+                feature["geometry"] = {
+                    "type": "GeometryCollection",
+                    "geometries": feature_geometries
+                }
 
             """
             Before appending feature, ensure that if there is no geometry recorded.
@@ -486,12 +561,11 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
             # append feature
             features.append(feature)
 
+            # per geojsonlint.com, the CRS we were defining was the default and should not
+            # be included.
             response_dict = {
                 "type": "FeatureCollection",
-                "crs": {
-                    "type": "EPSG",
-                    "properties": {"code": 4326}
-                },
+                "name": f"SEED Export - {filename.replace('.geojson', '')}",
                 "features": features
             }
 
@@ -536,12 +610,35 @@ class TaxLotPropertyViewSet(GenericViewSet, OrgMixin):
 
         # make array unique
         if is_property:
-
-            unique = [dict(p) for p in set(tuple(i.items())
-                                           for i in related)]
-
+            unique = [dict(p) for p in set(tuple(i.items()) for i in related)]
         else:
-            unique = [dict(p) for p in set(tuple(i.items())
-                                           for i in related)]
+            unique = [dict(p) for p in set(tuple(i.items()) for i in related)]
 
         return unique
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('can_modify_data')
+    @action(detail=False, methods=['GET'])
+    def start_refresh_metadata(self, request):
+        """
+        Generate a ProgressData object that will be used to monitor property and tax lot metadata refresh
+        """
+        progress_data = ProgressData(func_name='refresh_metadata', unique_id=f'metadata{randint(10000,99999)}')
+        return progress_data.result()
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('can_modify_data')
+    @action(detail=False, methods=['POST'])
+    def refresh_metadata(self, request):
+        """
+        Kick off celery task to refresh metadata of selected inventory
+        """
+        ids = request.data.get('ids')
+        states = request.data.get('states')
+        inventory_type = request.data.get('inventory_type')
+        progress_key = request.data.get('progress_key')
+
+        update_inventory_metadata.subtask([ids, states, inventory_type, progress_key]).apply_async()
+        return

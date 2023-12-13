@@ -1,18 +1,22 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
+import json
 import os
 from unittest.mock import patch
 
 from django.test import TestCase
 from requests.models import Response
-import json
 
 from config.settings.common import BASE_DIR
-from seed.building_sync.validation_client import validate_use_case, DEFAULT_USE_CASE, DEFAULT_SCHEMA_VERSION
+from seed.building_sync.validation_client import (
+    DEFAULT_SCHEMA_VERSION,
+    DEFAULT_USE_CASE,
+    validate_use_case
+)
 
 
 def responseFactory(status_code, body_dict):
@@ -28,6 +32,10 @@ class TestValidationClient(TestCase):
         # to use these files so we don't have to create tmp ones and clean them up
         self.single_file = open(os.path.join(BASE_DIR, 'seed', 'building_sync', 'tests', 'data', 'buildingsync_v2_0_bricr_workflow.xml'))
         self.zip_file = open(os.path.join(BASE_DIR, 'seed', 'building_sync', 'tests', 'data', 'ex_1_and_buildingsync_ex01_measures.zip'))
+
+    def tearDown(self) -> None:
+        self.single_file.close()
+        self.zip_file.close()
 
     def test_validation_single_file_ok(self):
         good_body = {

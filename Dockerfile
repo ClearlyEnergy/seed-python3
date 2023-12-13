@@ -37,7 +37,7 @@ WORKDIR /seed
 COPY ./requirements.txt /seed/requirements.txt
 COPY ./requirements/*.txt /seed/requirements/
 RUN pip uninstall -y enum34
-RUN --mount=type=secret,id=ssh-key,target=/home/uwsgi/.ssh/id_rsa pip3 install --prefer-binary -r requirements/aws.txt
+RUN pip3 install --prefer-binary -r requirements/aws.txt
 
 ### Install JavaScript requirements - do this first because they take awhile
 ### and the dependencies will probably change slower than python packages.
@@ -54,7 +54,7 @@ COPY . /seed/
 COPY ./docker/wait-for-it.sh /usr/local/wait-for-it.sh
 RUN git config --system --add safe.directory /seed
 
-# nginx configuration - replace the root/default nginx config file
+# nginx configuration - replace the root/default nginx config file and add included files
 COPY /docker/nginx-seed.conf /etc/nginx/nginx.conf
 # symlink maintenance.html that nginx will serve in the case of a 503
 RUN ln -sf /seed/collected_static/maintenance.html /var/www/html/maintenance.html
@@ -62,10 +62,10 @@ RUN ln -sf /seed/collected_static/maintenance.html /var/www/html/maintenance.htm
 RUN chmod +x ./docker/maintenance.sh
 
 # Supervisor looks in /etc/supervisor for the configuration file.
-COPY /docker/supervisor-seed.conf /etc/supervisor/supervisord.conf
+COPY ./docker/supervisor-seed.conf /etc/supervisor/supervisord.conf
 
 # entrypoint sets some permissions on directories that may be shared volumes
-COPY /docker/seed-entrypoint.sh /usr/local/bin/seed-entrypoint
+COPY ./docker/seed-entrypoint.sh /usr/local/bin/seed-entrypoint
 RUN chmod 775 /usr/local/bin/seed-entrypoint
 ENTRYPOINT ["seed-entrypoint"]
 

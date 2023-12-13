@@ -1,6 +1,6 @@
 /**
- * :copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.
- * :author
+ * SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+ * See also https://github.com/seed-platform/seed/main/LICENSE.md
  */
 angular.module('BE.seed.controller.column_settings', [])
   .controller('column_settings_controller', [
@@ -66,7 +66,9 @@ angular.module('BE.seed.controller.column_settings', [])
         {id: 'boolean', label: $translate.instant('Boolean')},
         {id: 'area', label: $translate.instant('Area')},
         {id: 'eui', label: $translate.instant('EUI')},
-        {id: 'geometry', label: $translate.instant('Geometry')}
+        {id: 'geometry', label: $translate.instant('Geometry')},
+        {id: 'ghg', label: $translate.instant('GHG')},
+        {id: 'ghg_intensity', label: $translate.instant('GHG Intensity')}
       ];
 
       $scope.comstock_types = [
@@ -123,9 +125,9 @@ angular.module('BE.seed.controller.column_settings', [])
         $scope.setModified();
       };
 
-      // Seperate array used to capture and track geocoding-enabled columns and their order
+      // Separate array used to capture and track geocoding-enabled columns and their order
       // Any change to the array leading to position switching should be followed by a
-      // recalulation of geocoding_order values using indeces.
+      // recalculation of geocoding_order values using indices.
       $scope.geocoding_columns = _.orderBy(
         _.filter(columns, function (column) {
           return column.geocoding_order > 0;
@@ -136,7 +138,7 @@ angular.module('BE.seed.controller.column_settings', [])
       $scope.geocoding_columns_position_options = _.range(1, ($scope.geocoding_columns.length + 1), 1);
 
       var update_geocoding_order_values = function () {
-        // Since array order represents geocoding order, use indeces to update geocoding_order values
+        // Since array order represents geocoding order, use indices to update geocoding_order values
         _.each($scope.geocoding_columns, function (geocode_active_col, index) {
           geocode_active_col.geocoding_order = index + 1;
         });
@@ -382,6 +384,19 @@ angular.module('BE.seed.controller.column_settings', [])
         }).catch(function () { // User cancelled
         });
       };
+
+      $scope.open_create_column_modal = function () {
+        return $uibModal.open({
+          templateUrl: urls.static_url + 'seed/partials/create_column_modal.html',
+          controller: 'create_column_modal_controller',
+          // size: 'lg',
+          resolve: {
+            org_id: $scope.org.id,
+            table_name: () => $scope.inventory_type == "properties"? "PropertyState": "TaxlotState",
+            black_listed_names: () => ["", ...$scope.columns.map(c => c.column_name)]
+          }
+        });
+      }
 
       $scope.open_confirm_column_settings_modal = function () {
         return $uibModal.open({

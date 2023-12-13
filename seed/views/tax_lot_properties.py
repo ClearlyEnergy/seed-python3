@@ -1,11 +1,8 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Department of Energy) and contributors.
-All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 import csv
 import datetime
@@ -25,25 +22,17 @@ from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.lib.superperms.orgs.models import Organization
 
 from seed.models import (
+    ColumnListProfile,
     PropertyView,
     TaxLotProperty,
     TaxLotView,
     Cycle,
     ColumnListProfile
 )
-from seed.models.meters import (
-    Meter,
-    MeterReading
-)
-from seed.models.property_measures import (
-    PropertyMeasure
-)
-from seed.models.scenarios import (
-    Scenario
-)
-from seed.serializers.tax_lot_properties import (
-    TaxLotPropertySerializer
-)
+from seed.models.meters import Meter, MeterReading
+from seed.models.property_measures import PropertyMeasure
+from seed.models.scenarios import Scenario
+from seed.serializers.tax_lot_properties import TaxLotPropertySerializer
 from seed.utils.api import api_endpoint_class
 from seed.views.cycles import find_org_cycle
 
@@ -162,7 +151,7 @@ class TaxLotPropertyViewSet(GenericViewSet):
             *prefetch_related).filter(org_filter & id_filter & cycle_filter).order_by('id')
 
         # get the data in a dict which includes the related data
-        data = TaxLotProperty.get_related(model_views, column_ids, columns_from_database)
+        data = TaxLotProperty.serialize(model_views, column_ids, columns_from_database)
 
         # add labels and notes
         for i, record in enumerate(model_views):
@@ -242,7 +231,7 @@ class TaxLotPropertyViewSet(GenericViewSet):
 
         scenario_keys = (
             'id', 'name', 'description', 'annual_site_energy_savings', 'annual_source_energy_savings',
-            'annual_cost_savings', 'analysis_state', 'analysis_state_message', 'annual_electricity_savings',
+            'annual_cost_savings', 'annual_electricity_savings',
             'annual_natural_gas_savings', 'annual_site_energy', 'annual_source_energy', 'annual_natural_gas_energy',
             'annual_electricity_energy', 'annual_peak_demand', 'annual_site_energy_use_intensity',
             'annual_source_energy_use_intensity'
@@ -452,9 +441,6 @@ class TaxLotPropertyViewSet(GenericViewSet):
                     appended alongside the previous geometry.
                     """
                     individual_geometry = {}
-
-                    print("VALUE:")
-                    print(value)
 
                     # long_lat
                     if key == 'long_lat':

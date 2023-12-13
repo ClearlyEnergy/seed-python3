@@ -1,11 +1,17 @@
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
 from __future__ import absolute_import
 
-from config.settings.common import *  # noqa
+# use importlib module to find the local_untracked file rather than a hard-coded path
+import importlib.util
+import logging
+import os
+
 from celery.utils import LOG_LEVELS
+
+from config.settings.common import *  # noqa
 
 PASSWORD_HASHERS = (
     'django.contrib.auth.hashers.MD5PasswordHasher',
@@ -26,25 +32,12 @@ DATABASES = {
     },
 }
 
-# These celery variables can be overriden by the local_untracked values
+# These celery variables can be overridden by the local_untracked values
 CELERY_BROKER_BACKEND = 'memory'
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 # this celery log level is currently not overridden.
 CELERY_LOG_LEVEL = LOG_LEVELS['WARNING']
-
-# Testing
-INSTALLED_APPS += (
-    "django_nose",
-)
-TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
-NOSE_PLUGINS = [
-    'nose_exclude.NoseExclude',
-]
-NOSE_ARGS = [
-    '--nocapture',
-    '--nologcapture',
-]
 
 REQUIRE_UNIQUE_EMAIL = False
 
@@ -75,8 +68,6 @@ LOGGING = {
     },
 }
 
-# use importlib module to find the local_untracked file rather than a hard-coded path
-import importlib
 
 local_untracked_spec = importlib.util.find_spec('config.settings.local_untracked')
 if local_untracked_spec is None:
@@ -85,6 +76,15 @@ else:
     from config.settings.local_untracked import *  # noqa
 
 
-# suppress some logging -- only show warnings or greater
-# logging.getLogger('faker.factory').setLevel(logging.ERROR)
-# logging.disable(logging.WARNING)
+# suppress some logging on faker -- only show warnings or greater
+logging.getLogger('faker.factory').setLevel(logging.ERROR)
+logging.disable(logging.WARNING)
+
+# salesforce testing
+if 'SF_INSTANCE' not in vars():
+    # use env vars
+    SF_INSTANCE = os.environ.get('SF_INSTANCE', '')
+    SF_USERNAME = os.environ.get('SF_USERNAME', '')
+    SF_PASSWORD = os.environ.get('SF_PASSWORD', '')
+    SF_DOMAIN = os.environ.get('SF_DOMAIN', '')
+    SF_SECURITY_TOKEN = os.environ.get('SF_SECURITY_TOKEN', '')

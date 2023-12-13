@@ -1,7 +1,6 @@
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
-:license: see LICENSE for more details.
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 
 seed local_untracked.py
 
@@ -11,10 +10,11 @@ seed local_untracked.py
             or
             $ ./manage.py runserver --settings=config.settings.dev
         - add your settings. Make sure to update the DATABASES, AWS related configurations, and
-            CACHES (i.e. everything here starting with 'your-')
+            CACHES (i.e., everything here starting with 'your-')
     For local dev, all these services can run locally on localhost, 127.0.0.1, or 0.0.0.0.
 """
 import os
+
 from kombu import Exchange, Queue
 
 DEBUG = True

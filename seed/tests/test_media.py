@@ -1,3 +1,7 @@
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 import os
 import tempfile
 
@@ -5,19 +9,25 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.test import TestCase
 
-from seed.test_helpers.fake import FakePropertyStateFactory, FakeAnalysisFactory, FakeAnalysisPropertyViewFactory
-from seed.views.v3.media import check_file_permission, ModelForFileNotFound
-from seed.views.v3.uploads import get_upload_path
+from seed.data_importer.models import ImportRecord
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.models import OrganizationUser
-from seed.data_importer.models import ImportRecord
 from seed.models import (
-    Organization,
+    AnalysisInputFile,
+    AnalysisOutputFile,
     BuildingFile,
     ImportFile,
-    AnalysisInputFile,
-    AnalysisOutputFile
+    InventoryDocument,
+    Organization
 )
+from seed.test_helpers.fake import (
+    FakeAnalysisFactory,
+    FakeAnalysisPropertyViewFactory,
+    FakePropertyFactory,
+    FakePropertyStateFactory
+)
+from seed.views.v3.media import ModelForFileNotFound, check_file_permission
+from seed.views.v3.uploads import get_upload_path
 
 
 class TestMeasures(TestCase):
@@ -65,6 +75,14 @@ class TestMeasures(TestCase):
         os.makedirs(os.path.dirname(cls.absolute_analysis_output_file), exist_ok=True)
         cls.analysis_output_file = os.path.relpath(cls.absolute_analysis_output_file, settings.MEDIA_ROOT)
         with open(cls.absolute_analysis_output_file, 'w') as f:
+            f.write('Hello world')
+
+        # inventory document file
+        upload_to = InventoryDocument._meta.get_field('file').upload_to
+        cls.absolute_inv_doc_file = os.path.join(settings.MEDIA_ROOT, upload_to, 'test_inv_doc.osm')
+        os.makedirs(os.path.dirname(cls.absolute_inv_doc_file), exist_ok=True)
+        cls.inv_doc_file = os.path.relpath(cls.absolute_inv_doc_file, settings.MEDIA_ROOT)
+        with open(cls.absolute_inv_doc_file, 'w') as f:
             f.write('Hello world')
 
     @classmethod
@@ -259,6 +277,39 @@ class TestMeasures(TestCase):
         # Assert
         self.assertFalse(is_permitted)
 
+    def test_successfully_get_inv_doc_file_when_user_is_org_member(self):
+        # Setup
+        # create InventoryDocument for org_a
+        InventoryDocument.objects.create(
+            file=self.absolute_inv_doc_file,
+            filename=os.path.basename(self.inv_doc_file),
+            file_type=InventoryDocument.OSM,
+            property=(FakePropertyFactory(organization=self.org_a).get_property())
+        )
+
+        # Act
+        is_permitted = check_file_permission(self.user_a, self.inv_doc_file)
+
+        # Assert
+        self.assertTrue(is_permitted)
+
+    def test_fails_get_inv_doc_file_when_user_is_not_org_member(self):
+        # Setup
+        # create InventoryDocument for org_a
+        InventoryDocument.objects.create(
+            file=self.absolute_inv_doc_file,
+            filename=os.path.basename(self.inv_doc_file),
+            file_type=InventoryDocument.OSM,
+            property=(FakePropertyFactory(organization=self.org_a).get_property())
+        )
+
+        # Act
+        # check permission for non org user
+        is_permitted = check_file_permission(self.user_b, self.inv_doc_file)
+
+        # Assert
+        self.assertFalse(is_permitted)
+
     def test_fails_when_path_doesnt_match(self):
         # test import files
         with self.assertRaises(ModelForFileNotFound):
@@ -286,6 +337,13 @@ class TestMeasures(TestCase):
             check_file_permission(
                 self.user_a,
                 'analysis_output_files/bogus.txt'
+            )
+
+        # test bad path
+        with self.assertRaises(ModelForFileNotFound):
+            check_file_permission(
+                self.user_a,
+                '/inventory_documents/file.txt'
             )
 
         # test bad path

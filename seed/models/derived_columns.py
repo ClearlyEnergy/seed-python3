@@ -1,17 +1,18 @@
 # !/usr/bin/env python
 # encoding: utf-8
 """
-:copyright (c) 2014 - 2021, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
-:author
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
 """
-from copy import copy
+from __future__ import annotations
 
-from django.db import models
+import copy
+from typing import Any, Union
+
 from django.core.exceptions import ValidationError
-
+from django.db import models
 from lark import Lark, Transformer, v_args
 from lark.exceptions import UnexpectedToken
-
 from quantityfield.units import ureg
 
 from seed.landing.models import Organization
@@ -20,7 +21,7 @@ from seed.models.properties import PropertyState
 from seed.models.tax_lots import TaxLotState
 
 
-def _cast_params_to_floats(params):
+def _cast_params_to_floats(params: dict[str, Any]) -> dict[str, float]:
     """Helper to turn dict values to floats or remove them if non-numeric
 
     :param params: dict{str: <value>}
@@ -82,14 +83,8 @@ class ExpressionEvaluator:
         """Transforms expression tree into a result by applying operations.
         Should be used with the expression grammar above
         """
-        from operator import (
-            add,
-            sub,
-            mul,
-            truediv as div,
-            neg,
-            mod
-        )
+        from operator import add, mod, mul, neg, sub  # type: ignore[misc]
+        from operator import truediv as div  # type: ignore[misc]
 
         number = float
         min = min
@@ -113,7 +108,7 @@ class ExpressionEvaluator:
             """
             self.params = params
 
-    def __init__(self, expression, validate=True):
+    def __init__(self, expression: str, validate: bool = True):
         """Construct an expression evaluator.
 
         :param expression: str
@@ -127,7 +122,7 @@ class ExpressionEvaluator:
         self._parser = Lark(self.EXPRESSION_GRAMMAR, parser='lalr', transformer=self._transformer)
 
     @classmethod
-    def is_valid(cls, expression):
+    def is_valid(cls, expression: str) -> bool:
         """Validate the expression. Raises an InvalidExpression exception if invalid
 
         :param expression: str
@@ -140,7 +135,7 @@ class ExpressionEvaluator:
 
         return True
 
-    def evaluate(self, parameters=None):
+    def evaluate(self, parameters: Union[None, dict[str, float]] = None) -> float:
         """Evaluate the expression with the provided parameters
 
         :param parameters: dict, keys are parameter names and values are values
@@ -150,11 +145,12 @@ class ExpressionEvaluator:
             parameters = {}
 
         self._transformer.set_params(parameters)
-        return self._parser.parse(self._expression)
+        return self._parser.parse(self._expression)  # type: ignore[return-value]
 
 
 class InvalidExpression(Exception):
     """Raised when parsing an expression"""
+
     def __init__(self, expression, error_position=None):
         super().__init__()
         self.expression = expression
@@ -219,10 +215,30 @@ class DerivedColumn(models.Model):
             })
 
     def save(self, *args, **kwargs):
+        created = not self.pk
         self.full_clean()
-        return super().save(*args, **kwargs)
+        save_response = super().save(*args, **kwargs)
+        if self.inventory_type == 0:
+            inventory_type = 'PropertyState'
+        elif self.inventory_type == 1:
+            inventory_type = 'TaxLotState'
+        if created:
+            # check if the column name already exists for the table_name
+            if Column.objects.filter(organization=self.organization, table_name=inventory_type, column_name=self.name).exists():
+                raise ValidationError(f'Column name {inventory_type}.{self.name} already exists, must be unique')
 
-    def get_parameter_values(self, inventory_state):
+            Column.objects.create(
+                derived_column=self,
+                column_name=self.name,
+                display_name=self.name,
+                column_description=self.name,
+                table_name=inventory_type,
+                organization=self.organization,
+                is_extra_data=False,
+            )
+        return save_response
+
+    def get_parameter_values(self, inventory_state: Union[PropertyState, TaxLotState]) -> dict[str, Any]:
         """Construct a dictionary of column values keyed by expression parameter
         names. Note that no cleaning / validation is done to the values, they are
         straight from the database, or if a column is not found for the inventory
@@ -238,8 +254,6 @@ class DerivedColumn(models.Model):
                 ...
             }
         """
-        assert isinstance(inventory_state, self.INVENTORY_TYPE_TO_CLASS[self.inventory_type])
-
         if not hasattr(self, '_cached_column_parameters'):
             self._cached_column_parameters = (
                 DerivedColumnParameter.objects
@@ -261,7 +275,7 @@ class DerivedColumn(models.Model):
 
         return params
 
-    def evaluate(self, inventory_state=None, parameters=None):
+    def evaluate(self, inventory_state: Union[None, PropertyState, TaxLotState] = None, parameters: Union[None, dict[str, float]] = None):
         """Evaluate the expression. Caller must provide `parameters`, `inventory_state`,
         or both. Values from the inventory take priority over the parameters dict.
         Values that cannot be coerced into floats (from the inventory or params dict)
@@ -288,9 +302,15 @@ class DerivedColumn(models.Model):
             tmp_params = self.get_parameter_values(inventory_state)
             inventory_parameters = _cast_params_to_floats(tmp_params)
 
-        merged_parameters = copy(parameters)
+        merged_parameters = copy.copy(parameters)
         merged_parameters.update(inventory_parameters)
         merged_parameters = _cast_params_to_floats(merged_parameters)
+
+        # determine if any source columns are derived_columns
+        self.check_for_source_columns_derived(inventory_state, merged_parameters)
+
+        if any([val is None for val in merged_parameters.values()]):
+            return None
 
         try:
             return self._cached_evaluator.evaluate(merged_parameters)
@@ -307,6 +327,15 @@ class DerivedColumn(models.Model):
                             f'    parameters: {merged_parameters}\n'
                             f'    expression: {self.expression}\n'
                             f'    exception: {e}')
+
+    def check_for_source_columns_derived(self, inventory_state=None, merged_parameters={}):
+        dcps = self.derivedcolumnparameter_set.all()
+        for dcp in dcps:
+            column = Column.objects.get(pk=dcp.source_column_id)
+            if column.derived_column:
+                dc = column.derived_column
+                val = dc.evaluate(inventory_state)
+                merged_parameters[dcp.parameter_name] = val
 
 
 class DerivedColumnParameter(models.Model):

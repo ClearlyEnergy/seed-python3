@@ -1,8 +1,10 @@
 # !/usr/bin/env python
 # encoding: utf-8
-
+"""
+SEED Platform (TM), Copyright (c) Alliance for Sustainable Energy, LLC, and other contributors.
+See also https://github.com/seed-platform/seed/main/LICENSE.md
+"""
 from django.db import models
-from django.contrib.postgres.fields import JSONField
 
 from seed.lib.superperms.orgs.models import Organization
 
@@ -19,7 +21,7 @@ class ColumnMappingProfile(models.Model):
     )
 
     name = models.CharField(max_length=255, blank=False)
-    mappings = JSONField(default=list, blank=True)
+    mappings = models.JSONField(default=dict, blank=True)
 
     organizations = models.ManyToManyField(Organization)
 

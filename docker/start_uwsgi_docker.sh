@@ -14,10 +14,11 @@ fi
 echo "Waiting for redis to start"
 if [ -v REDIS_HOST ];
 then
-   REDIS_ACTUAL_HOST=$REDIS_HOST
+    REDIS_ACTUAL_HOST=$REDIS_HOST
 else
-   REDIS_ACTUAL_HOST=db-postgres
+    REDIS_ACTUAL_HOST=db-redis
 fi
+
 /usr/local/wait-for-it.sh --strict $REDIS_ACTUAL_HOST:6379
 
 # collect static resources before starting and compress the assets
