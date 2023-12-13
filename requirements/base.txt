@@ -75,7 +75,7 @@ django-cors-headers
 # pnnl/buildingid-py
 # BuildingSync Asset Extractor
 # this also includes the lxml dependency required by SEED
-buildingsync-asset-extractor==0.1.12
+# buildingsync-asset-extractor==0.1.12
 
 # Salesforce Integration
 seed-salesforce==0.1.0
