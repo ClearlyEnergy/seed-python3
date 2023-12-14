@@ -5,6 +5,7 @@ See also https://github.com/seed-platform/seed/main/LICENSE.md
 from typing import Literal, Optional, Type, Union
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db.models import Q
 from django.db.utils import DataError
 from django.http import JsonResponse
 from rest_framework import status
@@ -25,6 +26,7 @@ from seed.models import (
 )
 from seed.serializers.pint import apply_display_unit_preferences
 from seed.utils.search import FilterException, build_view_filters_and_sorts
+from seed.views.v3.cycles import find_org_cycle
 
 
 def get_filtered_results(request: Request, inventory_type: Literal['property', 'taxlot'], profile_id: int) -> JsonResponse:
@@ -32,6 +34,7 @@ def get_filtered_results(request: Request, inventory_type: Literal['property', '
     per_page = request.query_params.get('per_page')
     org_id = request.query_params.get('organization_id')
     cycle_id = request.query_params.get('cycle')
+    show_sub_org_data = request.query_params.get('show_sub_org_data', 'false') == 'true'
     ids_only = request.query_params.get('ids_only', 'false').lower() == 'true'
     # check if there is a query parameter for the profile_id. If so, then use that one
     profile_id = request.query_params.get('profile_id', profile_id)
@@ -69,15 +72,28 @@ def get_filtered_results(request: Request, inventory_type: Literal['property', '
     page = page or 1
     per_page = per_page or 1
 
+    org_filter = Q(property__organization_id=org.id)
+    cycle_filter = Q(cycle=cycle)
+    # Matches cycles that start and end during the organization's current
+    # cycle
+    if show_sub_org_data:
+        for sub_org in org.child_orgs.all():
+            org_filter = org_filter | Q(property__organization_id=sub_org.id)
+            sub_cycle = find_org_cycle(cycle, sub_org)
+            if sub_cycle:
+                cycle_filter = cycle_filter | Q(cycle=sub_cycle)
+
+    final_filter = org_filter & cycle_filter
+
     if inventory_type == 'property':
         views_list = (
             PropertyView.objects.select_related('property', 'state', 'cycle')
-            .filter(property__organization_id=org_id, cycle=cycle)
+            .filter(final_filter)
         )
     elif inventory_type == 'taxlot':
         views_list = (
             TaxLotView.objects.select_related('taxlot', 'state', 'cycle')
-            .filter(taxlot__organization_id=org_id, cycle=cycle)
+            .filter(final_filter)
         )
 
     include_related = (
