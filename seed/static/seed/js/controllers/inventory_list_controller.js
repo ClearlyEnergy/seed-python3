@@ -1156,6 +1156,7 @@ angular.module('BE.seed.controller.inventory_list', [])
           chunk,
           $scope.cycle.selected_cycle,
           _.get($scope, 'currentProfile.id'),
+          false,  // todo
           include_ids,
           exclude_ids,
           true,
@@ -1387,13 +1388,13 @@ angular.module('BE.seed.controller.inventory_list', [])
               if ($scope.inventory_type === 'properties') {
                 promise = inventory_service.get_mappable_property_columns().then((columns) => {
                   ubid_column = columns.find(c => c.column_name === 'ubid');
-                  return inventory_service.get_properties(1, undefined, undefined, -1, selectedViewIds);
+                  return inventory_service.get_properties(1, undefined, undefined, -1, false, selectedViewIds);
                 });
               } else {
                 promise = inventory_service.get_mappable_taxlot_columns()
                   .then((columns) => {
                     ubid_column = columns.find(c => c.column_name === 'ubid');
-                    return inventory_service.get_taxlots(1, undefined, undefined, -1, selectedViewIds);
+                    return inventory_service.get_taxlots(1, undefined, undefined, -1, false, selectedViewIds);
                   });
               }
               return promise.then(function (inventory_data) {
