@@ -32,12 +32,11 @@ spec:
       ready: true
   postgres:
     - name: Postgres database
-      auth:
-        username:
-          {{- toYaml .Values.canaries.postgres.url | nindent 10 }}
-        password:
-          value: notused
-      connection: "$(username)"
+      username:
+        {{- toYaml .Values.canaries.postgres.url | nindent 10 }}
+      password:
+        value: not-used
+      url: "$(username)"
       query: "SELECT 1;"
   http:
     - name: Frontend
