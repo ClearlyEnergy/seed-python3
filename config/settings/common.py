@@ -389,7 +389,7 @@ GREEN_ASSESSMENT_DEFAULT_VALIDITY_DURATION = None
 INCLUDE_SEED_V2_APIS = os.environ.get('INCLUDE_SEED_V2_APIS', 'true').lower() == 'true'
 
 # Config self registration
-INCLUDE_ACCT_REG = os.environ.get('INCLUDE_ACCT_REG', 'true').lower() == 'true'
+INCLUDE_ACCT_REG = False  # Set to False for HELIX
 
 OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://sparkplatform.com/openid/authorize'
 OIDC_OP_TOKEN_ENDPOINT = 'https://sparkplatform.com/openid/token'

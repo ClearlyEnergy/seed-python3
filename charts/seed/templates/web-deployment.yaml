@@ -76,7 +76,7 @@ spec:
             - name: INCLUDE_SEED_V2_APIS
               value: "TRUE"
             - name: INCLUDE_ACCT_REG
-              value: "TRUE"
+              value: "FALSE"
           image: seedplatform/seed:develop
           imagePullPolicy: Always
           name: web
