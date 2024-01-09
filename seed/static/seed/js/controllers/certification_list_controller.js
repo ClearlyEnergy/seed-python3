@@ -29,7 +29,7 @@ angular.module('BE.seed.controller.certification', [])
         }, {
           title: 'Description'
         }];
-		
+
         /**
          * Functions for dealing with editing a certifications' name
          */
@@ -43,12 +43,13 @@ angular.module('BE.seed.controller.certification', [])
         $scope.save_certification_name = function (certification) {
 		  var duration = (certification.validity_duration == null ? "" : certification.validity_duration);
   	      var cert = {
-			  "name": certification.name, 
+			  "name": certification.name,
 			  "award_body": certification.award_body,
-			  "recognition_type": certification.recognition_type, 
-			  "validity_duration": duration, 
+			  "recognition_type": certification.recognition_type,
+			  "validity_duration": duration,
 			  "description": certification.description,
-			  "id": certification.id
+			  "id": certification.id,
+			  "is_numeric_score": certification.is_numeric_score,
 		  }
 
           certification_service.update_certification(cert).then(function () {
@@ -78,7 +79,7 @@ angular.module('BE.seed.controller.certification', [])
             refresh_certifications();
           });
         };
-		
+
         /**
          * open up modal to confirm delete of certification, refresh list
          */
@@ -96,7 +97,7 @@ angular.module('BE.seed.controller.certification', [])
             refresh_certifications();
           });
         };
-		
+
         /**
          * refresh_certifications: refreshes certification list
          */
@@ -105,11 +106,11 @@ angular.module('BE.seed.controller.certification', [])
 	  		$scope.certifications = certifications.data;
           });
         };
-		
+
 
         function initialize_new_certification () {
           $scope.certification = {
-			  name: "", 
+			  name: "",
 			  award_body: "",
 			  recognition_type: "",
 			  validity_duration: "",
@@ -119,7 +120,7 @@ angular.module('BE.seed.controller.certification', [])
               disabled: function () {
               var name = $scope.certification.name || '';
               return name.length === 0;
-            },		  
+            },
 		  };
         }
     }
