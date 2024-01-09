@@ -72,13 +72,13 @@ def get_filtered_results(request: Request, inventory_type: Literal['property', '
     page = page or 1
     per_page = per_page or 1
 
-    org_filter = Q(property__organization_id=org.id)
+    org_filter = Q(**{f"{inventory_type}__organization_id": org.id})
     cycle_filter = Q(cycle=cycle)
     # Matches cycles that start and end during the organization's current
     # cycle
     if show_sub_org_data:
         for sub_org in org.child_orgs.all():
-            org_filter = org_filter | Q(property__organization_id=sub_org.id)
+            org_filter = org_filter | Q(**{f"{inventory_type}__organization_id": sub_org.id})
             sub_cycle = find_org_cycle(cycle, sub_org)
             if sub_cycle:
                 cycle_filter = cycle_filter | Q(cycle=sub_cycle)

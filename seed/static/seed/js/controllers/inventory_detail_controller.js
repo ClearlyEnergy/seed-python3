@@ -23,7 +23,6 @@ angular.module('BE.seed.controller.inventory_detail', [])
     'inventory_service',
     'matching_service',
     'pairing_service',
-    'certification_service',
     'derived_columns_service',
     'organization_service',
     'dataset_service',
@@ -62,7 +61,6 @@ angular.module('BE.seed.controller.inventory_detail', [])
       inventory_service,
       matching_service,
       pairing_service,
-      certification_service,
       derived_columns_service,
       organization_service,
       dataset_service,
@@ -326,10 +324,6 @@ angular.module('BE.seed.controller.inventory_detail', [])
           'updated'
         ], name);
       };
-
-      /** HELIX add-on to grab certifications and measures **/
-      $scope.certifications = inventory_payload.certifications;
-      $scope.measures = inventory_payload.measures;
 
       // The server provides of *all* extra_data keys (across current state and all historical state)
       // Let's remember this.
@@ -950,7 +944,7 @@ angular.module('BE.seed.controller.inventory_detail', [])
             $state.reload();
         });
       };
-	  
+
       /**
        * open up modal to confirm create of measure, refresh list
        */
@@ -968,7 +962,7 @@ angular.module('BE.seed.controller.inventory_detail', [])
 //          refresh_measure();
         });
       };
-	  
+
       /**
        * refresh_measures: refreshes measures list
        */
@@ -977,8 +971,8 @@ angular.module('BE.seed.controller.inventory_detail', [])
   		$scope.measures = measures.data;
         });
       };
-	  
-	  
+
+
       /**
        * open up modal to confirm delete of measure, refresh page
        */
@@ -995,11 +989,11 @@ angular.module('BE.seed.controller.inventory_detail', [])
             $state.reload();
         });
       };
-	  
-	  
+
+
       /**
        * Functions for dealing with editing an assessment's opt-out status
-       */	
+       */
       $scope.edit_assessment_status = function (certification) {
         certification.edit_form_showing = true;
       };
@@ -1021,21 +1015,12 @@ angular.module('BE.seed.controller.inventory_detail', [])
       $scope.confirm_delete_assessment_url = function (certification_url) {
           certification_service.delete_assessment_url(certification_url[2]).then(function () {
             $state.reload();
-          });	
+          });
       };
 
-      /**
-       *   init: sets default state of inventory detail page,
-       *   sets the field arrays for each section, performs
-       *   some date string manipulation for better display rendering,
-       *   and gets all the extra_data fields
-       *
-       */
-      var init = function () {
-        if ($scope.inventory_type === 'properties') {
-          $scope.format_date_values($scope.item_state, inventory_service.property_state_date_columns);
-        } else if ($scope.inventory_type === 'taxlots') {
-          $scope.format_date_values($scope.item_state, inventory_service.taxlot_state_date_columns);
+      const setMeasureGridOptions = () => {
+        if (!$scope.historical_items) {
+          return
         }
 
         $scope.measureGridOptionsByScenarioId = {}
