@@ -19,7 +19,11 @@ from seed.data_importer.sensor_readings_parser import SensorsReadingsParser
 from seed.data_importer.tasks import (
     do_checks,
     geocode_and_match_buildings_task,
-    map_data
+    map_data,
+    helix_certification_create,
+    helix_hes_to_file,
+    helix_leed_to_file,
+    helix_save_results,
 )
 from seed.data_importer.tasks import save_raw_data as task_save_raw
 from seed.data_importer.tasks import \
@@ -1131,3 +1135,66 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
         result["unlinkable_pm_ids"] = meters_parser.unlinkable_pm_ids
 
         return result
+
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('can_modify_data')
+    @action(detail=True, methods=['POST'])
+    def add_certifications(self, request, pk=None):
+        """
+        Starts a background task to add green certifications to PropertyState
+        """
+        body = request.data
+        user_id = body.get('user_id', False)
+
+        if not ImportFile.objects.filter(pk=pk).exists():
+            return {
+                'status': 'error',
+                'message': 'ImportFile {} does not exist'.format(pk)
+            }
+
+        return JsonResponse(helix_certification_create(pk, user_id))
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('can_modify_data')
+    @action(detail=True, methods=['POST'])
+    def leed_upload(self, request, pk=None):
+        org = Organization.objects.get(pk=pk)
+
+        return_value = helix_leed_to_file(request.user, org)
+        return JsonResponse({
+            'progress_key': return_value['progress_key'],
+            'progress': return_value,
+        })
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('can_modify_data')
+    @action(detail=True, methods=['POST'])
+    def hes_upload(self, request, pk=None):
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        dataset = ImportRecord.objects.get(pk=body.get('dataset', None))
+        cycle = Cycle.objects.get(pk=body.get('cycle', None))
+
+        return_value = helix_hes_to_file(request.user, org, dataset, cycle)
+        return JsonResponse(return_value)
+
+    @api_endpoint_class
+    @ajax_request_class
+    @has_perm_class('can_modify_data')
+    @action(detail=True, methods=['POST'])
+    def helix_results(self, request, pk=None):
+        body = request.data
+        org = Organization.objects.get(pk=pk)
+        data_id = body.get('result_id', None)
+        dataset = ImportRecord.objects.get(pk=body.get('dataset', None))
+        cycle = Cycle.objects.get(pk=body.get('cycle', None))
+        source = body.get('source', None)
+        file_pk = helix_save_results(request.user, org, dataset, cycle, source, data_id)
+
+        return JsonResponse({
+            'file_pk': file_pk
+        })

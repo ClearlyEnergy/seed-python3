@@ -91,12 +91,14 @@ angular.module('BE.seed.service.mapping', []).factory('mapping_service', [
       return user_service.get_user_id().then(function (this_user_id) {
         return $http.post('/api/v3/import_files/'+ import_file_id + '/add_certifications/', {
           user_id: this_user_id
+        }, {
+          params: { organization_id: user_service.get_organization().id }
         }).then(function (response) {
           return response.data;
         });
       });
     };
-	
+
     /**
      * remap_buildings
      * kick off task to begin re-mapping on the backend.
