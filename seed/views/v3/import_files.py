@@ -48,7 +48,6 @@ from seed.models import (
     Cycle,
     ImportFile,
     Meter,
-    Organization,
     PropertyAuditLog,
     PropertyState,
     PropertyView,
@@ -58,6 +57,7 @@ from seed.models import (
     get_column_mapping,
     obj_to_dict
 )
+from helix.models import HELIXOrganization as Organization
 from seed.serializers.pint import apply_display_unit_preferences
 from seed.utils.api import OrgMixin, api_endpoint_class
 from seed.utils.api_schema import (
