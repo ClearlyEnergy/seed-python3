@@ -39,7 +39,7 @@ spec:
           imagePullPolicy: {{ .Values.helix.image.pullPolicy }}
           env:
             - name: REDIS_HOST
-              value: {{ include "helix.fullname" . }}-redis
+              value: {{ include "helix.fullname" . }}-redis:6379
             {{- range .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

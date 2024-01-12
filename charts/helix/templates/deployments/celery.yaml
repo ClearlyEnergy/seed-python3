@@ -41,7 +41,7 @@ spec:
             - /seed/docker/start_celery_docker.sh
           env:
             - name: REDIS_HOST
-              value: {{ include "helix.fullname" . }}-redis
+              value: {{ include "helix.fullname" . }}-redis:6379
             {{- range .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
