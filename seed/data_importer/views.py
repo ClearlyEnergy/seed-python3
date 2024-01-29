@@ -50,9 +50,6 @@ from helix.models import HELIXOrganization as Organization
 from seed.lib.superperms.orgs.models import OrganizationUser
 from seed.lib.superperms.orgs.permissions import SEEDOrgPermissions
 from seed.lib.xml_mapping import mapper as xml_mapper
-from seed.models.data_quality import (
-    DataQualityCheck,
-)
 from seed.models import (
     AUDIT_USER_EDIT,
     DATA_STATE_MAPPING,
@@ -786,70 +783,6 @@ class ImportFileViewSet(viewsets.ViewSet):
     @ajax_request_class
     @has_perm_class('can_modify_data')
     @action(detail=True, methods=['POST'])
-    def add_certifications(self, request, pk=None):
-        """
-        Starts a background task to add green certifications to PropertyState
-        ---
-        """
-
-        body = request.data
-        user_id = body.get('user_id', False)
-
-        if not ImportFile.objects.filter(pk=pk).exists():
-            return {
-                'status': 'error',
-                'message': 'ImportFile {} does not exist'.format(pk)
-            }
-
-        return JsonResponse(helix_certification_create(pk, user_id))
-
-    @api_endpoint_class
-    @ajax_request_class
-    @has_perm_class('can_modify_data')
-    @action(detail=True, methods=['POST'])
-    def leed_upload(self, request, pk=None):
-        org = Organization.objects.get(pk=pk)
-
-        return_value = helix_leed_to_file(request.user, org)
-        return JsonResponse({
-            'progress_key': return_value['progress_key'],
-            'progress': return_value,
-        })
-
-    @api_endpoint_class
-    @ajax_request_class
-    @has_perm_class('can_modify_data')
-    @action(detail=True, methods=['POST'])
-    def hes_upload(self, request, pk=None):
-        body = request.data
-        org = Organization.objects.get(pk=pk)
-        dataset = ImportRecord.objects.get(pk=body.get('dataset', None))
-        cycle = Cycle.objects.get(pk=body.get('cycle', None))
-
-        return_value = helix_hes_to_file(request.user, org, dataset, cycle)
-        return JsonResponse(return_value)
-
-    @api_endpoint_class
-    @ajax_request_class
-    @has_perm_class('can_modify_data')
-    @action(detail=True, methods=['POST'])
-    def helix_results(self, request, pk=None):
-        body = request.data
-        org = Organization.objects.get(pk=pk)
-        data_id = body.get('result_id', None)
-        dataset = ImportRecord.objects.get(pk=body.get('dataset', None))
-        cycle = Cycle.objects.get(pk=body.get('cycle', None))
-        source = body.get('source', None)
-        file_pk = helix_save_results(request.user, org, dataset, cycle, source, data_id)
-
-        return JsonResponse({
-            'file_pk': file_pk
-        })
-
-    @api_endpoint_class
-    @ajax_request_class
-    @has_perm_class('can_modify_data')
-    @action(detail=True, methods=['POST'])
     def start_system_matching_and_geocoding(self, request, pk=None):
         """
         Starts a background task to attempt automatic matching between buildings
@@ -918,11 +851,9 @@ class ImportFileViewSet(viewsets.ViewSet):
               required: true
               paramType: path
         """
-# HELIX        organization = Organization.objects.get(pk=request.query_params['organization_id'])
-        dq = DataQualityCheck.objects.filter(organization_id=request.query_params['organization_id']).first()  # Need to set default data quality check
+        organization = Organization.objects.get(pk=request.query_params['organization_id'])
 
-# HELIX        return_value = do_checks(organization.id, None, None, pk)
-        return_value = do_checks(dq.id, None, None, pk)
+        return_value = do_checks(organization.id, None, None, pk)
         # step 5: create a new model instance
         return JsonResponse({
             'progress_key': return_value['progress_key'],

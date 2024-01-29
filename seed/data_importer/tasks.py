@@ -17,7 +17,7 @@ import zipfile
 from bisect import bisect_left
 from builtins import str
 from collections import defaultdict, namedtuple
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from itertools import chain
 from math import ceil
 
@@ -25,7 +25,6 @@ from _csv import Error
 from celery import chain as celery_chain
 from celery import chord, group, shared_task
 from celery.utils.log import get_task_logger
-from django.conf import settings
 from dateutil import parser
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -87,7 +86,7 @@ from seed.models import (
     TaxLotState,
     TaxLotView
 )
-from seed.models.auditlog import AUDIT_IMPORT, AUDIT_USER_EXPORT
+from seed.models.auditlog import AUDIT_IMPORT
 from seed.models.data_quality import DataQualityCheck, Rule
 from seed.utils.buildings import get_source_type
 from seed.utils.geocode import (
@@ -97,22 +96,6 @@ from seed.utils.geocode import (
 )
 from seed.utils.match import update_sub_progress_total
 from seed.utils.ubid import decode_unique_ids
-from seed.utils.cache import (
-    set_cache_raw, get_cache_raw
-)
-
-# HELIX
-from seed.landing.models import SEEDUser as User
-from hes import hes
-from leed import leed
-from seed.models.certification import (
-    GreenAssessment,
-    GreenAssessmentPropertyAuditLog,
-    GreenAssessmentURL)
-from seed.models.measures import Measure
-from helix.models import HELIXGreenAssessmentProperty, HelixMeasurement
-from helix.models import HELIXPropertyMeasure
-import helix.helix_utils as helix_utils
 
 # from seed.utils.cprofile import cprofile
 
@@ -773,7 +756,7 @@ def helix_certification_create(file_pk, user_id):
 
 
 @shared_task(ignore_result=True)
-def check_data_chunk(model, data_quality_id, ids, dq_id):
+def check_data_chunk(model, ids, dq_id):
     if model == 'PropertyState':
         qs = PropertyState.objects.filter(id__in=ids)
     elif model == 'TaxLotState':
@@ -781,8 +764,8 @@ def check_data_chunk(model, data_quality_id, ids, dq_id):
     else:
         qs = None
     organization = qs.first().organization
-# HELIX    super_organization = organization.get_parent()
-    d = DataQualityCheck.objects.get(pk=data_quality_id)
+    super_organization = organization.get_parent()
+    d = DataQualityCheck.retrieve(super_organization.id)
     d.check_data(model, qs.iterator())
     d.save_to_cache(dq_id, organization.id)
 
@@ -800,7 +783,7 @@ def finish_checking(progress_key):
     return progress_data.result()
 
 
-def do_checks(data_quality_id, propertystate_ids, taxlotstate_ids, import_file_id=None):
+def do_checks(org_id, propertystate_ids, taxlotstate_ids, import_file_id=None):
     """
     Run the dq checks on the data
 
@@ -829,19 +812,14 @@ def do_checks(data_quality_id, propertystate_ids, taxlotstate_ids, import_file_i
                                 DATA_STATE_DELETE]).values_list('id', flat=True)
         )
 
-# HELIX    tasks = _data_quality_check_create_tasks(
-#        org_id, propertystate_ids, taxlotstate_ids, dq_id
-#    )
     tasks = _data_quality_check_create_tasks(
-        data_quality_id, propertystate_ids, taxlotstate_ids, dq_id
+        org_id, propertystate_ids, taxlotstate_ids, dq_id
     )
     progress_data.total = len(tasks)
     progress_data.save()
     if tasks:
         # specify the chord as an immutable with .si
-        #        chord(tasks, interval=15)(finish_checking.si(progress_data.key))
-        chord(tasks)
-        finish_checking(progress_data.key)
+        chord(tasks, interval=15)(finish_checking.si(progress_data.key))
     else:
         progress_data.finish_with_success()
 
@@ -1238,7 +1216,7 @@ def _map_data_create_tasks(import_file_id, progress_key):
     return tasks
 
 
-def _data_quality_check_create_tasks(data_quality_id, property_state_ids, taxlot_state_ids, dq_id):
+def _data_quality_check_create_tasks(org_id, property_state_ids, taxlot_state_ids, dq_id):
     """
     Entry point into running data quality checks.
 
@@ -1255,22 +1233,18 @@ def _data_quality_check_create_tasks(data_quality_id, property_state_ids, taxlot
     # Initialize the data quality checks with the organization here. It is important to do it here
     # since the .retrieve method in the check_data_chunk method will result in a race condition if celery is
     # running in parallel.
-# HELIX    DataQualityCheck.retrieve(org_id)
-    DataQualityCheck.objects.get(pk=data_quality_id)
+    DataQualityCheck.retrieve(org_id)
 
     tasks = []
     if property_state_ids:
         id_chunks = [[obj for obj in chunk] for chunk in batch(property_state_ids, 100)]
         for ids in id_chunks:
-            #            tasks.append(check_data_chunk.s("PropertyState", data_quality_id, ids, dq_id))
-            tasks.append(check_data_chunk("PropertyState", data_quality_id, ids, dq_id))
-            # HELIX            tasks.append(check_data_chunk.s("PropertyState", ids, dq_id))
+            tasks.append(check_data_chunk.s("PropertyState", ids, dq_id))
 
     if taxlot_state_ids:
         id_chunks_tl = [[obj for obj in chunk] for chunk in batch(taxlot_state_ids, 100)]
         for ids in id_chunks_tl:
-            tasks.append(check_data_chunk.s("TaxLotState", data_quality_id, ids, dq_id))
-            # HELIX            tasks.append(check_data_chunk.s("TaxLotState", ids, dq_id))
+            tasks.append(check_data_chunk.s("TaxLotState", ids, dq_id))
 
     return tasks
 
@@ -1922,15 +1896,11 @@ def _save_raw_data_create_tasks(file_pk, progress_key):
     for batch_chunk in batch(parser.data, 100):
         import_file.num_rows += len(batch_chunk)
         chunks.append(batch_chunk)
-
     import_file.save()
 
     progress_data.total = len(chunks)
     progress_data.save()
 
-    # TODO: Remove if unncessary
-    # return tasks and None as a placeholder for proposed data import summary
-    #return [_save_raw_data_chunk(chunk, file_pk, progress_data.key) for chunk in chunks], None
     # Add in the save raw data chunks to the background tasks
     tasks = []
     for chunk in chunks:
