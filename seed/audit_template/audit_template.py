@@ -18,7 +18,7 @@ _log = logging.getLogger(__name__)
 class AuditTemplate(object):
 
     HOST = settings.AUDIT_TEMPLATE_HOST
-    API_URL = f'{HOST}/api/v2'
+    API_URL = f'{HOST}/api/v3'
 
     def __init__(self, org_id):
         self.org_id = org_id

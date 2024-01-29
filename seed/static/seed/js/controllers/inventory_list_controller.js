@@ -780,6 +780,7 @@ angular.module('BE.seed.controller.inventory_list', [])
           return !_.has(row, '$$treeLevel');
         }), 'property_state_id');
 
+        // todo doesnt seem to loop?
         //loop through states
         inventory_service.generate_green_addendum(property_states[0]).then(function(response) {
             window.open(response.url, '_blank');
@@ -797,6 +798,7 @@ angular.module('BE.seed.controller.inventory_list', [])
           return !_.has(row, '$$treeLevel');
         }), 'property_state_id');
 
+        // todo doesnt seem to loop?
         //loop through states
         inventory_service.generate_vermont_profile(property_states[0]).then(function(response) {
             window.open(response.url, '_blank');
@@ -1570,7 +1572,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         });
       };
 
-      $scope.open_helix_export_modal = function () {
+      $scope.open_helix_export_modal = function (selectedViewIds) {
         $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/export_inventory_modal.html',
           controller: 'export_inventory_modal_controller',
@@ -1579,13 +1581,19 @@ angular.module('BE.seed.controller.inventory_list', [])
               return $scope.cycle.selected_cycle.id;
             },
             ids: function () {
-              var visibleRowIds = _.map($scope.gridApi.core.getVisibleRows($scope.gridApi.grid), function (row) {
-                return row.entity.id;
-              });
-              var selectedRowIds = _.map($scope.gridApi.selection.getSelectedRows(), 'id');
-              return _.filter(visibleRowIds, function (id) {
-                return _.includes(selectedRowIds, id);
-              });
+              return selectedViewIds;
+            },
+            filter_header_string: function () {
+              if ($scope.selected_labels.length) {
+                return [
+                  'Filter Method: ""',
+                  $scope.labelLogic,
+                  '"", Filter Labels: "',
+                  $scope.selected_labels.map(label => label.name).join(' - '),
+                  '"'
+                ].join('');
+              }
+              return 'Filter Method: ""none""';
             },
             columns: function () {
               return _.map($scope.columns, 'name');
@@ -1608,7 +1616,7 @@ angular.module('BE.seed.controller.inventory_list', [])
         });
       };
 
-      $scope.open_duplicates_export_modal = function () {
+      $scope.open_duplicates_export_modal = function (selectedViewIds) {
         $uibModal.open({
           templateUrl: urls.static_url + 'seed/partials/export_inventory_modal.html',
           controller: 'export_inventory_modal_controller',
@@ -1617,13 +1625,19 @@ angular.module('BE.seed.controller.inventory_list', [])
               return $scope.cycle.selected_cycle.id;
             },
             ids: function () {
-              var visibleRowIds = _.map($scope.gridApi.core.getVisibleRows($scope.gridApi.grid), function (row) {
-                return row.entity.id;
-              });
-              var selectedRowIds = _.map($scope.gridApi.selection.getSelectedRows(), 'id');
-              return _.filter(visibleRowIds, function (id) {
-                return _.includes(selectedRowIds, id);
-              });
+              return selectedViewIds;
+            },
+            filter_header_string: function () {
+              if ($scope.selected_labels.length) {
+                return [
+                  'Filter Method: ""',
+                  $scope.labelLogic,
+                  '"", Filter Labels: "',
+                  $scope.selected_labels.map(label => label.name).join(' - '),
+                  '"'
+                ].join('');
+              }
+              return 'Filter Method: ""none""';
             },
             columns: function () {
               return _.map($scope.columns, 'name');
@@ -1696,6 +1710,13 @@ angular.module('BE.seed.controller.inventory_list', [])
           case 'select_all': $scope.select_all(); break;
           case 'select_none': $scope.select_none(); break;
           case 'update_salesforce': $scope.update_salesforce(selectedViewIds); break;
+          /* HELIX */
+          // case 'open_helix_export_modal': $scope.open_helix_export_modal(selectedViewIds); break;
+          case 'open_duplicates_export_modal': $scope.open_duplicates_export_modal(selectedViewIds); break;
+          case 'generate_green_addendum': $scope.generate_green_addendum(); break;
+          case 'generate_massachusetts_scorecard': $scope.generate_massachusetts_scorecard(); break;
+          //case 'generate_vermont_profile': $scope.generate_vermont_profile(); break;
+          case 'open_pvwatts_modal': $scope.open_pvwatts_modal(); break;
           default: console.error('Unknown action:', elSelectActions.value, 'Update "run_action()"');
         }
         $scope.model_actions = 'none';

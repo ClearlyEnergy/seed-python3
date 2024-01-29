@@ -1238,7 +1238,7 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
     };
 
     inventory_service.generate_green_addendum = function (id) {
-      return $http.get('/api/v2/green_addendum/'+id+'/', {
+      return $http.get('/api/v3/green_addendum/'+id+'/', {
         params: {
           organization_id: user_service.get_organization().id
         }
@@ -1248,7 +1248,7 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
     };
 
     inventory_service.generate_vermont_profile = function (id) {
-      return $http.get('/api/v2/vermont_profile/'+id+'/', {
+      return $http.get('/api/v3/vermont_profile/'+id+'/', {
         params: {
           organization_id: user_service.get_organization().id
         }
@@ -1258,7 +1258,7 @@ angular.module('BE.seed.service.inventory', []).factory('inventory_service', [
     };
 
     inventory_service.generate_massachusetts_scorecard = function (id) {
-      return $http.get('/api/v2/massachusetts_scorecard/'+id+'/', {
+      return $http.get('/api/v3/massachusetts_scorecard/'+id+'/', {
         params: {
           organization_id: user_service.get_organization().id
         }
