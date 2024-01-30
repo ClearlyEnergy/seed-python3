@@ -25,7 +25,6 @@ class MeasureSerializer(serializers.ModelSerializer):
 
 
 class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
-    id = serializers.ReadOnlyField(source='measure.id')
     measure = serializers.PrimaryKeyRelatedField(queryset=Measure.objects.all())
     property_state = serializers.PrimaryKeyRelatedField(queryset=PropertyState.objects.all())
     measure_id = serializers.SerializerMethodField('measure_id_name')
@@ -42,10 +41,8 @@ class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
         model = PropertyMeasure
 
         fields = (
-            'id',
             'measure',
             'property_state',
-            'property_measure_name',
             'measure_id',
             'category',
             'name',
@@ -63,6 +60,7 @@ class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
             'cost_capital_replacement',
             'cost_residual_value',
             'useful_life',
+            'scenario_id',
             'current_financing',
             'ownership',
             'electric',
@@ -73,6 +71,11 @@ class PropertyMeasureSerializer(serializers.HyperlinkedModelSerializer):
 
     def measure_id_name(self, obj):
         return "{}.{}".format(obj.measure.category, obj.measure.name)
+
+    def get_scenario_id(self, obj):
+        scenario = obj.scenario_set.first()
+        if scenario:
+            return scenario.id
 
     def create(self, validated_data):
         validated_data.pop('organization_id', None)
