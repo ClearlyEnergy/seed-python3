@@ -23,6 +23,7 @@ angular.module('BE.seed.controller.inventory_detail', [])
     'inventory_service',
     'matching_service',
     'pairing_service',
+    'certification_service',
     'derived_columns_service',
     'organization_service',
     'dataset_service',
@@ -61,6 +62,7 @@ angular.module('BE.seed.controller.inventory_detail', [])
       inventory_service,
       matching_service,
       pairing_service,
+      certification_service,
       derived_columns_service,
       organization_service,
       dataset_service,
@@ -324,6 +326,10 @@ angular.module('BE.seed.controller.inventory_detail', [])
           'updated'
         ], name);
       };
+
+      /** HELIX add-on to grab certifications and measures **/
+      $scope.certifications = inventory_payload.certifications;
+      $scope.measures = inventory_payload.measures;
 
       // The server provides of *all* extra_data keys (across current state and all historical state)
       // Let's remember this.

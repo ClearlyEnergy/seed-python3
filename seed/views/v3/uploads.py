@@ -99,6 +99,11 @@ class UploadViewSet(viewsets.ViewSet, OrgMixin):
         filename = the_file.name
         path = get_upload_path(filename)
 
+        # todo necessary for non-S3 instances - will likely throw an error when using S3?
+        # verify the directory exists
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
+
         extension = the_file.name.split(".")[-1]
         if extension == "xlsx" or extension == "xls":
             xlrd.xlsx.ensure_elementtree_imported(False, None)
