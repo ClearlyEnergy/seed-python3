@@ -25,6 +25,7 @@ from _csv import Error
 from celery import chain as celery_chain
 from celery import chord, group, shared_task
 from celery.utils.log import get_task_logger
+from django.conf import settings
 from dateutil import parser
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.files.uploadedfile import SimpleUploadedFile
