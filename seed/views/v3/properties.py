@@ -1647,8 +1647,8 @@ def deep_list(request):
 
     user = authenticate(request)
     if user is None:
-        redirect(settings.LOGIN_REDIRECT_URL)
-    login(request, user)
+        return redirect(settings.LOGIN_REDIRECT_URL)
+    login(request, user, backend=user.backend)
     server_url = _get_server_url(request)
 
     organization_ids = Organization.objects.filter(users__id=user.id).values_list('id', flat=True)
