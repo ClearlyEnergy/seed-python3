@@ -22,7 +22,9 @@ from seed.decorators import ajax_request_class
 from seed.hpxml.hpxml import HPXML
 from seed.lib.superperms.orgs.decorators import has_perm_class
 # HELIX add
-from helix.models import HELIXGreenAssessmentProperty
+from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
+from helix.models import HELIXPropertyMeasure as PropertyMeasure
+from helix.models import HelixMeasurement
 from seed.serializers.certification import (
     GreenAssessmentPropertyReadOnlySerializer
 )
