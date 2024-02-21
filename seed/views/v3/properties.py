@@ -21,15 +21,6 @@ from seed.data_importer.utils import kbtu_thermal_conversion_factors
 from seed.decorators import ajax_request_class
 from seed.hpxml.hpxml import HPXML
 from seed.lib.superperms.orgs.decorators import has_perm_class
-# HELIX add
-from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
-from helix.models import HELIXPropertyMeasure as PropertyMeasure
-from helix.models import HelixMeasurement
-from seed.serializers.certification import (
-    GreenAssessmentPropertyReadOnlySerializer
-)
-from seed.serializers.measures import PropertyMeasureReadOnlySerializer
-# HELIX end add
 
 from seed.models import (
     AUDIT_USER_EDIT,
@@ -59,6 +50,17 @@ from seed.models import (
 )
 from seed.models import StatusLabel as Label
 from seed.models import TaxLotProperty, TaxLotView
+
+# HELIX add - note add after SEED model loads
+from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
+from helix.models import HELIXPropertyMeasure as PropertyMeasure
+from helix.models import HelixMeasurement
+from seed.serializers.certification import (
+    GreenAssessmentPropertyReadOnlySerializer
+)
+from seed.serializers.measures import PropertyMeasureReadOnlySerializer
+# HELIX end add
+
 from seed.serializers.pint import PintJSONEncoder
 from seed.serializers.properties import (
     PropertySerializer,
