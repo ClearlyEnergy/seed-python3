@@ -343,7 +343,7 @@ class LocalUploaderViewSet(viewsets.ViewSet):
             rows.append(this_row)
 
         # Then write the actual data out as csv
-        with default_storage.open(request.FILES['file'], 'w', encoding='utf-8') as csv_file:
+        with default_storage.open(path, 'w', encoding='utf-8') as csv_file:
             pm_csv_writer = csv.writer(csv_file)
             for row_num, row in enumerate(rows):
                 pm_csv_writer.writerow(row)
