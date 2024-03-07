@@ -12,6 +12,9 @@ import os
 import re
 from datetime import datetime
 from io import BytesIO, StringIO
+from django.core.files.storage import default_storage
+import boto3
+import tempfile
 
 import xmlschema
 from buildingsync_asset_extractor.processor import BSyncProcessor as BAE
@@ -37,7 +40,7 @@ _log = logging.getLogger(__name__)
 parser = etree.XMLParser(remove_blank_text=True)
 etree.set_default_parser(parser)
 etree.register_namespace('auc', BUILDINGSYNC_URI)
-
+from django.conf import settings
 
 class ParsingError(Exception):
     pass
@@ -75,9 +78,7 @@ class BuildingSync(object):
 
         # save element tree
         if isinstance(source, str):
-            if not os.path.isfile(source):
-                raise ParsingError("File not found: {}".format(source))
-            with open(source) as f:
+            with default_storage.open(source, mode="r+") as f:
                 self.element_tree = etree.parse(f)
         else:
             self.element_tree = etree.parse(source)
@@ -407,7 +408,18 @@ class BuildingSync(object):
         seed_result = self.restructure_mapped_result(result, messages)
 
         # BuildingSync Asset Extractor
-        bae = BAE(self.source_filename)
+        bae = ""
+        if settings.USE_S3:
+            client = boto3.client("s3")
+            bucket = settings.AWS_STORAGE_BUCKET_NAME
+            response = client.get_object(Bucket=bucket, Key=self.source_filename)
+            content = response['Body'].read()
+            temp_file = tempfile.TemporaryFile(mode="wb")
+            temp_file.write(content)
+            temp_file.seek(0)
+            bae = BAE(temp_file.name)
+        else:
+            bae = BAE(self.source_filename)
         bae.extract()
         assets = bae.get_assets()
 
