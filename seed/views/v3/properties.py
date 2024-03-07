@@ -1338,8 +1338,8 @@ class PropertyViewSet(generics.GenericAPIView, viewsets.ViewSet, OrgMixin, Profi
         bs = BuildingSync()
         # Check if there is an existing BuildingSync XML file to merge
         bs_file = property_view.state.building_files.order_by('created').last()
-        if bs_file is not None and os.path.exists(bs_file.file.path):
-            bs.import_file(bs_file.file.path)
+        if bs_file is not None and os.path.exists(bs_file.file.path if settings.USE_S3 is not True else bs_file.file.name):
+            bs.import_file(bs_file.file.path if settings.USE_S3 is not True else bs_file.file.name)
 
         try:
             xml = bs.export_using_profile(property_view.state, column_mapping_profile.mappings)

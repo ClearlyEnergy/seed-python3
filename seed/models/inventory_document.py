@@ -6,6 +6,7 @@ See also https://github.com/seed-platform/seed/main/LICENSE.md
 from django.db import models
 
 from seed.models import Property
+from django.conf import settings
 
 
 class InventoryDocument(models.Model):
@@ -33,7 +34,7 @@ class InventoryDocument(models.Model):
     )
 
     created = models.DateTimeField(auto_now_add=True)
-    file = models.FileField(upload_to="inventory_documents", max_length=500, blank=True, null=True)
+    file = models.FileField(upload_to="media/inventory_documents" if settings.USE_S3 is True else "inventory_documents", max_length=500, blank=True, null=True)
     file_type = models.IntegerField(choices=FILE_TYPES, default=UNKNOWN)
     filename = models.CharField(blank=True, max_length=255)
 

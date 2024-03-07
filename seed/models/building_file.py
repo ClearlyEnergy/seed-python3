@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 import logging
 
 from django.db import models
+from django.conf import settings
 
 from seed.building_sync.building_sync import BuildingSync, ParsingError
 from seed.data_importer.utils import kbtu_thermal_conversion_factors
@@ -57,7 +58,7 @@ class BuildingFile(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     property_state = models.ForeignKey('PropertyState', on_delete=models.CASCADE, related_name='building_files', null=True)
-    file = models.FileField(upload_to="buildingsync_files", max_length=500, blank=True, null=True)
+    file = models.FileField(upload_to="media/buildingsync_files" if settings.USE_S3 is True else "buildingsync_files", max_length=500, blank=True, null=True)
     file_type = models.IntegerField(choices=BUILDING_FILE_TYPES, default=UNKNOWN)
     filename = models.CharField(blank=True, max_length=255)
 
@@ -119,7 +120,7 @@ class BuildingFile(models.Model):
             state_id=property_state.id,
             name='Import Creation',
             description='Creation from Import file.',
-            import_filename=self.file.path,
+            import_filename=self.file.path if not settings.USE_S3 is True else self.file.name,
             record_type=AUDIT_IMPORT
         )
         # set the property_state_id so that we can list the building files by properties
@@ -158,7 +159,11 @@ class BuildingFile(models.Model):
 
         parser = Parser()
         try:
-            parser.import_file(self.file.path)
+            if settings.USE_S3 is True:
+                file_path = self.file.name
+            else:
+                file_path = self.file.path
+            parser.import_file(file_path)
             parser_args = []
             parser_kwargs = {}
             # TODO: use table_mappings for BuildingSync process method
