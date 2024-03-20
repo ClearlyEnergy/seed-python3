@@ -203,6 +203,16 @@ timescaledb-single:
           key: POSTGRES_PASSWORD
     - name: PATRONI_seed_OPTIONS
       value: createdb
+    - name: repo1-s3-key
+      valueFrom:
+        secretKeyRef:
+          name: helix
+          key: AWS_ACCESS_KEY_ID
+    - name: repo1-s3-key-secret
+      valueFrom:
+        secretKeyRef:
+          name: beam
+          key: AWS_SECRET_ACCESS_KEY
   prometheus:
     enabled: true
   podMonitor:
