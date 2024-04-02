@@ -9,5 +9,5 @@ maintainers:
     url: https://clearlyenergy.com
 dependencies:
   - name: timescaledb-single
-    version: "1.0.3"
+    version: "1.0.4"
     repository: https://ClearlyEnergy.github.io/charts/

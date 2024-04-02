@@ -191,7 +191,7 @@ canaries:
 
 timescaledb-single:
   fullnameOverride: helix-db
-  replicaCount: 2
+  replicaCount: 0
   image:
     repository: docker.io/timescale/timescaledb-ha
     tag: pg13.10-ts2.9.3-p1
