@@ -7,7 +7,3 @@ appVersion: "2023-04-20T19-33"
 maintainers:
   - name: ClearlyEnergy
     url: https://clearlyenergy.com
-dependencies:
-  - name: timescaledb-single
-    version: "1.0.4"
-    repository: https://ClearlyEnergy.github.io/charts/
