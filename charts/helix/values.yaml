@@ -29,19 +29,23 @@ tolerations: []
 
 affinity: {}
 
-extraEnv: {}
+extraEnv:
+  - name: POSTGRES_HOST
+    valueFrom: { secretKeyRef: {name: host, key: helix-pguser-helix }}
+  - name: POSTGRES_URL
+    valueFrom: { secretKeyRef: {name: uri, key: helix-pguser-helix }}
+  - name: POSTGRES_PASSWORD
+    valueFrom: { secretKeyRef: {name: password, key: helix-pguser-helix }}
+  - name: POSTGRES_DB
+    valueFrom: { secretKeyRef: {name: dbname, key: helix-pguser-helix }}
+  - name: POSTGRES_PORT
+    valeuFrom: { secretKeyRef: {name: port, key: helix-pguser-helix }}
 
 envFrom:
   - configMapRef:
       name: helix
   - secretRef:
       name: helix
-  # This secret configures the database. If the name is chanegd, it should also
-  # be changed the timescaledb-single.env section. Needs to contain
-  # POSTGRES_USER with the value seed, POSTGRES_PASSWORD, POSTGRES_HOST,
-  # POSTGRES_DB, POSTGRES_PORT, POSTGRES_URL
-  - secretRef:
-      name: helix-databases
 
 helix:
   replicaCount: 1
