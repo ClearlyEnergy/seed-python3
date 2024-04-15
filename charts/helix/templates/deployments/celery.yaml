@@ -42,8 +42,8 @@ spec:
           env:
             - name: REDIS_HOST
               value: {{ include "helix.fullname" . }}-redis:6379
-            {{- range .Values.extraEnv }}
-            {{- toYaml . | nindent 10 }}
+            {{- range tuple .Values.extraEnv }}
+            {{ toYaml . | nindent 12 }}
             {{- end }}
           {{- with .Values.envFrom }}
           envFrom:
