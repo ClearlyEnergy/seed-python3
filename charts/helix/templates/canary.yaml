@@ -10,21 +10,21 @@ spec:
   interval: 30
   kubernetes:
     - name: HELIX
-      namespace:
+      namespaceSelector:
         name: {{ .Release.Namespace }}
       resource:
         name: {{ include "helix.fullname" . }}
       kind: deployment
       ready: true
     - name: HELIX Celery
-      namespace:
+      namespaceSelector:
         name: {{ .Release.Namespace }}
       resource:
         name: {{ include "helix.fullname" . }}-celery
       kind: deployment
       ready: true
     - name: HELIX Redis
-      namespace:
+      namespaceSelector:
         name: {{ .Release.Namespace }}
       resource:
         name: {{ include "helix.fullname" . }}-redis
