@@ -35,6 +35,7 @@ from django.utils import timezone as tz
 from django.utils.timezone import make_naive
 from past.builtins import basestring
 from unidecode import unidecode
+from seed.models.auditlog import AUDIT_USER_EXPORT
 
 from seed.building_sync import validation_client
 from seed.building_sync.building_sync import BuildingSync
@@ -1897,6 +1898,7 @@ def _save_raw_data_create_tasks(file_pk, progress_key):
     else:
         try:
             parser = reader.MCMParser(import_file.local_file)
+            print("Parser in else statement seed/data_importer/tasks.py is:", parser)
         except Exception as e:
             _log.debug(f'Error reading XLSX file: {str(e)}')
             return progress_data.finish_with_error('Failed to parse XLSX file. Please review your import file - all headers should be present and non-numeric.')

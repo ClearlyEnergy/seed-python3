@@ -56,6 +56,26 @@ from .auditlog import AUDIT_IMPORT, DATA_UPDATE_TYPE
 
 _log = logging.getLogger(__name__)
 
+import logging
+import boto3
+from botocore.exceptions import ClientError
+
+
+def create_presigned_url(bucket_name, object_name, expiration=3600):
+    # Generate a presigned URL for the S3 object
+    s3_client = boto3.client('s3', region_name=settings.AWS_DEFAULT_REGION)
+    try:
+        response = s3_client.generate_presigned_url('get_object',
+                                                    Params={'Bucket': bucket_name,
+                                                            'Key': object_name},
+                                                    ExpiresIn=expiration)
+    except ClientError as e:
+        logging.error(e)
+        return None
+
+    # The response contains the presigned URL
+    return response
+
 # Oops! we override a builtin in some of the models
 property_decorator = property
 
@@ -483,7 +503,10 @@ class PropertyState(models.Model):
             filename = file = None
             if log.import_filename:
                 filename = path.basename(log.import_filename)
-                file = settings.MEDIA_URL + '/'.join(log.import_filename.split('/')[-2:])
+                if settings.USE_S3 is True:
+                    file = create_presigned_url(settings.AWS_STORAGE_BUCKET_NAME, log.import_filename)
+                else:
+                    file = settings.MEDIA_URL + '/'.join(log.import_filename.split('/')[-2:])
 
             if filename:
                 # Attempt to remove NamedTemporaryFile suffix

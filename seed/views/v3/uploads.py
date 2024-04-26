@@ -101,8 +101,9 @@ class UploadViewSet(viewsets.ViewSet, OrgMixin):
 
         # todo necessary for non-S3 instances - will likely throw an error when using S3?
         # verify the directory exists
-        if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
+        if settings.USE_S3 is False:
+            if not os.path.exists(os.path.dirname(path)):
+                os.makedirs(os.path.dirname(path))
 
         extension = the_file.name.split(".")[-1]
         if extension == "xlsx" or extension == "xls":
@@ -348,7 +349,7 @@ class UploadViewSet(viewsets.ViewSet, OrgMixin):
             rows.append(this_row)
 
         # Then write the actual data out as csv
-        with open(path, 'w', encoding='utf-8') as csv_file:
+        with default_storage.open(path, 'w') as csv_file:
             pm_csv_writer = csv.writer(csv_file)
             for row_num, row in enumerate(rows):
                 pm_csv_writer.writerow(row)
