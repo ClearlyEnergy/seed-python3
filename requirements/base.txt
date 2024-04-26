@@ -61,7 +61,7 @@ geojson==2.5.0
 # Once a new release > 0.9.0 is released, django-tos will support Django 3 and
 # this can be replaced with django-tos>0.9.0
 -e git+https://github.com/revsys/django-tos.git#egg=django-tos
--e git+https://github.com/ClearlyEnergy/HELIX@update_inventory_detail_html#egg=helix
+-e git+https://github.com/ClearlyEnergy/HELIX.git#egg=helix
 -e git+https://github.com/ClearlyEnergy/helix-hes.git#egg=hes
 zeep==4.2.1
 -e git+https://github.com/ClearlyEnergy/helix-leed.git#egg=leed

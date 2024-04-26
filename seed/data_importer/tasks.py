@@ -1898,7 +1898,6 @@ def _save_raw_data_create_tasks(file_pk, progress_key):
     else:
         try:
             parser = reader.MCMParser(import_file.local_file)
-            print("Parser in else statement seed/data_importer/tasks.py is:", parser)
         except Exception as e:
             _log.debug(f'Error reading XLSX file: {str(e)}')
             return progress_data.finish_with_error('Failed to parse XLSX file. Please review your import file - all headers should be present and non-numeric.')
