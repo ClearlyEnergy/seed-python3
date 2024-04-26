@@ -25,26 +25,7 @@ from seed.utils.api_schema import (
 from seed.utils.time import convert_to_js_timestamp
 
 _log = logging.getLogger(__name__)
-
-import logging
-import boto3
-from botocore.exceptions import ClientError
-
-
-def create_presigned_url(bucket_name, object_name, expiration=3600):
-    # Generate a presigned URL for the S3 object
-    s3_client = boto3.client('s3', region_name=settings.AWS_DEFAULT_REGION)
-    try:
-        response = s3_client.generate_presigned_url('get_object',
-                                                    Params={'Bucket': bucket_name,
-                                                            'Key': object_name},
-                                                    ExpiresIn=expiration)
-    except ClientError as e:
-        logging.error(e)
-        return None
-
-    # The response contains the presigned URL
-    return response
+from seed.utils.presigned_url import create_presigned_url
 
 
 class DatasetViewSet(viewsets.ViewSet, OrgMixin):
@@ -174,7 +155,7 @@ class DatasetViewSet(viewsets.ViewSet, OrgMixin):
                 importfile['name'] = f.uploaded_filename
             
             if settings.USE_S3 is True:
-                importfile['filepath'] = create_presigned_url(settings.AWS_STORAGE_BUCKET_NAME, f.file.name)
+                importfile['filepath'] = create_presigned_url(settings.AWS_STORAGE_BUCKET_NAME, f.file.name, 3600)
             else:
                 importfile['filepath'] = '/api/v3/media/' + '/'.join(f.file.name.split('/')[-2:])
             importfiles.append(importfile)
