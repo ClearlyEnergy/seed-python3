@@ -22,6 +22,7 @@ from seed.models.auditlog import (
 )
 from seed.models.certification import GreenAssessmentPropertyAuditLog
 from seed.tasks import invite_to_organization
+from django.conf import settings
 from seed.utils.api import api_endpoint_class
 from seed.views.v3.organizations import _get_js_role
 
@@ -80,6 +81,11 @@ class OrganizationUserViewSet(viewsets.ViewSet):
 
         created = org.add_member(user)
 
+        if settings.FORCE_SSL_PROTOCOL:
+            protocol = 'https'
+        else:
+            protocol = request.scheme
+
         # Send an email if a new user has been added to the organization
         if created:
             try:
@@ -87,7 +93,7 @@ class OrganizationUserViewSet(viewsets.ViewSet):
             except Exception:
                 domain = 'seed-platform.org'
             invite_to_organization(
-                domain, user, request.user.username, org
+                protocol, domain, user, request.user.username, org
             )
 
         return JsonResponse({'status': 'success'})

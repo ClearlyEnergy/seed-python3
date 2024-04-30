@@ -76,7 +76,7 @@ def landing_page(request):
     else:
         form = LoginForm()
     context = {'self_registration': settings.INCLUDE_ACCT_REG}
-    return render(request, 'landing/oauth_login.html', locals())
+    return render(request, 'landing/login.html', locals())
 
 
 def password_set(request, uidb64=None, token=None):
