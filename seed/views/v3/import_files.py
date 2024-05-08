@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
+from django.conf import settings
 
 from seed.data_importer.meters_parser import MetersParser
 from seed.data_importer.models import ROW_DELIMITER, ImportRecord
@@ -207,9 +208,13 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
             return JsonResponse(resp, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            if settings.USE_S3 is True:
+                filename = import_file.file.name
+            else:
+                filename = import_file.file.path
             has_meter_tab = bool(
                 {'Meter Entries', 'Monthly Usage'}
-                & set(xlrd.open_workbook(import_file.file.path).sheet_names())
+                & set(xlrd.open_workbook(filename).sheet_names())
             )
             return JsonResponse({
                 'status': 'success',
