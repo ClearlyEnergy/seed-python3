@@ -85,6 +85,10 @@ shapely==2.0.1
 usaddress==0.5.10
 -e git+https://github.com/SEED-platform/buildingid.git@f68219df82191563cc2aca818e0b0fa1b32dd52d#egg=pnnl-buildingid
 
+# Temporarily pin NumPy to v1 until shapely is updated to support v2
+# TODO: Update shapely
+numpy<2
+
 oauthlib==2.0.3
 
 # Used by jwt-oauth2
