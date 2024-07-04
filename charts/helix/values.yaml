@@ -81,17 +81,22 @@ helix:
     initialDelaySeconds: 600
     terminationGracePeriodSeconds: 600
   readinessProbe:
+    {}
+    # httpGet:
+    # path: /accounts/login/
+    # port: http
+  startupProbe:
     httpGet:
       path: /accounts/login
       port: http
-    initialDelaySeconds: 600
+    failureThreshold: 30
+    periodSeconds: 10
   autoscaling:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-
 
 ingress:
   enabled: false

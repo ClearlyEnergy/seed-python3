@@ -56,6 +56,8 @@ spec:
             {{- toYaml .Values.helix.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.helix.readinessProbe| nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.helix.startupProbe | nindent 12 }}
           {{- end }}
           resources:
             {{- toYaml .Values.helix.resources | nindent 12 }}
