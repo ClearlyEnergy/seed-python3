@@ -78,13 +78,8 @@ helix:
     httpGet:
       path: /accounts/login
       port: http
-    initialDelaySeconds: 600
-    terminationGracePeriodSeconds: 600
-  readinessProbe:
-    {}
-    # httpGet:
-    # path: /accounts/login/
-    # port: http
+    initialDelaySeconds: 30
+    terminationGracePeriodSeconds: 60
   startupProbe:
     httpGet:
       path: /accounts/login

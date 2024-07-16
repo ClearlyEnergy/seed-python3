@@ -54,8 +54,6 @@ spec:
           {{- if eq .Values.enableProbes true }}
           livenessProbe:
             {{- toYaml .Values.helix.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.helix.readinessProbe| nindent 12 }}
           startupProbe:
             {{- toYaml .Values.helix.startupProbe | nindent 12 }}
           {{- end }}
