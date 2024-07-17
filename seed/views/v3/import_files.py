@@ -1164,10 +1164,10 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @action(detail=True, methods=['POST'])
-    def leed_upload(self, request, pk=None):
-        org = Organization.objects.get(pk=pk)
-
+    @action(detail=False, methods=['POST'])
+    def leed_upload(self, request):
+        org_id = self.get_organization(request)
+        org = Organization.objects.get(pk=org_id)
         return_value = helix_leed_to_file(request.user, org)
         return JsonResponse({
             'progress_key': return_value['progress_key'],
@@ -1177,10 +1177,11 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @action(detail=True, methods=['POST'])
-    def hes_upload(self, request, pk=None):
+    @action(detail=False, methods=['POST'])
+    def hes_upload(self, request):
         body = request.data
-        org = Organization.objects.get(pk=pk)
+        org_id = self.get_organization(request)
+        org = Organization.objects.get(pk=org_id)
         dataset = ImportRecord.objects.get(pk=body.get('dataset', None))
         cycle = Cycle.objects.get(pk=body.get('cycle', None))
 
@@ -1190,10 +1191,11 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
     @api_endpoint_class
     @ajax_request_class
     @has_perm_class('can_modify_data')
-    @action(detail=True, methods=['POST'])
-    def helix_results(self, request, pk=None):
+    @action(detail=False, methods=['POST'])
+    def helix_results(self, request):
         body = request.data
-        org = Organization.objects.get(pk=pk)
+        org_id = self.get_organization(request)
+        org = Organization.objects.get(pk=org_id)
         data_id = body.get('result_id', None)
         dataset = ImportRecord.objects.get(pk=body.get('dataset', None))
         cycle = Cycle.objects.get(pk=body.get('cycle', None))

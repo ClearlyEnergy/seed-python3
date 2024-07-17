@@ -84,7 +84,7 @@ angular.module('BE.seed.service.uploader', []).factory('uploader_service', [
      *
      */
     uploader_factory.start_leed_upload = function (organization_id) {
-      return $http.post('/api/v3/import_files/'+organization_id+'/leed_upload/', {
+      return $http.post('/api/v3/import_files/leed_upload/', {
         organization_id: organization_id,
       }).then(function (response) {
         return response.data;
@@ -96,9 +96,9 @@ angular.module('BE.seed.service.uploader', []).factory('uploader_service', [
      *
      */
     uploader_factory.start_hes_upload = function (organization_id, dataset_id, cycle_id) {
-      return $http.post('/api/v3/import_files/'+organization_id+'/hes_upload/', {
+      return $http.post('/api/v3/import_files/hes_upload/', {
         organization_id: organization_id,
-        dataset: dataset_id, 
+        dataset: dataset_id,
         cycle: cycle_id
       }).then(function (response) {
         return response.data;
@@ -110,7 +110,8 @@ angular.module('BE.seed.service.uploader', []).factory('uploader_service', [
      *
      */
     uploader_factory.get_helix_results = function (organization_id, result_id, dataset_id, cycle_id, source) {
-      return $http.post('/api/v3/import_files/'+organization_id+'/helix_results/', {
+      return $http.post('/api/v3/import_files/helix_results/', {
+        organization_id: organization_id,
         result_id: result_id,
         dataset: dataset_id,
         cycle: cycle_id,
@@ -118,7 +119,7 @@ angular.module('BE.seed.service.uploader', []).factory('uploader_service', [
       }).then(function (response) {
         return response.data;
       });
-    };	
+    };
 
     /**
      * check_progress: gets the progress for saves, maps, and matches
