@@ -6,7 +6,7 @@ See also https://github.com/seed-platform/seed/main/LICENSE.md
 
 from django.core.management.base import BaseCommand
 from seed.data_importer.models import ImportFile
-import botocore
+from botocore.exceptions import ClientError
 
 
 class Command(BaseCommand):
@@ -20,7 +20,7 @@ class Command(BaseCommand):
                     new_file_name = str(f.file.name).replace("/seed/", "")
                     f.file.name = new_file_name
                     f.save()
-            except (botocore.exceptions.ClientError, FileNotFoundError) as error:
+            except (ClientError, FileNotFoundError) as error:
                 print("File not found, not renaming the file:", error)
                 
 
