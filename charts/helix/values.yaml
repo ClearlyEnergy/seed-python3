@@ -79,7 +79,6 @@ helix:
       path: /accounts/login
       port: http
     initialDelaySeconds: 600
-    terminationGracePeriodSeconds: 600
     failureThreshold: 5
     timeoutSeconds: 30
   startupProbe:
