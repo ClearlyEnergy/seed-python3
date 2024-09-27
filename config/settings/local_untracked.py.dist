@@ -48,8 +48,8 @@ GOOGLE_RECAPTCHA_SECRET_KEY = os.environ.get('GOOGLE_RECAPTCHA_SECRET_KEY', '6Le
 #AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
 #AWS_SES_REGION_NAME = 'us-west-2'
 #AWS_SES_REGION_ENDPOINT = 'email.us-west-2.amazonaws.com'
-#SERVER_EMAIL = 'info@seed-platform.org'
-#DEFAULT_FROM_EMAIL = 'info@seed-platform.org'
+#SERVER_EMAIL = 'noreply_helix@neep.org'
+#DEFAULT_FROM_EMAIL = 'noreply_helix@neep.org'
 
 
 # Sentry Configuration (Optional)
