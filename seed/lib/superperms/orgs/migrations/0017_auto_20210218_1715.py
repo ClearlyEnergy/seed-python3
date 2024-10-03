@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='organization',
             name='new_user_email_from',
-            field=models.CharField(default='info@seed-platform.org', max_length=128),
+            field=models.CharField(default='noreply_helix@neep.org', max_length=128),
         ),
         migrations.AddField(
             model_name='organization',

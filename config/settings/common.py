@@ -263,7 +263,7 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 LOG_FILE = os.path.join(BASE_DIR, '../logs/py.log/')
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-SERVER_EMAIL = 'info@seed-platform.org'
+SERVER_EMAIL = 'noreply_helix@neep.org'
 PASSWORD_RESET_EMAIL = SERVER_EMAIL
 DEFAULT_FROM_EMAIL = SERVER_EMAIL
 

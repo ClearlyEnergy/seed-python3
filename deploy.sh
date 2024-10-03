@@ -42,7 +42,7 @@ export AWS_ACCESS_KEY_ID=key
 export AWS_SECRET_ACCESS_KEY=secret_key
 export AWS_SES_REGION_NAME=us-west-2
 export AWS_SES_REGION_ENDPOINT=email.us-west-2.amazonaws.com
-export SERVER_EMAIL=info@seed-platform.org
+export SERVER_EMAIL=noreply_helix@neep.org
 export SENTRY_JS_DSN=https://bcde@sentry.io/123456789
 export SENTRY_RAVEN_DSN=https://abcd:1234@sentry.io/123456789
 arguments
