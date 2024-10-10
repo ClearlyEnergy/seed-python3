@@ -63,7 +63,7 @@ jobs:
           repo: ClearlyEnergy/helix-aws-config
           token: ${{ secrets.ANSIBLE_ACCESS_TOKEN }}
           ref: master
-          inputs: '{ "image": "${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }}", "role": "helix", "host": "helix_staging", "path": "ansible/group_vars/helix_staging/vars.yml" }'
+          inputs: '{ "image": "${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }}", "role": "helix" }'
 
       - name: Trigger Kubernetes Deploy
         uses: benc-uk/workflow-dispatch@v1
