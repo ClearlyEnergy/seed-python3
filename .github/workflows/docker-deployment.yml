@@ -56,15 +56,6 @@ jobs:
           # cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/helix:latest
           # cache-to: type=inline
 
-      - name: Trigger Ansible Image update
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: Replace image tag
-          repo: ClearlyEnergy/helix-aws-config
-          token: ${{ secrets.ANSIBLE_ACCESS_TOKEN }}
-          ref: master
-          inputs: '{ "image": "${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }}", "role": "helix" }'
-
       - name: Trigger Kubernetes Deploy
         uses: benc-uk/workflow-dispatch@v1
         with:
