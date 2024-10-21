@@ -1687,6 +1687,7 @@ def deep_list(request):
         if not sub_qs:
             new_filters = {'state__extra_data__StreetName__icontains': extra_data['StreetName']}
             sub_qs = qs.filter(**new_filters)
+            done_searching = True
 
         if sub_qs:
             qs = sub_qs
