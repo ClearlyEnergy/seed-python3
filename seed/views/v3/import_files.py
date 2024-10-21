@@ -13,6 +13,9 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from django.conf import settings
+from seed.lib.mcm.reader import MCMParser
+import tempfile
+import boto3
 
 from seed.data_importer.meters_parser import MetersParser
 from seed.data_importer.models import ROW_DELIMITER, ImportRecord
@@ -208,14 +211,24 @@ class ImportFileViewSet(viewsets.ViewSet, OrgMixin):
             return JsonResponse(resp, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            temp_file  = tempfile.TemporaryFile()
             if settings.USE_S3 is True:
-                filename = import_file.file.name
+                key = import_file.file.name
+                client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, 
+                                      aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY, 
+                                      region_name=settings.AWS_S3_REGION_NAME)
+                response = client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
+                content = response['Body'].read()
+                temp_file.write(content)
+                temp_file.seek(0)
+                filename = temp_file.read()
             else:
                 filename = import_file.file.path
             has_meter_tab = bool(
                 {'Meter Entries', 'Monthly Usage'}
-                & set(xlrd.open_workbook(filename).sheet_names())
+                & set(xlrd.open_workbook(file_contents=filename).sheet_names() if settings.USE_S3 is True else xlrd.open_workbook(filename).sheet_names())
             )
+            temp_file.close()
             return JsonResponse({
                 'status': 'success',
                 'data': has_meter_tab
