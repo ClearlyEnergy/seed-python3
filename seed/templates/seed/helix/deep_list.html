@@ -121,6 +121,9 @@
   $(document).ready(
       function(){
           var show_data = ($("#disclaimer_count").text() == '0');
+          if (table_list.length == 0 ){
+            show_data = true
+          }
           $("#disclaimer").click(function() {
             if (this.checked || show_data) {
               $("#property_list").show();
