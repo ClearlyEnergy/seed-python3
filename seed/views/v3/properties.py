@@ -1727,6 +1727,7 @@ def deep_list(request):
                        'Tax/Parcel ID': str(p.state.custom_id_1 or ''),
                        'DOE UBID': str(p.state.ubid or '')}
                       for p in qs]
+        table_length = len(table_list)
 
         reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organization_ids,
                                                                   is_reso_certification=True)
@@ -1773,6 +1774,7 @@ def deep_list(request):
         'disclaimer': geo_states,
         'table_columns': ['Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Tax/Parcel ID', 'DOE UBID', 'Certified?', 'Solar?'],
         'table_list': table_list,
+        'table_length': table_length,
         'certification_columns': ['Body', 'Type', 'Rating/Metric', 'Year', 'Estimated Energy Cost', 'URL'],
         'measures_columns': ['Type', 'Size (kw)', 'Year Install', 'Ownership', 'Source', 'Annual (kwh)', 'Annuel Status'],
         'msg': msg,

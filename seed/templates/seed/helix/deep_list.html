@@ -121,8 +121,15 @@
   $(document).ready(
       function(){
           var show_data = ($("#disclaimer_count").text() == '0');
-          if (table_list.length == 0 ){
-            show_data = true
+          var table_length = parseInt("{{ table_length }}")
+          if ( table_length == 1){
+            $("#click-"+table_length).toggleClass('fa-caret-right fa-caret-down');
+            $("#details-"+table_length+"-1").toggle();
+            $("#details-"+table_length+"-2").toggle();
+            $(".details-"+table_length+"-3").toggle();
+            $("#details-"+table_length+"-4").toggle();
+            $("#details-"+table_length+"-5").toggle();
+            $(".details-"+table_length+"-6").toggle();
           }
           $("#disclaimer").click(function() {
             if (this.checked || show_data) {
