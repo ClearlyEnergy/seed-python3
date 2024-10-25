@@ -150,7 +150,6 @@ SEED_URL_APPS = (
 )
 
 
-STATIC_URL = '/static/'
 FILE_UPLOAD_HANDLERS= ["django.core.files.uploadhandler.TemporaryFileUploadHandler"]
 STATIC_ROOT = os.path.join(BASE_DIR, 'collected_static')
 COMPRESS_AUTOPREFIXER_BINARY = 'node_modules/.bin/postcss'
@@ -194,6 +193,7 @@ if USE_S3:
 else:
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     MEDIA_URL = '/api/v3/media/'
+    STATIC_URL = '/static/'
 
 # django-longer-username-and-email
 REQUIRE_UNIQUE_EMAIL = False
