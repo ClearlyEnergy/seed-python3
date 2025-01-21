@@ -43,8 +43,15 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y-%m-%dT%H-%M')" >> $GITHUB_OUTPUT
 
+      - name: Add CodeArtifact variables
+        id: codeartifact
+        run: | 
+          export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain clearlyenergy --domain-owner 870817328084 --query authorizationToken --output text --region us-east-2)
+          echo PIP_EXTRA_INDEX_URL="https://aws:$CODEARTIFACT_AUTH_TOKEN@clearlyenergy-870817328084.d.codeartifact.us-east-2.amazonaws.com/pypi/ClearlyEnergy/simple/" >> $GITHUB_OUTPUT
       - name: Build and Push
         uses: docker/build-push-action@v5
+        env:
+          PIP_EXTRA_INDEX_URL: ${{ steps.codeartifact.outputs.PIP_EXTRA_INDEX_URL }}
         with:
           context: .
           push: true
@@ -53,8 +60,10 @@ jobs:
             ${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }},
             ${{ steps.login-ecr.outputs.registry }}/helix:latest
           labels: ${{ steps.meta.outputs.labels }}
-          # cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/helix:latest
-          # cache-to: type=inline
+          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/helix:latest
+          cache-to: type=inline
+          secret-envs: |
+            PIP_EXTRA_INDEX_URL=PIP_EXTRA_INDEX_URL
 
       - name: Trigger Kubernetes Deploy
         uses: benc-uk/workflow-dispatch@v1
