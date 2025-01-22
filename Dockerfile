@@ -1,3 +1,4 @@
+# syntax = docker/dockerfile:1
 # AUTHOR:           Clay Teeter <teeterc@gmail.com>, Nicholas Long <nicholas.long@nrel.gov>
 # DESCRIPTION:      Image with seed platform and dependencies running in development mode
 # TO_BUILD_AND_RUN: docker-compose build && docker-compose up
@@ -37,7 +38,8 @@ WORKDIR /seed
 COPY ./requirements.txt /seed/requirements.txt
 COPY ./requirements/*.txt /seed/requirements/
 RUN pip uninstall -y enum34
-RUN pip3 install --prefer-binary -r requirements/aws.txt
+RUN --mount=type=secret,id=PIP_EXTRA_INDEX_URL,env=PIP_EXTRA_INDEX_URL \
+    pip3 install --prefer-binary -r requirements/aws.txt
 
 ### Install JavaScript requirements - do this first because they take awhile
 ### and the dependencies will probably change slower than python packages.

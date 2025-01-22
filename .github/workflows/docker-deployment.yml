@@ -45,9 +45,10 @@ jobs:
 
       - name: Add CodeArtifact variables
         id: codeartifact
-        run: | 
+        run: |
           export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain clearlyenergy --domain-owner 870817328084 --query authorizationToken --output text --region us-east-2)
           echo PIP_EXTRA_INDEX_URL="https://aws:$CODEARTIFACT_AUTH_TOKEN@clearlyenergy-870817328084.d.codeartifact.us-east-2.amazonaws.com/pypi/ClearlyEnergy/simple/" >> $GITHUB_OUTPUT
+
       - name: Build and Push
         uses: docker/build-push-action@v5
         env:
