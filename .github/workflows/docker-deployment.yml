@@ -1,6 +1,7 @@
 name: AWS Docker deployment
 
 on:
+  pull_request:
   push:
     branches:
       - "develop"
@@ -45,16 +46,17 @@ jobs:
 
       - name: Add CodeArtifact variables
         id: codeartifact
-        run: | 
+        run: |
           export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain clearlyenergy --domain-owner 870817328084 --query authorizationToken --output text --region us-east-2)
           echo PIP_EXTRA_INDEX_URL="https://aws:$CODEARTIFACT_AUTH_TOKEN@clearlyenergy-870817328084.d.codeartifact.us-east-2.amazonaws.com/pypi/ClearlyEnergy/simple/" >> $GITHUB_OUTPUT
+
       - name: Build and Push
         uses: docker/build-push-action@v5
         env:
           PIP_EXTRA_INDEX_URL: ${{ steps.codeartifact.outputs.PIP_EXTRA_INDEX_URL }}
         with:
           context: .
-          push: true
+          push: false
           tags: >
             ${{ steps.meta.outputs.tags }},
             ${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }},
@@ -67,6 +69,7 @@ jobs:
 
       - name: Trigger Kubernetes Deploy
         uses: benc-uk/workflow-dispatch@v1
+        if: github.event.ref == 'refs/heads/develop' && !github.event.pull_request
         with:
           workflow: Deploy staging image
           repo: ClearlyEnergy/helix-aws-config
