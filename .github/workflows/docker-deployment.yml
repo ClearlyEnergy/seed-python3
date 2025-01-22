@@ -1,7 +1,6 @@
 name: AWS Docker deployment
 
 on:
-  pull_request:
   push:
     branches:
       - "develop"
@@ -56,7 +55,7 @@ jobs:
           PIP_EXTRA_INDEX_URL: ${{ steps.codeartifact.outputs.PIP_EXTRA_INDEX_URL }}
         with:
           context: .
-          push: false
+          push: true
           tags: >
             ${{ steps.meta.outputs.tags }},
             ${{ steps.login-ecr.outputs.registry }}/helix:${{ steps.date.outputs.date }},
@@ -69,7 +68,6 @@ jobs:
 
       - name: Trigger Kubernetes Deploy
         uses: benc-uk/workflow-dispatch@v1
-        if: github.event.ref == 'refs/heads/develop' && !github.event.pull_request
         with:
           workflow: Deploy staging image
           repo: ClearlyEnergy/helix-aws-config
