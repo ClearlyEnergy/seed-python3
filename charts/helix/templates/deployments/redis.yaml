@@ -7,9 +7,6 @@ metadata:
     {{- include "helix.labels" . | nindent 4 }}
     component: redis
 spec:
-  {{- if not .Values.redis.autoscaling.enabled }}
-  replicas: {{ .Values.redis.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "helix.selectorLabels" . | nindent 6 }}
