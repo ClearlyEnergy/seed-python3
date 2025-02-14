@@ -6,6 +6,7 @@ metadata:
   labels:
     {{- include "helix.labels" . | nindent 4 }}
     component: helix
+    app.kubernetes.io/component: helix
 spec:
   {{- if not .Values.helix.autoscaling.enabled }}
   replicas: {{ .Values.helix.replicaCount }}
@@ -14,6 +15,7 @@ spec:
     matchLabels:
       {{- include "helix.selectorLabels" . | nindent 6 }}
       component: helix
+      app.kubernetes.io/component: helix
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -23,6 +25,7 @@ spec:
       labels:
         {{- include "helix.selectorLabels" . | nindent 8 }}
         component: helix
+        app.kubernetes.io/component: helix
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
