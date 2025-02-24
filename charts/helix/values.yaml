@@ -108,6 +108,7 @@ ingress:
   #      - chart-example.local
 
 redis:
+  enabled: true
   replicaCount: 1
   image:
     name: redis

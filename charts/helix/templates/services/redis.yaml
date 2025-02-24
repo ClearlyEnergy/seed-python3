@@ -1,3 +1,4 @@
+{{- if .Values.redis.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -16,3 +17,4 @@ spec:
   selector:
     {{- include "helix.selectorLabels" . | nindent 4 }}
     component: redis
+{{- end }}
