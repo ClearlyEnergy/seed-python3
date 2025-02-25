@@ -40,8 +40,10 @@ spec:
           command:
             - /seed/docker/start_celery_docker.sh
           env:
+            {{- if eq .Values.redis.enabled true }}
             - name: REDIS_HOST
               value: {{ include "helix.fullname" . }}-redis:6379
+            {{- end }}
             - name: WEB_HOST
               value: {{ include "helix.fullname" . }}
             {{- range tuple .Values.extraEnv }}

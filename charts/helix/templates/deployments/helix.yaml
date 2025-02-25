@@ -38,8 +38,10 @@ spec:
           image: "{{ .Values.helix.image.repository }}:{{ .Values.helix.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.helix.image.pullPolicy }}
           env:
+            {{- if eq .Values.redis.enabled true }}
             - name: REDIS_HOST
               value: {{ include "helix.fullname" . }}-redis:6379
+            {{- end }}
             {{- range tuple .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
             {{- end }}
