@@ -6,14 +6,12 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "helix.labels" . | nindent 4 }}
-    component: redis
     app.kubernetes.io/component: redis
 spec:
   replicas: {{ .Values.redis.replicaCount }}
   selector:
     matchLabels:
       {{- include "helix.selectorLabels" . | nindent 6 }}
-      component: redis
       app.kubernetes.io/component: redis
   template:
     metadata:
@@ -23,7 +21,6 @@ spec:
       {{- end }}
       labels:
         {{- include "helix.selectorLabels" . | nindent 8 }}
-        component: redis
         app.kubernetes.io/component: redis
     spec:
       {{- with .Values.imagePullSecrets }}

@@ -5,7 +5,6 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "helix.labels" . | nindent 4 }}
-    component: helix
     app.kubernetes.io/component: helix
 spec:
   {{- if not .Values.helix.autoscaling.enabled }}
@@ -14,7 +13,6 @@ spec:
   selector:
     matchLabels:
       {{- include "helix.selectorLabels" . | nindent 6 }}
-      component: helix
       app.kubernetes.io/component: helix
   template:
     metadata:
@@ -24,7 +22,6 @@ spec:
       {{- end }}
       labels:
         {{- include "helix.selectorLabels" . | nindent 8 }}
-        component: helix
         app.kubernetes.io/component: helix
     spec:
       {{- with .Values.imagePullSecrets }}
