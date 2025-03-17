@@ -190,6 +190,7 @@ if USE_S3:
     MEDIA_ROOT = "media"
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     STATIC_URL = '/static/'
+    AWS_DEFAULT_ACL = None
 else:
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     MEDIA_URL = '/api/v3/media/'
