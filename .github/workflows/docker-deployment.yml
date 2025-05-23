@@ -69,7 +69,7 @@ jobs:
       - name: Trigger Kubernetes Deploy
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: Deploy staging image
+          workflow: Deploy Kubernete staging image
           repo: ClearlyEnergy/helix-aws-config
           token: ${{ secrets.ANSIBLE_ACCESS_TOKEN }}
           ref: master
