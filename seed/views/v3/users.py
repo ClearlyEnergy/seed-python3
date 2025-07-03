@@ -216,7 +216,7 @@ class UserViewSet(viewsets.ViewSet, OrgMixin):
 
         if body.get('role'):
             # check if this is a dict, if so, grab the value out of 'value'
-            role = body['role']['value']
+            role = body['role']
             try:
                 _get_role_from_js(role)
             except Exception:
