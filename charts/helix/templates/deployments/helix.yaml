@@ -16,9 +16,14 @@ spec:
       app.kubernetes.io/component: helix
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- if or (.Values.podAnnotations) (.Values.helix.podAnnotations) }}
       annotations:
-        {{- toYaml . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+         {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.helix.podAnnotations }}
+         {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- end }}
       labels:
         {{- include "helix.selectorLabels" . | nindent 8 }}
