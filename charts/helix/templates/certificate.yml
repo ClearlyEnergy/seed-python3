@@ -1,0 +1,22 @@
+{{- if and (.Values.ingressRoute.enabled) (.Values.ingressRoute.tls) }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "helix.fullname" . }}-tls
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "helix.labels" . | nindent 4 }}
+  {{- with .Values.ingressRoute.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  secretName: {{ .Values.ingressRoute.tls.secretName }}
+  dnsNames:
+    {{- range .Values.ingressRoute.tls.hosts }}
+    - {{ . }}
+    {{- end }}
+  issuerRef:
+    name: {{ .Values.ingressRoute.tls.issuerRef.name }}
+    kind: {{ .Values.ingressRoute.tls.issuerRef.kind }}
+{{- end }}

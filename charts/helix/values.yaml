@@ -109,6 +109,22 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+# Deploy an IngressRoute resource for use with Traefik
+ingressRoute:
+  enabled: false
+  annotations: {}
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`chart-example.local`)
+  #tls:
+  #  secretName: chart-example-tls
+  #  hosts:
+  #    - chart-example.local
+  #  issuerRef:
+  #    name: ingress-ca
+  #    kind: ClusterIssuer
+
 redis:
   enabled: true
   replicaCount: 1
