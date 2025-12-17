@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - "develop"
+    paths-ignore:
+      - "charts/**"
 
 permissions:
   id-token: write
