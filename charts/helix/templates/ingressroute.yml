@@ -23,7 +23,7 @@ spec:
       kind: Rule
       services:
         - name: {{ $fullName }}
-          port: {{ $svcPort }}
+          port: http
       {{- if .middlewares }}
       middlewares:
         {{- range .middlewares }}
